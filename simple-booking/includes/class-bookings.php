@@ -20,7 +20,7 @@ class SB_Bookings {
 	 * Book a free slot. Used by the public form and by the admin.
 	 *
 	 * Optional keys besides the booking fields: 'status' ('pending' or 'confirmed', default pending),
-	 * 'by_admin' (no admin email) and 'notify_customer' (default true).
+	 * 'by_admin' (no admin email), 'notify_customer' (default true), 'series_id' and 'quiet' (no emails).
 	 */
 	public function create_booking( array $data ): int|false {
 		global $wpdb;
@@ -65,6 +65,7 @@ class SB_Bookings {
 				'notes'        => sanitize_textarea_field( $data['notes'] ?? '' ),
 				// Validated answers from SB_Custom_Fields::answers().
 				'custom_fields' => ! empty( $data['custom_fields'] ) ? wp_json_encode( $data['custom_fields'] ) : null,
+				'series_id'     => ! empty( $data['series_id'] ) ? substr( sanitize_key( $data['series_id'] ), 0, 20 ) : null,
 				// Already inside the reminder window: the booking email is reminder enough.
 				'reminder_sent' => SB_Email::inside_reminder_window( $date, "$time:00" ) ? current_time( 'mysql', true ) : null,
 			];
@@ -72,17 +73,80 @@ class SB_Bookings {
 			// booking_code is UNIQUE; retry with a fresh code on the rare collision.
 			for ( $attempt = 0, $inserted = false; ! $inserted && $attempt < 3; $attempt++ ) {
 				$row['booking_code'] = $this->generate_booking_code();
-				$inserted = $wpdb->insert( $this->table_name, $row, [ '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ] );
+				$inserted = $wpdb->insert( $this->table_name, $row, [ '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ] );
 			}
 
 			return $inserted ? (int) $wpdb->insert_id : false;
 		} );
 
-		if ( $booking_id ) {
+		if ( $booking_id && empty( $data['quiet'] ) ) {
 			// Emails go out after the lock is released.
 			( new SB_Email() )->booking_created( $booking_id, ! empty( $data['by_admin'] ), $data['notify_customer'] ?? true );
 		}
 		return $booking_id;
+	}
+
+	/**
+	 * Book the same time every $every_weeks weeks, $count times in total. The first session must
+	 * be free; later ones that aren't are skipped and reported. One set of emails is sent, for the
+	 * first session, listing the whole series ({recurring_details}).
+	 *
+	 * @return array{ids: int[], missed: string[]} booking ids, and the dates that couldn't be booked
+	 */
+	public function create_series( array $data, int $every_weeks, int $count ): array {
+		$series = 'sr' . strtolower( wp_generate_password( 8, false ) );
+		$first  = DateTimeImmutable::createFromFormat( '!Y-m-d', (string) ( $data['booking_date'] ?? '' ), wp_timezone() );
+		$out    = [ 'ids' => [], 'missed' => [] ];
+		if ( ! $first ) {
+			return $out;
+		}
+
+		for ( $i = 0; $i < min( 52, max( 1, $count ) ); $i++ ) {
+			$date = $first->modify( '+' . ( $i * max( 1, $every_weeks ) ) . ' weeks' )->format( 'Y-m-d' );
+			$id   = $this->create_booking( [ 'booking_date' => $date, 'series_id' => $series, 'quiet' => true ] + $data );
+			if ( $id ) {
+				$out['ids'][] = $id;
+			} elseif ( 0 === $i ) {
+				return $out; // The first session decides whether the series is booked at all.
+			} else {
+				$out['missed'][] = $date;
+			}
+		}
+
+		( new SB_Email() )->booking_created( $out['ids'][0], ! empty( $data['by_admin'] ), $data['notify_customer'] ?? true );
+		return $out;
+	}
+
+	/**
+	 * Cancel the pending/confirmed sessions of a series from today on, without emails.
+	 *
+	 * @return int how many were cancelled
+	 */
+	public function cancel_series( string $series_id ): int {
+		global $wpdb;
+		return (int) $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$this->table_name} SET status = 'cancelled'
+				 WHERE series_id = %s AND status IN ('pending', 'confirmed') AND booking_date >= %s",
+				$series_id,
+				wp_date( 'Y-m-d' )
+			)
+		);
+	}
+
+	/**
+	 * Pending and confirmed sessions of a series, in date order.
+	 */
+	public function series_sessions( string $series_id ): array {
+		global $wpdb;
+		return $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id, booking_date, booking_time, status FROM {$this->table_name}
+				 WHERE series_id = %s AND status IN ('pending', 'confirmed') ORDER BY booking_date, booking_time",
+				$series_id
+			),
+			ARRAY_A
+		);
 	}
 
 	/**
@@ -367,7 +431,7 @@ class SB_Bookings {
 		$where = [ '1=1' ];
 		if ( ! empty( $filters['search'] ) ) {
 			$like    = '%' . $wpdb->esc_like( $filters['search'] ) . '%';
-			$where[] = $wpdb->prepare( '(b.booking_code LIKE %s OR c.name LIKE %s OR c.email LIKE %s)', $like, $like, $like );
+			$where[] = $wpdb->prepare( '(b.booking_code LIKE %s OR c.name LIKE %s OR c.email LIKE %s OR b.series_id = %s)', $like, $like, $like, $filters['search'] );
 		}
 		if ( ! empty( $filters['status'] ) ) {
 			$where[] = $wpdb->prepare( 'b.status = %s', $filters['status'] );

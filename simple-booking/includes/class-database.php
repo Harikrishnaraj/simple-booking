@@ -97,6 +97,7 @@ class SB_Database {
 			status varchar(20) NOT NULL DEFAULT 'pending',
 			notes text NULL,
 			custom_fields text NULL,
+			series_id varchar(20) NULL,
 			reminder_sent datetime NULL,
 			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
 			PRIMARY KEY  (id),
@@ -104,7 +105,8 @@ class SB_Database {
 			KEY service_id (service_id),
 			KEY staff_id (staff_id),
 			KEY customer_id (customer_id),
-			KEY date_staff (booking_date,staff_id)
+			KEY date_staff (booking_date,staff_id),
+			KEY series_id (series_id)
 		) $charset_collate;";
 
 		dbDelta( $sql_services );

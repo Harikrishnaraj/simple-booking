@@ -89,7 +89,12 @@ $filtered  = (bool) array_filter( $filters );
 					<tbody>
 						<?php foreach ( $bookings as $b ) : ?>
 							<tr>
-								<td><code translate="no"><?php echo esc_html( $b['booking_code'] ); ?></code></td>
+								<td>
+									<code translate="no"><?php echo esc_html( $b['booking_code'] ); ?></code>
+									<?php if ( ! empty( $b['series_id'] ) ) : ?>
+										<br><a class="sb-link sb-series" href="<?php echo esc_url( add_query_arg( 's', $b['series_id'], $page_url ) ); ?>"><span class="dashicons dashicons-update" aria-hidden="true"></span><?php esc_html_e( 'Series', 'simple-booking' ); ?></a>
+									<?php endif; ?>
+								</td>
 								<td>
 									<strong><?php echo esc_html( mysql2date( get_option( 'date_format' ), $b['booking_date'] ) ); ?></strong><br>
 									<span class="sb-muted"><?php echo esc_html( substr( $b['booking_time'], 0, 5 ) . '–' . substr( $b['end_time'], 0, 5 ) ); ?></span>
@@ -123,6 +128,10 @@ $filtered  = (bool) array_filter( $filters );
 									</select>
 								</td>
 								<td class="sb-actions">
+									<?php if ( ! empty( $b['series_id'] ) && in_array( $b['status'], [ 'pending', 'confirmed' ], true ) ) : ?>
+										<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-delete="sb_cancel_series" data-id="<?php echo esc_attr( $b['series_id'] ); ?>"
+											data-sb-confirm="<?php esc_attr_e( 'Cancel all upcoming sessions in this series? The customer is not emailed.', 'simple-booking' ); ?>"><?php esc_html_e( 'Cancel series', 'simple-booking' ); ?></button>
+									<?php endif; ?>
 									<?php if ( in_array( $b['status'], [ 'pending', 'confirmed' ], true ) ) : ?>
 										<button type="button" class="sb-button sb-button--ghost sb-button--small" data-sb-open="sb-reschedule-dialog"
 											data-sb-fill="<?php echo esc_attr( wp_json_encode( [

@@ -4,7 +4,7 @@ Tags: booking, appointment, salon, clinic, scheduling, shortcode
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 8.0
-Stable tag: 1.8.0
+Stable tag: 1.9.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,6 +23,12 @@ Simple Booking allows business owners (salons, clinics, consultants, personal tr
 Simply insert the shortcode `[simple_booking]` into any page, post, or widget area.
 
 == Changelog ==
+= 1.9.0 =
+* Recurring appointments: in the admin "Book appointment" dialog choose Repeat (every week, 2 weeks or 4 weeks) and the number of sessions. Dates that aren't free are skipped and listed.
+* The customer gets one email for the whole series; {recurring_details} lists all sessions (included in the default booking and confirmation emails).
+* Bookings page: a "Series" link on each session shows the whole series, and "Cancel series" cancels its upcoming sessions.
+* New column `bookings.series_id` (added automatically on update).
+
 = 1.8.0 =
 * Locations (Simple Booking → Locations): name, address and phone. Assign each staff member to a location.
 * With two or more active locations the booking form asks "Location" first and only offers staff (and "any available" times) at that location.

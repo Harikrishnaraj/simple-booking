@@ -341,15 +341,42 @@ class SB_Admin_Controller {
 		$free     = $bookings->get_available_slots( $data['service_id'], $data['staff_id'] ?: null, $data['booking_date'] );
 		// Only save a new customer once the time is known to be free.
 		$customer_id = in_array( $data['booking_time'], $free, true ) ? ( new SB_Customers() )->find_or_create( $data['name'], $data['email'], $data['phone'] ) : 0;
-		$booking_id  = $customer_id ? $bookings->create_booking( [
+		$args = [
 			'customer_id'     => $customer_id,
 			'status'          => sanitize_key( $post['status'] ?? '' ),
 			'by_admin'        => true,
 			'notify_customer' => ! empty( $post['notify'] ),
-		] + $data ) : false;
+		] + $data;
+
+		$every = absint( $post['repeat_weeks'] ?? 0 );
+		$count = absint( $post['repeat_count'] ?? 1 );
+		if ( $customer_id && $every && $count > 1 ) {
+			$series = $bookings->create_series( $args, $every, $count );
+			if ( ! $series['ids'] ) {
+				wp_send_json_error( [ 'message' => __( 'That time is no longer free. Please pick another.', 'simple-booking' ) ], 409 );
+			}
+			$message = $series['missed']
+				? sprintf(
+					/* translators: 1: sessions booked, 2: list of dates */
+					__( '%1$d sessions booked. These dates were not free and were skipped: %2$s', 'simple-booking' ),
+					count( $series['ids'] ),
+					implode( ', ', array_map( fn( $d ) => mysql2date( get_option( 'date_format' ), $d ), $series['missed'] ) )
+				)
+				: '';
+			wp_send_json_success( [ 'ids' => $series['ids'], 'message' => $message ] );
+		}
+
+		$booking_id = $customer_id ? $bookings->create_booking( $args ) : false;
 		$booking_id
 			? wp_send_json_success( [ 'id' => $booking_id ] )
 			: wp_send_json_error( [ 'message' => __( 'That time is no longer free. Please pick another.', 'simple-booking' ) ], 409 );
+	}
+
+	public function ajax_cancel_series(): void {
+		$post = $this->guard();
+		$n    = ( new SB_Bookings() )->cancel_series( sanitize_key( $post['id'] ?? '' ) );
+		/* translators: %d: number of sessions */
+		wp_send_json_success( [ 'message' => sprintf( _n( '%d upcoming session cancelled.', '%d upcoming sessions cancelled.', $n, 'simple-booking' ), $n ) ] );
 	}
 
 	public function ajax_admin_reschedule(): void {
