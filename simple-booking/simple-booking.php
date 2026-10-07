@@ -3,7 +3,7 @@
  * Plugin Name:       Simple Booking
  * Plugin URI:        https://simplebookingplugin.com/
  * Description:       A lightweight, commercial-grade WordPress booking plugin for salons, clinics, consultants, and service providers.
- * Version:           2.1.0
+ * Version:           2.2.0
  * Author:            Simple Booking Team
  * Author URI:        https://simplebookingplugin.com/
  * License:           GPL-2.0+
@@ -22,7 +22,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Define Plugin Constants.
  */
-define( 'SB_VERSION', '2.1.0' );
+define( 'SB_VERSION', '2.2.0' );
 define( 'SB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SB_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -41,6 +41,7 @@ require_once SB_PLUGIN_DIR . 'includes/class-categories.php';
 require_once SB_PLUGIN_DIR . 'includes/class-locations.php';
 require_once SB_PLUGIN_DIR . 'includes/class-pricing.php';
 require_once SB_PLUGIN_DIR . 'includes/class-payments.php';
+require_once SB_PLUGIN_DIR . 'includes/class-events.php';
 require_once SB_PLUGIN_DIR . 'includes/class-staff.php';
 require_once SB_PLUGIN_DIR . 'includes/class-customers.php';
 require_once SB_PLUGIN_DIR . 'includes/class-bookings.php';
@@ -142,6 +143,9 @@ final class Simple_Booking {
 		$this->loader->add_action( 'wp_ajax_sb_save_location', $admin, 'ajax_save_location' );
 		$this->loader->add_action( 'wp_ajax_sb_save_extra', $admin, 'ajax_save_extra' );
 		$this->loader->add_action( 'wp_ajax_sb_add_payment', $admin, 'ajax_add_payment' );
+		$this->loader->add_action( 'wp_ajax_sb_save_event', $admin, 'ajax_save_event' );
+		$this->loader->add_action( 'wp_ajax_sb_cancel_event', $admin, 'ajax_cancel_event' );
+		$this->loader->add_action( 'wp_ajax_sb_cancel_registration', $admin, 'ajax_cancel_registration' );
 		$this->loader->add_action( 'wp_ajax_sb_delete_payment', $admin, 'ajax_delete_payment' );
 		$this->loader->add_action( 'admin_post_sb_export_payments', $admin, 'export_payments' );
 		$this->loader->add_action( 'wp_ajax_sb_delete_extra', $admin, 'ajax_delete_extra' );
@@ -185,6 +189,8 @@ final class Simple_Booking {
 		
 		$this->loader->add_action( 'wp_ajax_sb_submit_booking', $public, 'ajax_submit_booking' );
 		$this->loader->add_action( 'wp_ajax_sb_quote', $public, 'ajax_quote' );
+		$this->loader->add_action( 'wp_ajax_sb_event_register', $public, 'ajax_event_register' );
+		$this->loader->add_action( 'wp_ajax_nopriv_sb_event_register', $public, 'ajax_event_register' );
 		// Invoice: admins (nonce) or the customer (signed link).
 		$this->loader->add_action( 'admin_post_sb_invoice', $public, 'render_invoice' );
 		$this->loader->add_action( 'admin_post_nopriv_sb_invoice', $public, 'render_invoice' );

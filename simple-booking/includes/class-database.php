@@ -21,6 +21,8 @@ class SB_Database {
 		$table_locations  = $wpdb->prefix . 'sb_locations';
 		$table_coupons    = $wpdb->prefix . 'sb_coupons';
 		$table_payments   = $wpdb->prefix . 'sb_payments';
+		$table_events     = $wpdb->prefix . 'sb_events';
+		$table_event_regs = $wpdb->prefix . 'sb_event_registrations';
 
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 
@@ -80,6 +82,38 @@ class SB_Database {
 			PRIMARY KEY  (id),
 			KEY booking_id (booking_id),
 			KEY paid_at (paid_at)
+		) $charset_collate;";
+
+		// Group events with limited places, and their registrations
+		$sql_events = "CREATE TABLE $table_events (
+			id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			name varchar(191) NOT NULL,
+			description text NULL,
+			event_date date NOT NULL,
+			start_time time NOT NULL,
+			end_time time NOT NULL,
+			capacity int(11) NOT NULL DEFAULT 1,
+			price decimal(10,2) NOT NULL DEFAULT 0.00,
+			location_id bigint(20) UNSIGNED NULL,
+			staff_id bigint(20) UNSIGNED NULL,
+			status varchar(20) NOT NULL DEFAULT 'active',
+			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+			PRIMARY KEY  (id),
+			KEY event_date (event_date)
+		) $charset_collate;";
+
+		$sql_event_regs = "CREATE TABLE $table_event_regs (
+			id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			event_id bigint(20) UNSIGNED NOT NULL,
+			customer_id bigint(20) UNSIGNED NOT NULL,
+			spots int(11) NOT NULL DEFAULT 1,
+			code varchar(50) NOT NULL,
+			total decimal(10,2) NOT NULL DEFAULT 0.00,
+			status varchar(20) NOT NULL DEFAULT 'registered',
+			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY code (code),
+			KEY event_id (event_id)
 		) $charset_collate;";
 
 		// Service categories (services.category_id; NULL = uncategorized)
@@ -153,6 +187,8 @@ class SB_Database {
 		dbDelta( $sql_locations );
 		dbDelta( $sql_coupons );
 		dbDelta( $sql_payments );
+		dbDelta( $sql_events );
+		dbDelta( $sql_event_regs );
 		dbDelta( $sql_staff );
 		dbDelta( $sql_customers );
 		dbDelta( $sql_bookings );

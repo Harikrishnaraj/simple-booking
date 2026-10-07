@@ -325,7 +325,8 @@ class SB_Bookings {
 	}
 
 	/**
-	 * Pending/confirmed bookings on a date, optionally leaving one out.
+	 * Pending/confirmed bookings on a date, optionally leaving one out, plus active events with a
+	 * host (the host is busy for their duration).
 	 */
 	private function active_on( string $date, ?int $exclude_id = null ): array {
 		global $wpdb;
@@ -336,7 +337,13 @@ class SB_Bookings {
 			),
 			ARRAY_A
 		);
-		return $exclude_id ? array_values( array_filter( $rows, fn( $r ) => (int) $r['id'] !== $exclude_id ) ) : $rows;
+		$rows = $exclude_id ? array_values( array_filter( $rows, fn( $r ) => (int) $r['id'] !== $exclude_id ) ) : $rows;
+		foreach ( class_exists( 'SB_Events' ) ? ( new SB_Events() )->on( $date, $date ) : [] as $event ) {
+			if ( $event['staff_id'] ) {
+				$rows[] = [ 'id' => 0, 'booking_time' => $event['start_time'], 'end_time' => $event['end_time'], 'staff_id' => (string) $event['staff_id'] ];
+			}
+		}
+		return $rows;
 	}
 
 	/**

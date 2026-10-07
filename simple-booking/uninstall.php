@@ -36,6 +36,8 @@ $tables = [
 	$wpdb->prefix . 'sb_locations',
 	$wpdb->prefix . 'sb_coupons',
 	$wpdb->prefix . 'sb_payments',
+	$wpdb->prefix . 'sb_events',
+	$wpdb->prefix . 'sb_event_registrations',
 	$wpdb->prefix . 'sb_settings', // no longer created; dropped for installs from 1.0.0
 ];
 

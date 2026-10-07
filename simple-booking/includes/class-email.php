@@ -122,17 +122,61 @@ class SB_Email {
 	 * Send one template to $to with sample or real booking data, ignoring its on/off switch.
 	 */
 	public function send_test( string $key, string $to, ?int $booking_id = null ): bool {
+		if ( str_contains( $key, 'event_' ) ) {
+			$start = time() + WEEK_IN_SECONDS;
+			return $this->send_values( $key, $to, $this->event_values(
+				[ 'name' => __( 'Sample Workshop', 'simple-booking' ), 'event_date' => wp_date( 'Y-m-d', $start ), 'start_time' => '10:00:00', 'end_time' => '12:00:00' ],
+				[ 'customer_name' => __( 'Sample Customer', 'simple-booking' ), 'customer_email' => 'customer@example.com', 'customer_phone' => '', 'total' => 100, 'code' => 'EV-SAMPLE', 'spots' => 2 ]
+			), true );
+		}
 		$data = $booking_id ? $this->get_booking_data( $booking_id ) : null;
 		$data = $data ?: $this->sample_data();
 		return $this->send( $key, $to, $data, true );
 	}
 
+	/**
+	 * Event registration emails: to the attendee ('event_registered' or 'event_cancelled'), and to
+	 * the admin for new registrations.
+	 */
+	public function event_registration( array $event, array $registration, string $template ): void {
+		$values = $this->event_values( $event, $registration );
+		$this->send_values( $template, (string) $registration['customer_email'], $values );
+		if ( 'event_registered' === $template ) {
+			$this->send_values( 'admin_event_registered', (string) SB_Settings::get_settings()['admin_email'], $values );
+		}
+	}
+
+	private function event_values( array $e, array $r ): array {
+		$empty = array_fill_keys( array_keys( SB_Notifications::placeholders() ), '' );
+		return [
+			'{customer_name}'    => (string) $r['customer_name'],
+			'{customer_email}'   => (string) $r['customer_email'],
+			'{customer_phone}'   => (string) $r['customer_phone'],
+			'{event_name}'       => (string) $e['name'],
+			'{service_name}'     => (string) $e['name'],
+			'{staff_name}'       => (string) ( $e['staff_name'] ?? '' ),
+			'{booking_date}'     => mysql2date( get_option( 'date_format' ), $e['event_date'] ),
+			'{booking_time}'     => substr( (string) $e['start_time'], 0, 5 ),
+			'{end_time}'         => substr( (string) $e['end_time'], 0, 5 ),
+			'{price}'            => (float) $r['total'] > 0 ? sb_price( $r['total'] ) : __( 'Free', 'simple-booking' ),
+			'{booking_code}'     => (string) $r['code'],
+			'{spots}'            => (string) (int) $r['spots'],
+			'{location_name}'    => (string) ( $e['location_name'] ?? '' ),
+			'{location_address}' => preg_replace( '/\s*\R\s*/', ', ', trim( (string) ( $e['location_address'] ?? '' ) ) ),
+			'{business_name}'    => (string) SB_Settings::get_settings()['business_name'],
+		] + $empty;
+	}
+
 	private function send( string $key, string $to, array $data, bool $force = false ): bool {
+		return $this->send_values( $key, $to, $this->placeholder_values( $data ), $force );
+	}
+
+	private function send_values( string $key, string $to, array $values, bool $force = false ): bool {
 		$template = SB_Notifications::get( $key );
 		if ( ( ! $force && empty( $template['enabled'] ) ) || ! is_email( $to ) ) {
 			return false;
 		}
-		$email = SB_Notifications::render( $template, $this->placeholder_values( $data ) );
+		$email = SB_Notifications::render( $template, $values );
 		return wp_mail( $to, $email['subject'], $this->layout( $email['html'] ), [ 'Content-Type: text/html; charset=UTF-8' ] );
 	}
 
@@ -169,6 +213,8 @@ class SB_Email {
 			'{recurring_details}' => $this->series_text( (string) ( $d['series_id'] ?? '' ) ),
 			'{manage_link}'    => isset( $d['id'] ) ? SB_Manage::url( $d ) : home_url( '/' ),
 			'{change}'         => (string) ( $d['change'] ?? '' ),
+			'{event_name}'     => '',
+			'{spots}'          => '',
 			'{business_name}'  => (string) SB_Settings::get_settings()['business_name'],
 			'{location_name}'  => (string) ( $d['location_name'] ?? '' ),
 			'{location_address}' => preg_replace( '/\s*\R\s*/', ', ', trim( (string) ( $d['location_address'] ?? '' ) ) ),

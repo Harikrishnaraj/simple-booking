@@ -16,6 +16,7 @@ class SB_Admin_Controller {
 		add_submenu_page( 'sb-dashboard', __( 'Calendar', 'simple-booking' ), __( 'Calendar', 'simple-booking' ), $cap, 'sb-calendar', [ $this, 'render_calendar' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Bookings', 'simple-booking' ), __( 'Bookings', 'simple-booking' ), $cap, 'sb-bookings', [ $this, 'render_bookings' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Finance', 'simple-booking' ), __( 'Finance', 'simple-booking' ), $cap, 'sb-finance', [ $this, 'render_finance' ] );
+		add_submenu_page( 'sb-dashboard', __( 'Events', 'simple-booking' ), __( 'Events', 'simple-booking' ), $cap, 'sb-events', [ $this, 'render_events' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Customers', 'simple-booking' ), __( 'Customers', 'simple-booking' ), $cap, 'sb-customers', [ $this, 'render_customers' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Services', 'simple-booking' ), __( 'Services', 'simple-booking' ), $cap, 'sb-services', [ $this, 'render_services' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Locations', 'simple-booking' ), __( 'Locations', 'simple-booking' ), $cap, 'sb-locations', [ $this, 'render_locations' ] );
@@ -48,6 +49,9 @@ class SB_Admin_Controller {
 				'pickDate'      => __( 'Pick a date first', 'simple-booking' ),
 				'delete'        => __( 'Delete', 'simple-booking' ),
 				'confirmDeletePayment' => __( 'Delete this payment record?', 'simple-booking' ),
+				'cancel'               => __( 'Cancel', 'simple-booking' ),
+				'cancelled'            => __( 'Cancelled', 'simple-booking' ),
+				'confirmCancelRegistration' => __( 'Cancel this registration? The person is emailed.', 'simple-booking' ),
 				'loadingTimes'  => __( 'Loading free times…', 'simple-booking' ),
 				'noTimes'       => __( 'No free times on this day', 'simple-booking' ),
 				'testSent'      => __( 'Test email sent to %s.', 'simple-booking' ),
@@ -118,6 +122,15 @@ class SB_Admin_Controller {
 			'staff_id'   => $staff_id,
 			'staff'      => ( new SB_Staff() )->get_all( 'all' ),
 			'bookings'   => ( new SB_Reports() )->bookings_by_day( $grid_start->format( 'Y-m-d' ), $grid_end->format( 'Y-m-d' ), $staff_id ?: null ),
+			// Events by day; with a staff filter, only events they host.
+			'events'     => array_reduce(
+				array_filter( ( new SB_Events() )->on( $grid_start->format( 'Y-m-d' ), $grid_end->format( 'Y-m-d' ) ), fn( $e ) => ! $staff_id || (int) $e['staff_id'] === $staff_id ),
+				function ( $by_day, $e ) {
+					$by_day[ $e['event_date'] ][] = $e;
+					return $by_day;
+				},
+				[]
+			),
 			'work_days'  => (array) SB_Settings::get_settings()['work_days'],
 			'page_url'   => admin_url( 'admin.php?page=sb-calendar' ),
 			'theme'      => $this->theme(),
@@ -252,6 +265,50 @@ class SB_Admin_Controller {
 		wp_send_json_success( [
 			'message' => $locations->get_by_id( $id ) ? __( 'This location has bookings, so it was deactivated instead of deleted.', 'simple-booking' ) : '',
 		] );
+	}
+
+	public function render_events(): void {
+		$events    = new SB_Events();
+		$list      = $events->get_all();
+		$attendees = [];
+		foreach ( $list as $e ) {
+			$attendees[ $e['id'] ] = $events->registrations( (int) $e['id'] );
+		}
+		sb_view( 'admin/views/events', [
+			'events'    => $list,
+			'attendees' => $attendees,
+			'locations' => ( new SB_Locations() )->get_all(),
+			'staff'     => ( new SB_Staff() )->get_all(),
+			'theme'     => $this->theme(),
+		] );
+	}
+
+	public function ajax_save_event(): void {
+		$post  = $this->guard();
+		$error = ( new SB_Events() )->save( absint( $post['id'] ?? 0 ), $post );
+		'' === $error ? wp_send_json_success() : wp_send_json_error( [ 'message' => $error ], 422 );
+	}
+
+	public function ajax_cancel_event(): void {
+		$id     = absint( $this->guard()['id'] ?? 0 );
+		$events = new SB_Events();
+		$event  = $events->get_by_id( $id );
+		$mailer = new SB_Email();
+		foreach ( $event ? $events->cancel( $id ) : [] as $registration ) {
+			$mailer->event_registration( $event, $registration, 'event_cancelled' );
+		}
+		wp_send_json_success();
+	}
+
+	public function ajax_cancel_registration(): void {
+		$id           = absint( $this->guard()['id'] ?? 0 );
+		$events       = new SB_Events();
+		$registration = $events->registration( $id );
+		if ( ! $registration || ! $events->cancel_registration( $id ) ) {
+			wp_send_json_error( [ 'message' => __( 'Could not cancel the registration.', 'simple-booking' ) ], 409 );
+		}
+		( new SB_Email() )->event_registration( (array) $events->get_by_id( (int) $registration['event_id'] ), $registration, 'event_cancelled' );
+		wp_send_json_success();
 	}
 
 	public function render_finance(): void {
