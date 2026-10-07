@@ -60,12 +60,14 @@ class SB_Bookings {
 				'end_time'     => $end_time,
 				'status'       => 'pending',
 				'notes'        => sanitize_textarea_field( $data['notes'] ?? '' ),
+				// Already inside the reminder window: the booking email is reminder enough.
+				'reminder_sent' => SB_Email::inside_reminder_window( $date, "$time:00" ) ? current_time( 'mysql', true ) : null,
 			];
 
 			// booking_code is UNIQUE; retry with a fresh code on the rare collision.
 			for ( $attempt = 0, $inserted = false; ! $inserted && $attempt < 3; $attempt++ ) {
 				$row['booking_code'] = $this->generate_booking_code();
-				$inserted = $wpdb->insert( $this->table_name, $row, [ '%s', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s' ] );
+				$inserted = $wpdb->insert( $this->table_name, $row, [ '%s', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s' ] );
 			}
 
 			if ( ! $inserted ) {
@@ -77,10 +79,8 @@ class SB_Bookings {
 			$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
 		}
 
-		// Dispatch Email Notifications (outside the lock)
-		$mailer = new SB_Email();
-		$mailer->send_customer_confirmation( $booking_id );
-		$mailer->send_admin_notification( $booking_id );
+		// Emails go out after the lock is released.
+		( new SB_Email() )->booking_created( $booking_id );
 
 		return $booking_id;
 	}
@@ -210,7 +210,7 @@ class SB_Bookings {
 		);
 
 		if ( $updated ) {
-			( new SB_Email() )->send_status_update( $id, $status );
+			( new SB_Email() )->status_changed( $id, $status );
 		}
 
 		return false !== $updated;

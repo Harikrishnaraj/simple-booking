@@ -3,7 +3,7 @@
  * Plugin Name:       Simple Booking
  * Plugin URI:        https://simplebookingplugin.com/
  * Description:       A lightweight, commercial-grade WordPress booking plugin for salons, clinics, consultants, and service providers.
- * Version:           1.2.0
+ * Version:           1.3.0
  * Author:            Simple Booking Team
  * Author URI:        https://simplebookingplugin.com/
  * License:           GPL-2.0+
@@ -22,7 +22,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Define Plugin Constants.
  */
-define( 'SB_VERSION', '1.2.0' );
+define( 'SB_VERSION', '1.3.0' );
 define( 'SB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SB_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -42,6 +42,7 @@ require_once SB_PLUGIN_DIR . 'includes/class-staff.php';
 require_once SB_PLUGIN_DIR . 'includes/class-customers.php';
 require_once SB_PLUGIN_DIR . 'includes/class-bookings.php';
 require_once SB_PLUGIN_DIR . 'includes/class-settings.php';
+require_once SB_PLUGIN_DIR . 'includes/class-notifications.php';
 require_once SB_PLUGIN_DIR . 'includes/class-email.php';
 require_once SB_PLUGIN_DIR . 'includes/class-reports.php';
 require_once SB_PLUGIN_DIR . 'admin/controllers/class-admin-controller.php';
@@ -83,6 +84,7 @@ final class Simple_Booking {
 		$this->maybe_upgrade_db();
 		$this->define_admin_hooks();
 		$this->define_public_hooks();
+		$this->define_cron_hooks();
 		$this->loader->run();
 	}
 
@@ -130,6 +132,21 @@ final class Simple_Booking {
 		$this->loader->add_action( 'wp_ajax_sb_save_theme', $admin, 'ajax_save_theme' );
 		$this->loader->add_action( 'wp_ajax_sb_save_category', $admin, 'ajax_save_category' );
 		$this->loader->add_action( 'wp_ajax_sb_delete_category', $admin, 'ajax_delete_category' );
+		$this->loader->add_action( 'wp_ajax_sb_save_template', $admin, 'ajax_save_template' );
+		$this->loader->add_action( 'wp_ajax_sb_test_template', $admin, 'ajax_test_template' );
+	}
+
+	/**
+	 * Hourly reminder emails. Scheduled here as well as on activation, because
+	 * activation hooks don't run when the plugin is updated.
+	 */
+	private function define_cron_hooks(): void {
+		add_action( SB_Email::REMINDER_HOOK, fn() => ( new SB_Email() )->send_reminders() );
+		add_action( 'init', function() {
+			if ( ! wp_next_scheduled( SB_Email::REMINDER_HOOK ) ) {
+				wp_schedule_event( time() + MINUTE_IN_SECONDS, 'hourly', SB_Email::REMINDER_HOOK );
+			}
+		} );
 	}
 
 	/**
@@ -150,9 +167,10 @@ final class Simple_Booking {
 }
 
 /**
- * Activation hook. Nothing needs cleaning up on deactivation; data removal lives in uninstall.php.
+ * Activation hook. Deactivation only stops the reminder cron; data removal lives in uninstall.php.
  */
 register_activation_hook( __FILE__, array( 'SB_Activator', 'activate' ) );
+register_deactivation_hook( __FILE__, fn() => wp_clear_scheduled_hook( SB_Email::REMINDER_HOOK ) );
 
 /**
  * Initialize Plugin.

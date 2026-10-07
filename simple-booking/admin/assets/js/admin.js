@@ -181,4 +181,45 @@
 		});
 		mediaFrame.open();
 	});
+
+	// Notifications: placeholder chips insert at the cursor of the last focused subject/message field.
+	let placeholderTarget = null;
+	document.addEventListener('focusin', (e) => {
+		if (e.target.matches('[data-sb-placeholder-target]')) {
+			placeholderTarget = e.target;
+		}
+	});
+	document.addEventListener('click', async (e) => {
+		const chip = e.target.closest('[data-sb-insert]');
+		if (chip) {
+			const field = placeholderTarget || chip.form.elements.body;
+			const start = field.selectionStart ?? field.value.length;
+			const end = field.selectionEnd ?? start;
+			field.setRangeText(chip.dataset.sbInsert, start, end, 'end');
+			field.focus();
+			return;
+		}
+
+		// Save the template, then email the saved version to the current admin.
+		const test = e.target.closest('[data-sb-test-template]');
+		if (!test) {
+			return;
+		}
+		const form = test.form;
+		if (!form.reportValidity()) {
+			return;
+		}
+		test.disabled = true;
+		try {
+			await post('sb_save_template', new FormData(form));
+			const data = new FormData();
+			data.append('key', form.elements.key.value);
+			const res = await post('sb_test_template', data);
+			window.alert(cfg.i18n.testSent.replace('%s', res.to));
+		} catch (err) {
+			window.alert(err.message);
+		} finally {
+			test.disabled = false;
+		}
+	});
 })();

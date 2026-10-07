@@ -24,7 +24,10 @@ function is_wp_error( $v ) { return $v instanceof WP_Error; }
 function rest_sanitize_boolean( $v ) { return in_array( strtolower( (string) $v ), [ '1', 'true', 'yes', 'on' ], true ) || true === $v; }
 
 class SB_Services { function get_by_id( $id ) { return $GLOBALS['services'][ $id ] ?? null; } }
-class SB_Email { function __call( $n, $a ) { $GLOBALS['mails'][] = $n; return true; } }
+class SB_Email { function __call( $n, $a ) { $GLOBALS['mails'][] = $n; return true; } static function inside_reminder_window() { return false; } }
+function esc_html( $v ) { return htmlspecialchars( (string) $v, ENT_QUOTES ); }
+function wp_strip_all_tags( $v ) { return strip_tags( (string) $v ); }
+function wpautop( $v ) { return $v; }
 
 class FakeWpdb {
 	public $prefix = 'wp_'; public $insert_id = 0; public $rows = []; public $lock = 1; public $customers = [];
@@ -59,6 +62,7 @@ require $base . 'class-staff.php';
 require $base . 'class-validator.php';
 require $base . 'class-customers.php';
 require $base . 'class-reports.php';
+require $base . 'class-notifications.php';
 
 $wpdb     = new FakeWpdb();
 $services = [ 1 => [ 'id' => 1, 'duration' => 60, 'status' => 'active' ], 2 => [ 'id' => 2, 'duration' => 30, 'status' => 'inactive' ] ];
@@ -108,5 +112,16 @@ assert( 5 === $s['slot_duration'] && '12:00' === $s['business_hours_end'] && ! i
 assert( SB_Reports::previous_range( '2026-10-01', '2026-10-31' ) === [ '2026-08-31', '2026-09-30' ] );
 assert( SB_Reports::previous_range( '2026-03-01', '2026-03-01' ) === [ '2026-02-28', '2026-02-28' ] );
 assert( SB_Reports::change( 77, 105 ) === -27 && SB_Reports::change( 5, 0 ) === null && SB_Reports::change( 0, 4 ) === -100 );
+
+// Email templates: placeholders filled and escaped; lines whose placeholders are all empty dropped
+$email = SB_Notifications::render(
+	[ 'subject' => "Hi {customer_name}\r\nBcc: x@y.z <b>", 'body' => "Hi {customer_name},\nWith: {staff_name}\nCode: {booking_code} {notes}\nNo placeholder line\n{unknown}" ],
+	[ '{customer_name}' => 'Ann <script>', '{staff_name}' => '', '{booking_code}' => 'SB-1', '{notes}' => '' ]
+);
+assert( false === strpos( $email['subject'], "\n" ) && false === strpos( $email['subject'], '<' ), 'subject is one plain line' );
+assert( str_contains( $email['html'], 'Hi Ann &lt;script&gt;,' ) );
+assert( ! str_contains( $email['html'], 'With:' ), 'empty staff line dropped' );
+assert( str_contains( $email['html'], 'Code: SB-1 ' ), 'line kept when one placeholder has a value' );
+assert( str_contains( $email['html'], 'No placeholder line' ) && str_contains( $email['html'], '{unknown}' ) );
 
 echo "all checks passed\n";

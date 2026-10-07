@@ -10,6 +10,8 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 
 global $wpdb;
 
+wp_clear_scheduled_hook( 'sb_send_reminders' );
+
 // Keep all data unless the admin explicitly opted in to scrubbing it.
 $settings = get_option( 'sb_settings', [] );
 if ( empty( $settings['delete_data_on_uninstall'] ) ) {
@@ -19,6 +21,7 @@ if ( empty( $settings['delete_data_on_uninstall'] ) ) {
 // Delete plugin options
 delete_option( 'sb_db_version' );
 delete_option( 'sb_settings' );
+delete_option( 'sb_email_templates' );
 
 // Drop tables if configured to scrub data
 $tables = [
