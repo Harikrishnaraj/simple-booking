@@ -61,13 +61,13 @@ global $wp_locale;
 			<tr>
 				<th scope="row"><?php esc_html_e( 'Emails', 'simple-booking' ); ?></th>
 				<td>
-					<fieldset>
-						<legend class="screen-reader-text"><?php esc_html_e( 'Emails', 'simple-booking' ); ?></legend>
-						<input type="hidden" name="settings[customer_notification]" value="0">
-						<label><input type="checkbox" name="settings[customer_notification]" value="1" <?php checked( ! empty( $settings['customer_notification'] ) ); ?>> <?php esc_html_e( 'Email customers when they book and when the status changes', 'simple-booking' ); ?></label><br>
-						<input type="hidden" name="settings[admin_notification]" value="0">
-						<label><input type="checkbox" name="settings[admin_notification]" value="1" <?php checked( ! empty( $settings['admin_notification'] ) ); ?>> <?php esc_html_e( 'Email me when a new booking arrives', 'simple-booking' ); ?></label>
-					</fieldset>
+					<?php
+					echo wp_kses_post( sprintf(
+						/* translators: %s: link to the Notifications page */
+						__( 'Choose which emails are sent, edit their text and set up reminders on the <a href="%s">Notifications</a> page.', 'simple-booking' ),
+						esc_url( admin_url( 'admin.php?page=sb-notifications' ) )
+					) );
+					?>
 				</td>
 			</tr>
 			<tr>

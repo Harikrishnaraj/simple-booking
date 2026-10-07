@@ -80,6 +80,7 @@ class SB_Database {
 			end_time time NOT NULL,
 			status varchar(20) NOT NULL DEFAULT 'pending',
 			notes text NULL,
+			reminder_sent datetime NULL,
 			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY booking_code (booking_code),

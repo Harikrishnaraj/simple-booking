@@ -18,6 +18,7 @@ class SB_Admin_Controller {
 		add_submenu_page( 'sb-dashboard', __( 'Customers', 'simple-booking' ), __( 'Customers', 'simple-booking' ), $cap, 'sb-customers', [ $this, 'render_customers' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Services', 'simple-booking' ), __( 'Services', 'simple-booking' ), $cap, 'sb-services', [ $this, 'render_services' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Staff', 'simple-booking' ), __( 'Staff', 'simple-booking' ), $cap, 'sb-staff', [ $this, 'render_staff' ] );
+		add_submenu_page( 'sb-dashboard', __( 'Notifications', 'simple-booking' ), __( 'Notifications', 'simple-booking' ), $cap, 'sb-notifications', [ $this, 'render_notifications' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Settings', 'simple-booking' ), __( 'Settings', 'simple-booking' ), $cap, 'sb-settings', [ $this, 'render_settings' ] );
 	}
 
@@ -39,6 +40,8 @@ class SB_Admin_Controller {
 				'confirmDeleteCategory' => __( 'Delete this category? Its services are kept and become uncategorized.', 'simple-booking' ),
 				'choosePhoto'   => __( 'Choose a photo', 'simple-booking' ),
 				'usePhoto'      => __( 'Use this photo', 'simple-booking' ),
+				'saved'         => __( 'Saved.', 'simple-booking' ),
+				'testSent'      => __( 'Test email sent to %s.', 'simple-booking' ),
 			],
 		] );
 	}
@@ -191,6 +194,19 @@ class SB_Admin_Controller {
 		] );
 	}
 
+	public function render_notifications(): void {
+		$types   = SB_Notifications::types();
+		$current = sanitize_key( $_GET['email'] ?? '' ); // phpcs:ignore WordPress.Security.NonceVerification
+		sb_view( 'admin/views/notifications', [
+			'types'     => $types,
+			'templates' => SB_Notifications::get_all(),
+			'current'   => isset( $types[ $current ] ) ? $current : array_key_first( $types ),
+			'next_run'  => wp_next_scheduled( SB_Email::REMINDER_HOOK ),
+			'page_url'  => admin_url( 'admin.php?page=sb-notifications' ),
+			'theme'     => $this->theme(),
+		] );
+	}
+
 	public function render_settings(): void {
 		sb_view( 'admin/views/settings', [ 'settings' => SB_Settings::get_settings(), 'theme' => $this->theme() ] );
 	}
@@ -267,6 +283,30 @@ class SB_Admin_Controller {
 		( new SB_Categories() )->delete( absint( $post['id'] ?? 0 ) )
 			? wp_send_json_success()
 			: wp_send_json_error( [ 'message' => __( 'Could not delete the category.', 'simple-booking' ) ], 500 );
+	}
+
+	public function ajax_save_template(): void {
+		$post = $this->guard();
+		SB_Notifications::save( sanitize_key( $post['key'] ?? '' ), $post )
+			? wp_send_json_success()
+			: wp_send_json_error( [ 'message' => __( 'Please enter a subject and a message.', 'simple-booking' ) ], 422 );
+	}
+
+	/**
+	 * Send the saved version of a template to the current admin, filled in with the newest booking (or sample data).
+	 */
+	public function ajax_test_template(): void {
+		global $wpdb;
+		$post = $this->guard();
+		$key  = sanitize_key( $post['key'] ?? '' );
+		$to   = wp_get_current_user()->user_email;
+		if ( ! isset( SB_Notifications::types()[ $key ] ) ) {
+			wp_send_json_error( [ 'message' => __( 'Unknown email.', 'simple-booking' ) ], 422 );
+		}
+		$latest = (int) $wpdb->get_var( "SELECT MAX(id) FROM {$wpdb->prefix}sb_bookings" );
+		( new SB_Email() )->send_test( $key, $to, $latest ?: null )
+			? wp_send_json_success( [ 'to' => $to ] )
+			: wp_send_json_error( [ 'message' => __( 'WordPress could not send the email. Check your site\'s email setup (e.g. an SMTP plugin).', 'simple-booking' ) ], 500 );
 	}
 
 	public function ajax_save_theme(): void {
