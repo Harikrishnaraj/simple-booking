@@ -23,6 +23,19 @@ class SB_Settings {
 			'admin_notification'   => true,
 			'currency_symbol'      => '$',
 			'delete_data_on_uninstall' => false,
+			'ip_header'            => 'REMOTE_ADDR',
+		];
+	}
+
+	/**
+	 * Where the visitor's IP comes from, for rate limiting. value => label.
+	 */
+	public static function ip_headers(): array {
+		return [
+			'REMOTE_ADDR'           => __( 'Direct connection (default)', 'simple-booking' ),
+			'HTTP_CF_CONNECTING_IP' => __( 'Cloudflare (CF-Connecting-IP)', 'simple-booking' ),
+			'HTTP_X_FORWARDED_FOR'  => __( 'Proxy or load balancer (X-Forwarded-For)', 'simple-booking' ),
+			'HTTP_X_REAL_IP'        => __( 'Nginx proxy (X-Real-IP)', 'simple-booking' ),
 		];
 	}
 
@@ -59,6 +72,9 @@ class SB_Settings {
 			} else {
 				unset( $new_settings['admin_email'] );
 			}
+		}
+		if ( isset( $new_settings['ip_header'] ) && ! isset( self::ip_headers()[ $new_settings['ip_header'] ] ) ) {
+			unset( $new_settings['ip_header'] );
 		}
 		if ( isset( $new_settings['work_days'] ) ) {
 			$new_settings['work_days'] = array_values( array_intersect( self::WEEK_DAYS, (array) $new_settings['work_days'] ) );
