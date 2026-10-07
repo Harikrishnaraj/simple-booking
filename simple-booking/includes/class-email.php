@@ -18,16 +18,28 @@ class SB_Email {
 	];
 
 	/**
-	 * New booking: customer, assigned staff member and admin.
+	 * New booking: customer, assigned staff member and admin. A booking the admin made
+	 * skips the admin email, and one created as confirmed gets the confirmation email.
 	 */
-	public function booking_created( int $booking_id ): void {
+	public function booking_created( int $booking_id, bool $by_admin = false, bool $notify_customer = true ): void {
 		$data = $this->get_booking_data( $booking_id );
 		if ( ! $data ) {
 			return;
 		}
-		$this->send( 'customer_received', $data['customer_email'], $data );
+		if ( $notify_customer ) {
+			$this->send( 'confirmed' === $data['status'] ? 'customer_confirmed' : 'customer_received', $data['customer_email'], $data );
+		}
 		$this->send( 'staff_new', (string) $data['staff_email'], $data );
-		$this->send( 'admin_new', (string) SB_Settings::get_settings()['admin_email'], $data );
+		if ( ! $by_admin ) {
+			$this->send( 'admin_new', (string) SB_Settings::get_settings()['admin_email'], $data );
+		}
+	}
+
+	public function rescheduled( int $booking_id ): void {
+		$data = $this->get_booking_data( $booking_id );
+		if ( $data ) {
+			$this->send( 'customer_rescheduled', $data['customer_email'], $data );
+		}
 	}
 
 	public function status_changed( int $booking_id, string $status ): void {

@@ -16,9 +16,16 @@ class SB_Bookings {
 		return 'SB-' . strtoupper( wp_generate_password( 6, false ) );
 	}
 
+	/**
+	 * Book a free slot. Used by the public form and by the admin.
+	 *
+	 * Optional keys besides the booking fields: 'status' ('pending' or 'confirmed', default pending),
+	 * 'by_admin' (no admin email) and 'notify_customer' (default true).
+	 */
 	public function create_booking( array $data ): int|false {
 		global $wpdb;
 
+		$status      = 'confirmed' === ( $data['status'] ?? '' ) ? 'confirmed' : 'pending';
 		$service_id  = absint( $data['service_id'] ?? 0 );
 		$staff_id    = ! empty( $data['staff_id'] ) ? absint( $data['staff_id'] ) : null;
 		$customer_id = absint( $data['customer_id'] ?? 0 );
@@ -30,14 +37,7 @@ class SB_Bookings {
 			return false;
 		}
 
-		// Serialize bookings per date so two requests can't both take the same slot.
-		// ponytail: one lock per date, switch to per-staff locks if busy sites see lock waits.
-		$lock = 'sb_book_' . md5( $wpdb->prefix . $date );
-		if ( 1 !== (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $lock ) ) ) {
-			return false;
-		}
-
-		try {
+		$booking_id = $this->with_date_lock( $date, function () use ( $wpdb, $service, $service_id, $staff_id, $customer_id, $date, $time, $status, $data ) {
 			// Availability is the single source of truth for a valid date/time (work day,
 			// business hours, not in the past, active service, no overlap). For "any
 			// available" it also picks which staff member gets the booking.
@@ -58,7 +58,7 @@ class SB_Bookings {
 				'booking_date' => $date,
 				'booking_time' => "$time:00",
 				'end_time'     => $end_time,
-				'status'       => 'pending',
+				'status'       => $status,
 				'notes'        => sanitize_textarea_field( $data['notes'] ?? '' ),
 				// Already inside the reminder window: the booking email is reminder enough.
 				'reminder_sent' => SB_Email::inside_reminder_window( $date, "$time:00" ) ? current_time( 'mysql', true ) : null,
@@ -70,19 +70,78 @@ class SB_Bookings {
 				$inserted = $wpdb->insert( $this->table_name, $row, [ '%s', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s' ] );
 			}
 
-			if ( ! $inserted ) {
+			return $inserted ? (int) $wpdb->insert_id : false;
+		} );
+
+		if ( $booking_id ) {
+			// Emails go out after the lock is released.
+			( new SB_Email() )->booking_created( $booking_id, ! empty( $data['by_admin'] ), $data['notify_customer'] ?? true );
+		}
+		return $booking_id;
+	}
+
+	/**
+	 * Move a pending or confirmed booking to another free date/time and, optionally, staff member
+	 * (null = whoever is free). The booking's own current slot counts as free.
+	 */
+	public function reschedule( int $id, string $date, string $time, ?int $staff_id, bool $notify_customer = true ): bool {
+		global $wpdb;
+		$booking = $this->get_by_id( $id );
+		if ( ! $booking || ! in_array( $booking['status'], [ 'pending', 'confirmed' ], true ) ) {
+			return false;
+		}
+		$time    = substr( $time, 0, 5 );
+		$service = ( new SB_Services() )->get_by_id( (int) $booking['service_id'] );
+
+		$moved = $this->with_date_lock( $date, function () use ( $wpdb, $id, $booking, $service, $staff_id, $date, $time ) {
+			$free = $this->free_slots( (int) $booking['service_id'], $staff_id, $date, $id );
+			if ( ! $service || ! array_key_exists( $time, $free ) ) {
 				return false;
 			}
+			$start = DateTimeImmutable::createFromFormat( '!Y-m-d H:i', "$date $time", wp_timezone() );
+			return false !== $wpdb->update(
+				$this->table_name,
+				[
+					'booking_date'  => $date,
+					'booking_time'  => "$time:00",
+					'end_time'      => wp_date( 'H:i:s', $start->getTimestamp() + absint( $service['duration'] ) * MINUTE_IN_SECONDS ),
+					'staff_id'      => $free[ $time ],
+					'reminder_sent' => SB_Email::inside_reminder_window( $date, "$time:00" ) ? current_time( 'mysql', true ) : null,
+				],
+				[ 'id' => $id ],
+				[ '%s', '%s', '%s', '%d', '%s' ],
+				[ '%d' ]
+			);
+		} );
 
-			$booking_id = $wpdb->insert_id;
+		if ( $moved && $notify_customer ) {
+			( new SB_Email() )->rescheduled( $id );
+		}
+		return (bool) $moved;
+	}
+
+	public function get_by_id( int $id ): ?array {
+		global $wpdb;
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$this->table_name} WHERE id = %d", $id ), ARRAY_A );
+		return $row ?: null;
+	}
+
+	/**
+	 * Run $fn while holding the booking lock for $date, so two requests can't both take
+	 * the same slot. Returns $fn's result, or false if the lock wasn't free within 5 seconds.
+	 * ponytail: one lock per date, switch to per-staff locks if busy sites see lock waits.
+	 */
+	private function with_date_lock( string $date, callable $fn ): mixed {
+		global $wpdb;
+		$lock = 'sb_book_' . md5( $wpdb->prefix . $date );
+		if ( 1 !== (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $lock ) ) ) {
+			return false;
+		}
+		try {
+			return $fn();
 		} finally {
 			$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) );
 		}
-
-		// Emails go out after the lock is released.
-		( new SB_Email() )->booking_created( $booking_id );
-
-		return $booking_id;
 	}
 
 	/**
@@ -90,8 +149,8 @@ class SB_Bookings {
 	 *
 	 * @param int|null $staff_id A specific staff member, or null for "any available".
 	 */
-	public function get_available_slots( int $service_id, ?int $staff_id, string $date ): array {
-		return array_map( 'strval', array_keys( $this->free_slots( $service_id, $staff_id, $date ) ) );
+	public function get_available_slots( int $service_id, ?int $staff_id, string $date, ?int $exclude_id = null ): array {
+		return array_map( 'strval', array_keys( $this->free_slots( $service_id, $staff_id, $date, $exclude_id ) ) );
 	}
 
 	/**
@@ -104,10 +163,11 @@ class SB_Bookings {
 	 * - No staff set up for the service: the business itself (staff id null), so any booking
 	 *   that day blocks the time.
 	 * Bookings with no staff member always block everyone.
+	 * $exclude_id is a booking being rescheduled: its own slot doesn't block it.
 	 *
 	 * @return array<string, int|null> "H:i" => staff id (or null).
 	 */
-	private function free_slots( int $service_id, ?int $staff_id, string $date ): array {
+	private function free_slots( int $service_id, ?int $staff_id, string $date, ?int $exclude_id = null ): array {
 		global $wpdb;
 
 		$service = ( new SB_Services() )->get_by_id( $service_id );
@@ -148,13 +208,7 @@ class SB_Bookings {
 		$duration = absint( $service['duration'] ) * MINUTE_IN_SECONDS;
 		$now      = time();
 
-		$existing = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT booking_time, end_time, staff_id FROM {$this->table_name} WHERE booking_date = %s AND status IN ('pending', 'confirmed')",
-				$date
-			),
-			ARRAY_A
-		);
+		$existing = $this->active_on( $date, $exclude_id );
 
 		// Spread "any available" bookings: least-busy staff member that day is tried first.
 		$load = array_count_values( array_map( 'strval', array_filter( array_column( $existing, 'staff_id' ) ) ) );
@@ -182,6 +236,21 @@ class SB_Bookings {
 	}
 
 	/**
+	 * Pending/confirmed bookings on a date, optionally leaving one out.
+	 */
+	private function active_on( string $date, ?int $exclude_id = null ): array {
+		global $wpdb;
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id, booking_time, end_time, staff_id FROM {$this->table_name} WHERE booking_date = %s AND status IN ('pending', 'confirmed')",
+				$date
+			),
+			ARRAY_A
+		);
+		return $exclude_id ? array_values( array_filter( $rows, fn( $r ) => (int) $r['id'] !== $exclude_id ) ) : $rows;
+	}
+
+	/**
 	 * Whether $staff_id (null = the business as a whole) has an overlapping booking.
 	 */
 	private function is_busy( array $existing, ?int $staff_id, string $start, string $end ): bool {
@@ -194,26 +263,39 @@ class SB_Bookings {
 		return false;
 	}
 
-	public function update_status( int $id, string $status ): bool {
+	/**
+	 * Change a booking's status. Reopening a cancelled or completed booking (back to pending or
+	 * confirmed) first checks its time hasn't been taken since, so it can't double-book.
+	 */
+	public function update_status( int $id, string $status ): bool|WP_Error {
 		global $wpdb;
 		$allowed = [ 'pending', 'confirmed', 'cancelled', 'completed' ];
-		if ( ! in_array( $status, $allowed, true ) ) {
-			return false;
+		$booking = $this->get_by_id( $id );
+		if ( ! in_array( $status, $allowed, true ) || ! $booking ) {
+			return new WP_Error( 'invalid', __( 'Could not update the booking status.', 'simple-booking' ) );
 		}
 
-		$updated = $wpdb->update(
-			$this->table_name,
-			[ 'status' => $status ],
-			[ 'id' => $id ],
-			[ '%s' ],
-			[ '%d' ]
-		);
+		$active  = [ 'pending', 'confirmed' ];
+		$reopens = in_array( $status, $active, true ) && ! in_array( $booking['status'], $active, true );
+		$write   = fn() => $wpdb->update( $this->table_name, [ 'status' => $status ], [ 'id' => $id ], [ '%s' ], [ '%d' ] );
 
+		$updated = ! $reopens ? $write() : $this->with_date_lock( $booking['booking_date'], function () use ( $booking, $id, $write ) {
+			$staff = null === $booking['staff_id'] ? null : (int) $booking['staff_id'];
+			return $this->is_busy( $this->active_on( $booking['booking_date'], $id ), $staff, $booking['booking_time'], $booking['end_time'] )
+				? 'taken'
+				: $write();
+		} );
+
+		if ( 'taken' === $updated ) {
+			return new WP_Error( 'taken', __( 'That time has been booked by someone else since this booking was cancelled. Reschedule it instead.', 'simple-booking' ) );
+		}
+		if ( false === $updated ) {
+			return new WP_Error( 'failed', __( 'Could not update the booking status.', 'simple-booking' ) );
+		}
 		if ( $updated ) {
 			( new SB_Email() )->status_changed( $id, $status );
 		}
-
-		return false !== $updated;
+		return true;
 	}
 
 	public function get_code( int $id ): string {

@@ -38,7 +38,13 @@ class FakeWpdb {
 		if ( str_contains( $q, 'GET_LOCK' ) ) return (string) $this->lock;
 		if ( str_contains( $q, 'sb_customers' ) ) return array_search( $a[0], $this->customers, true ) ?: null;
 	}
-	function get_row( $p ) { [ $q, $a ] = $p; return str_contains( $q, 'sb_staff' ) ? ( $this->staff[ $a[0] ] ?? null ) : null; }
+	function get_row( $p ) {
+		[ $q, $a ] = $p;
+		if ( str_contains( $q, 'sb_staff' ) ) return $this->staff[ $a[0] ] ?? null;
+		if ( str_contains( $q, 'sb_bookings' ) ) return $this->rows[ $a[0] - 1 ] ?? null;
+		return null;
+	}
+	function update( $t, $d, $w ) { $i = $w['id'] - 1; if ( ! isset( $this->rows[ $i ] ) ) return 0; $this->rows[ $i ] = $d + $this->rows[ $i ]; return 1; }
 	function query( $p ) { return 1; }
 	function get_results( $p ) {
 		[ $q, $a ] = $p;
@@ -46,13 +52,13 @@ class FakeWpdb {
 		$out = [];
 		foreach ( $this->rows as $r ) {
 			if ( $r['booking_date'] !== $a[0] || ! in_array( $r['status'], [ 'pending', 'confirmed' ], true ) ) continue;
-			$out[] = [ 'booking_time' => $r['booking_time'], 'end_time' => $r['end_time'], 'staff_id' => null === $r['staff_id'] ? null : (string) $r['staff_id'] ]; // like wpdb: strings
+			$out[] = [ 'id' => (string) $r['id'], 'booking_time' => $r['booking_time'], 'end_time' => $r['end_time'], 'staff_id' => null === $r['staff_id'] ? null : (string) $r['staff_id'] ]; // like wpdb: strings
 		}
 		return $out;
 	}
 	function insert( $t, $d ) {
 		if ( str_contains( $t, 'sb_customers' ) ) { if ( in_array( $d['email'], $this->customers, true ) ) return false; $this->insert_id = count( $this->customers ) + 1; $this->customers[ $this->insert_id ] = $d['email']; return 1; }
-		$this->rows[] = $d; $this->insert_id = count( $this->rows ); return 1; }
+		$d['id'] = count( $this->rows ) + 1; $this->rows[] = $d; $this->insert_id = $d['id']; return 1; }
 }
 
 $base = __DIR__ . '/../simple-booking/includes/';
@@ -107,6 +113,29 @@ $wpdb->lock = 1;
 SB_Settings::update_settings( [ 'slot_duration' => '0', 'business_hours_end' => 'evil', 'junk' => 1, 'delete_data_on_uninstall' => 'false' ] );
 $s = SB_Settings::get_settings();
 assert( 5 === $s['slot_duration'] && '12:00' === $s['business_hours_end'] && ! isset( $s['junk'] ) && false === $s['delete_data_on_uninstall'] );
+
+// Reschedule: own slot doesn't block it; can't move onto another booking; only active bookings move
+$wpdb->rows = [];
+$a = $b->create_booking( [ 'booking_time' => '09:00' ] + $req );
+$c = $b->create_booking( [ 'booking_time' => '11:00' ] + $req );
+assert( $a && $c );
+assert( in_array( '09:30', $b->get_available_slots( 1, null, $monday, $a ), true ), 'own slot ignored when rescheduling' );
+assert( true === $b->reschedule( $a, $monday, '09:30', null, false ) );
+assert( '09:30:00' === $wpdb->rows[ $a - 1 ]['booking_time'] && '10:30:00' === $wpdb->rows[ $a - 1 ]['end_time'] );
+assert( false === $b->reschedule( $a, $monday, '10:30', null, false ), 'overlaps the 11:00 booking' );
+assert( false === $b->reschedule( $a, $sunday, '09:00', null, false ), 'closed day' );
+
+// Reopening a cancelled booking re-checks its time
+assert( true === $b->update_status( $a, 'cancelled' ) );
+$d = $b->create_booking( [ 'booking_time' => '09:30' ] + $req ); // takes the freed slot
+assert( (bool) $d );
+assert( false === $b->reschedule( $a, $monday, '13:00', null, false ), 'cancelled bookings cannot be moved' );
+$r = $b->update_status( $a, 'confirmed' );
+assert( is_wp_error( $r ) && 'taken' === $r->code, 'reopen blocked when slot taken' );
+assert( 'cancelled' === $wpdb->rows[ $a - 1 ]['status'] );
+assert( true === $b->update_status( $d, 'cancelled' ) );
+assert( true === $b->update_status( $a, 'pending' ), 'reopen allowed once free again' );
+assert( is_wp_error( $b->update_status( $a, 'bogus' ) ) );
 
 // Dashboard comparison period: same length, ending the day before
 assert( SB_Reports::previous_range( '2026-10-01', '2026-10-31' ) === [ '2026-08-31', '2026-09-30' ] );

@@ -41,6 +41,9 @@ class SB_Admin_Controller {
 				'choosePhoto'   => __( 'Choose a photo', 'simple-booking' ),
 				'usePhoto'      => __( 'Use this photo', 'simple-booking' ),
 				'saved'         => __( 'Saved.', 'simple-booking' ),
+				'pickDate'      => __( 'Pick a date first', 'simple-booking' ),
+				'loadingTimes'  => __( 'Loading free times…', 'simple-booking' ),
+				'noTimes'       => __( 'No free times on this day', 'simple-booking' ),
 				'testSent'      => __( 'Test email sent to %s.', 'simple-booking' ),
 			],
 		] );
@@ -139,6 +142,14 @@ class SB_Admin_Controller {
 			'statuses' => $this->status_labels(),
 			'staff'    => ( new SB_Staff() )->get_all( 'all' ),
 			'theme'    => $this->theme(),
+		] );
+
+		// Add-booking and reschedule dialogs: active services and staff, and existing customers to pick from.
+		$staff_mgr = new SB_Staff();
+		sb_view( 'admin/views/partials/booking-dialogs', [
+			'services'  => ( new SB_Services() )->get_all(),
+			'staff'     => array_map( fn( $m ) => $m + [ 'service_ids' => $staff_mgr->service_ids( $m ) ], $staff_mgr->get_all() ),
+			'customers' => ( new SB_Customers() )->get_list( '', 1, 500 ),
 		] );
 	}
 
@@ -254,9 +265,54 @@ class SB_Admin_Controller {
 	}
 
 	public function ajax_update_booking_status(): void {
+		$post   = $this->guard();
+		$result = ( new SB_Bookings() )->update_status( absint( $post['id'] ?? 0 ), sanitize_key( $post['status'] ?? '' ) );
+		is_wp_error( $result ) ? wp_send_json_error( [ 'message' => $result->get_error_message() ], 409 ) : wp_send_json_success();
+	}
+
+	/**
+	 * Free start times for the admin booking and reschedule dialogs.
+	 */
+	public function ajax_admin_slots(): void {
 		$post = $this->guard();
-		$ok   = ( new SB_Bookings() )->update_status( absint( $post['id'] ?? 0 ), sanitize_key( $post['status'] ?? '' ) );
-		$ok ? wp_send_json_success() : wp_send_json_error( [ 'message' => __( 'Could not update the booking status.', 'simple-booking' ) ], 422 );
+		wp_send_json_success( [
+			'slots' => ( new SB_Bookings() )->get_available_slots(
+				absint( $post['service_id'] ?? 0 ),
+				absint( $post['staff_id'] ?? 0 ) ?: null,
+				sanitize_text_field( $post['date'] ?? '' ),
+				absint( $post['exclude'] ?? 0 ) ?: null
+			),
+		] );
+	}
+
+	public function ajax_admin_create_booking(): void {
+		$post = $this->guard();
+		$data = SB_Validator::booking_request( $post );
+		if ( is_wp_error( $data ) ) {
+			wp_send_json_error( [ 'message' => $data->get_error_message() ], 422 );
+		}
+		$customer_id = ( new SB_Customers() )->find_or_create( $data['name'], $data['email'], $data['phone'] );
+		$booking_id  = $customer_id ? ( new SB_Bookings() )->create_booking( [
+			'customer_id'     => $customer_id,
+			'status'          => sanitize_key( $post['status'] ?? '' ),
+			'by_admin'        => true,
+			'notify_customer' => ! empty( $post['notify'] ),
+		] + $data ) : false;
+		$booking_id
+			? wp_send_json_success( [ 'id' => $booking_id ] )
+			: wp_send_json_error( [ 'message' => __( 'That time is no longer free. Please pick another.', 'simple-booking' ) ], 409 );
+	}
+
+	public function ajax_admin_reschedule(): void {
+		$post = $this->guard();
+		$ok   = ( new SB_Bookings() )->reschedule(
+			absint( $post['id'] ?? 0 ),
+			sanitize_text_field( $post['booking_date'] ?? '' ),
+			sanitize_text_field( $post['booking_time'] ?? '' ),
+			absint( $post['staff_id'] ?? 0 ) ?: null,
+			! empty( $post['notify'] )
+		);
+		$ok ? wp_send_json_success() : wp_send_json_error( [ 'message' => __( 'That time is no longer free, or the booking can\'t be moved. Please pick another time.', 'simple-booking' ) ], 409 );
 	}
 
 	public function ajax_save_settings(): void {

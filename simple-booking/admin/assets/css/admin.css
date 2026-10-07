@@ -1070,6 +1070,57 @@ img.sb-avatar {
 
 /* ---------- Dialog ---------- */
 
+.sb-dialog--wide {
+	width: min(620px, calc(100vw - 32px));
+}
+
+.sb-dialog {
+	max-height: calc(100vh - 48px);
+}
+
+.sb-field-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 12px;
+}
+
+@media (max-width: 600px) {
+	.sb-field-row {
+		grid-template-columns: 1fr;
+	}
+}
+
+.sb-field-row + .sb-hint {
+	margin: -8px 0 14px;
+}
+
+.sb-field--check {
+	align-self: end;
+	padding-bottom: 8px;
+}
+
+.sb-field--check label {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: 400;
+}
+
+.sb-app .sb-fieldset {
+	margin: 0 0 14px;
+	padding: 12px;
+	border: 1px solid var(--sb-border);
+	border-radius: 8px;
+}
+
+.sb-fieldset > .sb-label {
+	padding: 0 4px;
+}
+
+.sb-toolbar__end {
+	margin-left: auto;
+}
+
 .sb-dialog {
 	width: min(480px, calc(100vw - 32px));
 	padding: 20px;
