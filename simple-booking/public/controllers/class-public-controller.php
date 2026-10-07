@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SB_Public_Controller {
 
 	private const DAYS_AHEAD = 14;
-	// ponytail: per-IP limit via transients; behind a proxy/CDN REMOTE_ADDR is shared, so read the real-IP header your host sets.
+	// Per-IP limit via transients. Behind a proxy/CDN, Settings → "Visitor IP comes from" picks the real-IP header.
 	private const RATE_LIMIT        = 5;
 	private const RATE_LIMIT_WINDOW = 10 * MINUTE_IN_SECONDS;
 
@@ -65,7 +65,49 @@ class SB_Public_Controller {
 		return $groups;
 	}
 
+	/**
+	 * The visitor's IP, from the header chosen in Settings. Proxy headers can be forged by anyone
+	 * not behind that proxy, so they're only read when the site owner opts in, and only the
+	 * first, client-most address of X-Forwarded-For is used.
+	 */
+	public static function visitor_ip(): string {
+		$header = SB_Settings::get_settings()['ip_header'];
+		$value  = sanitize_text_field( wp_unslash( $_SERVER[ $header ] ?? '' ) );
+		$ip     = trim( explode( ',', $value )[0] );
+		if ( ! filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+			$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ?? '' ) );
+		}
+		return $ip;
+	}
+
+	/**
+	 * Booking pages carry a security token and today's list of days, so page caches must not
+	 * store them. DONOTCACHEPAGE is honoured by WP Super Cache, W3 Total Cache, WP Rocket and
+	 * others; LiteSpeed has its own action.
+	 */
+	public function prevent_caching(): void {
+		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+			define( 'DONOTCACHEPAGE', true );
+		}
+		do_action( 'litespeed_control_set_nocache', 'Simple Booking form' );
+		if ( ! headers_sent() ) {
+			nocache_headers();
+		}
+	}
+
+	/**
+	 * template_redirect: runs before any output, so the no-cache headers can still be sent.
+	 * Forms placed by page builders outside post_content are covered by render_shortcode().
+	 */
+	public function maybe_prevent_caching(): void {
+		$post = get_post();
+		if ( is_singular() && $post && has_shortcode( $post->post_content, 'simple_booking' ) ) {
+			$this->prevent_caching();
+		}
+	}
+
 	public function render_shortcode(): string {
+		$this->prevent_caching();
 		$services = ( new SB_Services() )->get_all();
 		if ( ! $services ) {
 			return '<p>' . esc_html__( 'Online booking is not available yet.', 'simple-booking' ) . '</p>';
@@ -132,18 +174,26 @@ class SB_Public_Controller {
 			wp_send_json_error( [ 'message' => $data->get_error_message() ], 422 );
 		}
 
+		$bookings = new SB_Bookings();
+		$taken    = static fn() => wp_send_json_error( [
+			'code'    => 'slot_unavailable',
+			'message' => __( 'Sorry, that time was just taken. Please choose another time.', 'simple-booking' ),
+		], 409 );
+
+		// Check the time before saving the customer, so rejected requests don't leave customer records.
+		// create_booking() checks again under the lock.
+		if ( ! in_array( $data['booking_time'], $bookings->get_available_slots( $data['service_id'], $data['staff_id'] ?: null, $data['booking_date'] ), true ) ) {
+			$taken();
+		}
+
 		$customer_id = ( new SB_Customers() )->find_or_create( $data['name'], $data['email'], $data['phone'] );
 		if ( ! $customer_id ) {
 			wp_send_json_error( [ 'message' => __( 'Your booking could not be saved. Please try again.', 'simple-booking' ) ], 500 );
 		}
 
-		$bookings   = new SB_Bookings();
 		$booking_id = $bookings->create_booking( [ 'customer_id' => $customer_id ] + $data );
 		if ( ! $booking_id ) {
-			wp_send_json_error( [
-				'code'    => 'slot_unavailable',
-				'message' => __( 'Sorry, that time was just taken. Please choose another time.', 'simple-booking' ),
-			], 409 );
+			$taken();
 		}
 
 		wp_send_json_success( [
@@ -185,7 +235,7 @@ class SB_Public_Controller {
 	}
 
 	private function is_rate_limited(): bool {
-		$ip   = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ?? '' ) );
+		$ip   = self::visitor_ip();
 		$key  = 'sb_rl_' . md5( $ip );
 		$hits = (int) get_transient( $key );
 		if ( $hits >= self::RATE_LIMIT ) {

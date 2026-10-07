@@ -291,8 +291,11 @@ class SB_Admin_Controller {
 		if ( is_wp_error( $data ) ) {
 			wp_send_json_error( [ 'message' => $data->get_error_message() ], 422 );
 		}
-		$customer_id = ( new SB_Customers() )->find_or_create( $data['name'], $data['email'], $data['phone'] );
-		$booking_id  = $customer_id ? ( new SB_Bookings() )->create_booking( [
+		$bookings = new SB_Bookings();
+		$free     = $bookings->get_available_slots( $data['service_id'], $data['staff_id'] ?: null, $data['booking_date'] );
+		// Only save a new customer once the time is known to be free.
+		$customer_id = in_array( $data['booking_time'], $free, true ) ? ( new SB_Customers() )->find_or_create( $data['name'], $data['email'], $data['phone'] ) : 0;
+		$booking_id  = $customer_id ? $bookings->create_booking( [
 			'customer_id'     => $customer_id,
 			'status'          => sanitize_key( $post['status'] ?? '' ),
 			'by_admin'        => true,

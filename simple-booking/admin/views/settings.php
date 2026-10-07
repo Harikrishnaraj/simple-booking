@@ -71,6 +71,17 @@ global $wp_locale;
 				</td>
 			</tr>
 			<tr>
+				<th scope="row"><label for="sb-ip-header"><?php esc_html_e( 'Visitor IP comes from', 'simple-booking' ); ?></label></th>
+				<td>
+					<select id="sb-ip-header" name="settings[ip_header]">
+						<?php foreach ( SB_Settings::ip_headers() as $value => $label ) : ?>
+							<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $settings['ip_header'], $value ); ?>><?php echo esc_html( $label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<p class="description"><?php esc_html_e( 'Used to limit booking attempts to 5 per 10 minutes per visitor. Only change this if your site is behind Cloudflare or another proxy; otherwise visitors could fake their IP.', 'simple-booking' ); ?></p>
+				</td>
+			</tr>
+			<tr>
 				<th scope="row"><?php esc_html_e( 'Uninstall', 'simple-booking' ); ?></th>
 				<td>
 					<input type="hidden" name="settings[delete_data_on_uninstall]" value="0">

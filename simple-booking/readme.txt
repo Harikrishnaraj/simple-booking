@@ -4,7 +4,7 @@ Tags: booking, appointment, salon, clinic, scheduling, shortcode
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 8.0
-Stable tag: 1.5.0
+Stable tag: 1.5.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,6 +23,11 @@ Simple Booking allows business owners (salons, clinics, consultants, personal tr
 Simply insert the shortcode `[simple_booking]` into any page, post, or widget area.
 
 == Changelog ==
+= 1.5.1 =
+* Booking pages are no longer stored by page-cache plugins (no-cache headers and DONOTCACHEPAGE; LiteSpeed supported), so visitors never get an expired form or yesterday's days.
+* New setting "Visitor IP comes from" for sites behind Cloudflare or a proxy, so the booking rate limit counts each visitor separately.
+* A booking request for a time that's already taken no longer saves a customer record.
+
 = 1.5.0 =
 * Staff working hours: each staff member can follow the business hours or have custom hours per weekday.
 * Staff days off (single days or ranges) for holidays and leave.
