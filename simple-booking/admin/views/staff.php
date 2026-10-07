@@ -56,6 +56,7 @@ $staff_mgr     = new SB_Staff();
 							</label><br>
 						<?php endforeach; ?>
 					</fieldset>
+					<?php sb_view( 'admin/views/partials/staff-schedule', [ 'editing' => $editing ] ); ?>
 					<div class="form-field">
 						<label for="sb-staff-status"><?php esc_html_e( 'Status', 'simple-booking' ); ?></label>
 						<select id="sb-staff-status" name="status">
@@ -93,7 +94,12 @@ $staff_mgr     = new SB_Staff();
 								<td>
 									<span class="sb-person">
 										<?php echo sb_avatar( $member['name'], $staff_mgr->photo_url( $member ) ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in sb_avatar() ?>
-										<strong><?php echo esc_html( $member['name'] ); ?></strong>
+										<span>
+											<strong><?php echo esc_html( $member['name'] ); ?></strong>
+											<?php if ( null !== $staff_mgr->schedule( $member ) || $staff_mgr->days_off( $member ) ) : ?>
+												<br><span class="sb-muted"><?php echo esc_html( sb_schedule_summary( $member ) ); ?></span>
+											<?php endif; ?>
+										</span>
 									</span>
 								</td>
 								<td>

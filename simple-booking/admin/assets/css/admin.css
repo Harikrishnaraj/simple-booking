@@ -261,13 +261,14 @@ body.sb-admin-screen #wpfooter {
 	border: 0;
 }
 
-.sb-app .form-field input:not([type="checkbox"]),
+.sb-app .form-field input:not([type="checkbox"]):not([type="radio"]),
 .sb-app .form-field textarea,
 .sb-app .form-field select {
 	width: 100%;
 }
 
-.sb-app .form-field label:has(input[type="checkbox"]) {
+.sb-app .form-field label:has(input[type="checkbox"]),
+.sb-app .form-field label:has(input[type="radio"]) {
 	display: inline-flex;
 	gap: 6px;
 	font-weight: 400;
@@ -591,6 +592,43 @@ body.sb-admin-screen #wpfooter {
 	.sb-switch__track::after {
 		transition: left 0.15s;
 	}
+}
+
+/* ---------- Staff schedule ---------- */
+
+.sb-schedule {
+	margin-top: 8px;
+	border-collapse: collapse;
+}
+
+.sb-schedule th {
+	padding: 3px 8px 3px 0;
+	text-align: left;
+	font-weight: 400;
+	white-space: nowrap;
+}
+
+.sb-schedule td {
+	padding: 3px 0;
+	white-space: nowrap;
+}
+
+.sb-app .form-field .sb-schedule input[type="time"] {
+	width: 106px;
+	font-size: 12px;
+}
+
+.sb-app .form-field .sb-schedule input[type="time"],
+.sb-app .form-field .sb-days-off input[type="date"] {
+	min-height: 30px;
+	padding: 2px 6px;
+}
+
+.sb-days-off__row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-bottom: 6px;
 }
 
 /* ---------- Staff photo field ---------- */

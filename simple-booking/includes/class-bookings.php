@@ -168,8 +168,6 @@ class SB_Bookings {
 	 * @return array<string, int|null> "H:i" => staff id (or null).
 	 */
 	private function free_slots( int $service_id, ?int $staff_id, string $date, ?int $exclude_id = null ): array {
-		global $wpdb;
-
 		$service = ( new SB_Services() )->get_by_id( $service_id );
 		if ( ! $service || 'active' !== $service['status'] || absint( $service['duration'] ) < 1 ) {
 			return [];
@@ -185,26 +183,31 @@ class SB_Bookings {
 			$candidates = $staff_mgr->qualified_ids( $service_id ) ?: [ null ];
 		}
 
-		$settings = SB_Settings::get_settings();
-		$tz       = wp_timezone();
-
+		$tz  = wp_timezone();
 		$day = DateTimeImmutable::createFromFormat( '!Y-m-d', $date, $tz );
 		if ( ! $day || $day->format( 'Y-m-d' ) !== $date ) {
 			return [];
 		}
-		if ( ! in_array( $day->format( 'l' ), (array) $settings['work_days'], true ) ) {
+
+		// Each candidate's working hours that day (staff schedule, or business hours); drop who's off.
+		$hours = [];
+		foreach ( $candidates as $candidate ) {
+			$member = $candidate ? $staff_mgr->get_by_id( $candidate ) : null;
+			$range  = $member ? $staff_mgr->hours_on( $member, $date ) : SB_Staff::business_hours_on( $day->format( 'l' ) );
+			$open   = $range ? DateTimeImmutable::createFromFormat( '!Y-m-d H:i', "$date {$range[0]}", $tz ) : null;
+			$close  = $range ? DateTimeImmutable::createFromFormat( '!Y-m-d H:i', "$date {$range[1]}", $tz ) : null;
+			if ( $open && $close ) {
+				$hours[ (string) $candidate ] = [ $open->getTimestamp(), $close->getTimestamp() ];
+			}
+		}
+		if ( ! $hours ) {
 			return [];
 		}
+		$candidates = array_values( array_filter( $candidates, fn( $c ) => isset( $hours[ (string) $c ] ) ) );
 
-		$open  = DateTimeImmutable::createFromFormat( '!Y-m-d H:i', $date . ' ' . $settings['business_hours_start'], $tz );
-		$close = DateTimeImmutable::createFromFormat( '!Y-m-d H:i', $date . ' ' . $settings['business_hours_end'], $tz );
-		if ( ! $open || ! $close ) {
-			return [];
-		}
-
-		$start_ts = $open->getTimestamp();
-		$end_ts   = $close->getTimestamp();
-		$interval = max( 5, absint( $settings['slot_duration'] ) ) * MINUTE_IN_SECONDS; // never 0: would loop forever
+		$start_ts = min( array_column( $hours, 0 ) );
+		$end_ts   = max( array_column( $hours, 1 ) );
+		$interval = max( 5, absint( SB_Settings::get_settings()['slot_duration'] ) ) * MINUTE_IN_SECONDS; // never 0: would loop forever
 		$duration = absint( $service['duration'] ) * MINUTE_IN_SECONDS;
 		$now      = time();
 
@@ -225,7 +228,8 @@ class SB_Bookings {
 			$slot_end   = wp_date( 'H:i:s', $current + $duration );
 
 			foreach ( $candidates as $candidate ) {
-				if ( ! $this->is_busy( $existing, $candidate, $slot_start, $slot_end ) ) {
+				[ $open, $close ] = $hours[ (string) $candidate ];
+				if ( $current >= $open && $current + $duration <= $close && ! $this->is_busy( $existing, $candidate, $slot_start, $slot_end ) ) {
 					$slots[ substr( $slot_start, 0, 5 ) ] = $candidate;
 					break;
 				}

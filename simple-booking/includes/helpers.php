@@ -25,3 +25,40 @@ function sb_avatar( string $name, string $photo_url = '' ): string {
 	}
 	return '<span class="sb-avatar" aria-hidden="true">' . esc_html( mb_strtoupper( mb_substr( $name, 0, 1 ) ) ) . '</span>';
 }
+
+/**
+ * One line about a staff member's hours for the staff list, e.g. "Mon, Wed 10:00–14:00 · Off 3 Nov".
+ */
+function sb_schedule_summary( array $member ): string {
+	global $wp_locale;
+	$staff_mgr = new SB_Staff();
+	$parts     = [];
+
+	$schedule = $staff_mgr->schedule( $member );
+	if ( null !== $schedule ) {
+		// Group days that share the same hours.
+		$groups = [];
+		foreach ( $schedule as $day => $range ) {
+			$groups[ implode( '–', $range ) ][] = $wp_locale->get_weekday_abbrev( $wp_locale->get_weekday( (int) gmdate( 'w', strtotime( $day ) ) ) );
+		}
+		foreach ( $groups as $hours => $days ) {
+			$parts[] = implode( ', ', $days ) . ' ' . $hours;
+		}
+		if ( ! $schedule ) {
+			$parts[] = __( 'No working days', 'simple-booking' );
+		}
+	}
+
+	$today    = wp_date( 'Y-m-d' );
+	$upcoming = array_filter( $staff_mgr->days_off( $member ), fn( $off ) => $off['to'] >= $today );
+	if ( $upcoming ) {
+		$next    = reset( $upcoming );
+		$format  = static fn( $d ) => wp_date( 'j M', strtotime( $d . ' 12:00' ) );
+		$parts[] = sprintf(
+			/* translators: %s: a date or date range */
+			__( 'Off %s', 'simple-booking' ),
+			$next['from'] === $next['to'] ? $format( $next['from'] ) : $format( $next['from'] ) . '–' . $format( $next['to'] )
+		);
+	}
+	return implode( ' · ', $parts );
+}

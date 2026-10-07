@@ -292,4 +292,32 @@
 			input.form.elements.phone.value = match.dataset.phone;
 		}
 	});
+
+	// Staff schedule: show the weekly table only for custom hours; add/remove day-off rows.
+	document.addEventListener('change', (e) => {
+		const box = e.target.closest('[data-sb-schedule]');
+		if (box && e.target.name === 'schedule_custom') {
+			box.querySelector('.sb-schedule').hidden = e.target.value !== '1';
+		}
+	});
+	document.addEventListener('click', (e) => {
+		const add = e.target.closest('[data-sb-add-row]');
+		if (add) {
+			const list = add.parentElement.querySelector('.sb-days-off');
+			const row = list.querySelector('.sb-days-off__row').cloneNode(true);
+			row.querySelectorAll('input').forEach((i) => { i.value = ''; });
+			list.append(row);
+			row.querySelector('input').focus();
+			return;
+		}
+		const remove = e.target.closest('[data-sb-remove-row]');
+		if (remove) {
+			const row = remove.closest('.sb-days-off__row');
+			if (row.parentElement.children.length > 1) {
+				row.remove();
+			} else {
+				row.querySelectorAll('input').forEach((i) => { i.value = ''; });
+			}
+		}
+	});
 })();

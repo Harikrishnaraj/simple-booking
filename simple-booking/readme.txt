@@ -4,7 +4,7 @@ Tags: booking, appointment, salon, clinic, scheduling, shortcode
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 8.0
-Stable tag: 1.4.0
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,6 +23,12 @@ Simple Booking allows business owners (salons, clinics, consultants, personal tr
 Simply insert the shortcode `[simple_booking]` into any page, post, or widget area.
 
 == Changelog ==
+= 1.5.0 =
+* Staff working hours: each staff member can follow the business hours or have custom hours per weekday.
+* Staff days off (single days or ranges) for holidays and leave.
+* Available times, the booking form's open days, and the dashboard's occupancy all use each person's own hours.
+* New columns `staff.schedule` and `staff.days_off` (added automatically on update).
+
 = 1.4.0 =
 * Book appointments from the admin (Bookings → "+ Booking"): pick an existing customer or enter a new one, choose service, staff, date and a free time, set Confirmed or Pending, and choose whether to email the customer.
 * Reschedule pending or confirmed bookings to another free date, time or staff member. New "Rescheduled" customer email.

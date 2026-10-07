@@ -137,6 +137,20 @@ assert( true === $b->update_status( $d, 'cancelled' ) );
 assert( true === $b->update_status( $a, 'pending' ), 'reopen allowed once free again' );
 assert( is_wp_error( $b->update_status( $a, 'bogus' ) ) );
 
+// Staff schedules: custom hours and days off; "any available" uses whoever works then
+$wpdb->rows = [];
+$opts['sb_settings']['slot_duration'] = 30;
+$wpdb->staff[7]['schedule'] = json_encode( [ 'Monday' => [ '10:00', '12:00' ] ] );
+assert( $b->get_available_slots( 1, 7, $monday ) === [ '10:00', '10:30', '11:00' ], 'custom hours' );
+assert( $b->get_available_slots( 1, 7, $tuesday = ( new DateTimeImmutable( $monday ) )->modify( '+1 day' )->format( 'Y-m-d' ) ) === [], 'not working Tuesday' );
+$wpdb->staff[9]['schedule'] = json_encode( [ 'Monday' => [ '09:00', '10:00' ] ] );
+$services[5] = [ 'id' => 5, 'duration' => 60, 'status' => 'active' ];
+assert( $b->get_available_slots( 5, null, $monday ) === [ '09:00', '10:00', '10:30', '11:00' ], 'any available spans both schedules' );
+$wpdb->staff[7]['days_off'] = json_encode( [ [ 'from' => $monday, 'to' => $monday ] ] );
+assert( $b->get_available_slots( 1, 7, $monday ) === [] && $b->get_available_slots( 5, null, $monday ) === [ '09:00' ], 'day off' );
+unset( $wpdb->staff[7]['schedule'], $wpdb->staff[7]['days_off'], $wpdb->staff[9]['schedule'] );
+assert( count( $b->get_available_slots( 1, 7, $monday ) ) === 5, 'back to business hours' );
+
 // Dashboard comparison period: same length, ending the day before
 assert( SB_Reports::previous_range( '2026-10-01', '2026-10-31' ) === [ '2026-08-31', '2026-09-30' ] );
 assert( SB_Reports::previous_range( '2026-03-01', '2026-03-01' ) === [ '2026-02-28', '2026-02-28' ] );
