@@ -7,6 +7,8 @@
  * @var array $staff  Active staff, each with 'service_ids' and 'photo_url'.
  * @var array $fields Custom fields (shown per service).
  * @var array $locations Active locations, or [] when there's only one (no question).
+ * @var array $extras    Paid add-ons (shown per service).
+ * @var bool  $priced    Whether to show the price summary and coupon box.
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -81,6 +83,19 @@ $uid = wp_unique_id( 'sb-' );
 				</div>
 			<?php endif; ?>
 
+			<?php if ( $extras ) : ?>
+				<fieldset class="sb-form-group sb-extras">
+					<legend class="sb-form-label"><?php esc_html_e( 'Extras', 'simple-booking' ); ?></legend>
+					<?php foreach ( $extras as $extra ) : ?>
+						<label class="sb-check-label" data-sb-field data-services="<?php echo esc_attr( implode( ',', $extra['services'] ) ); ?>">
+							<input type="checkbox" name="extras[]" value="<?php echo esc_attr( $extra['id'] ); ?>">
+							<?php echo esc_html( $extra['name'] ); ?>
+							<span class="sb-extra-price">+<?php echo esc_html( sb_price( $extra['price'] ) ); ?></span>
+						</label>
+					<?php endforeach; ?>
+				</fieldset>
+			<?php endif; ?>
+
 			<div class="sb-actions">
 				<button type="button" class="sb-btn-primary" data-sb-go="2"><?php esc_html_e( 'Next', 'simple-booking' ); ?></button>
 			</div>
@@ -129,6 +144,18 @@ $uid = wp_unique_id( 'sb-' );
 				<label for="<?php echo esc_attr( $uid ); ?>-notes"><?php esc_html_e( 'Notes (optional)', 'simple-booking' ); ?></label>
 				<textarea id="<?php echo esc_attr( $uid ); ?>-notes" class="sb-form-control" name="notes" rows="3" maxlength="2000"></textarea>
 			</div>
+			<?php if ( $priced ) : ?>
+				<div class="sb-form-group">
+					<label for="<?php echo esc_attr( $uid ); ?>-coupon"><?php esc_html_e( 'Coupon code (optional)', 'simple-booking' ); ?></label>
+					<div class="sb-coupon">
+						<input id="<?php echo esc_attr( $uid ); ?>-coupon" class="sb-form-control" name="coupon" type="text" maxlength="50" autocomplete="off" spellcheck="false">
+						<button type="button" class="sb-btn-secondary" data-sb-apply-coupon><?php esc_html_e( 'Apply', 'simple-booking' ); ?></button>
+					</div>
+					<p class="sb-coupon-error" role="alert" hidden></p>
+				</div>
+				<table class="sb-price-summary" aria-live="polite" data-sb-price><tbody></tbody></table>
+				<p class="sb-hint"><?php esc_html_e( 'You pay at your appointment.', 'simple-booking' ); ?></p>
+			<?php endif; ?>
 			<div class="sb-hp" aria-hidden="true">
 				<label for="<?php echo esc_attr( $uid ); ?>-website">Website</label>
 				<input id="<?php echo esc_attr( $uid ); ?>-website" name="website" type="text" tabindex="-1" autocomplete="off">

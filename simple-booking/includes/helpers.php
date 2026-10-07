@@ -13,7 +13,9 @@ function sb_view( string $view, array $vars = [] ): void {
 }
 
 function sb_price( $amount ): string {
-	return SB_Settings::get_settings()['currency_symbol'] . number_format_i18n( (float) $amount, 2 );
+	$amount = (float) $amount;
+	// Minus sign before the currency symbol: −₹7.00, not ₹-7.00.
+	return ( $amount < 0 ? '−' : '' ) . SB_Settings::get_settings()['currency_symbol'] . number_format_i18n( abs( $amount ), 2 );
 }
 
 /**

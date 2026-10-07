@@ -33,6 +33,10 @@ $statuses = [
 				<dt><?php esc_html_e( 'Where', 'simple-booking' ); ?></dt>
 				<dd><?php echo nl2br( esc_html( $booking['location'] ) ); ?></dd>
 			<?php endif; ?>
+			<?php if ( null !== $booking['total'] && (float) $booking['total'] > 0 ) : ?>
+				<dt><?php esc_html_e( 'Price', 'simple-booking' ); ?></dt>
+				<dd><?php echo esc_html( sb_price( $booking['total'] ) ); ?> <span class="sb-hint"><?php esc_html_e( '(pay at your appointment)', 'simple-booking' ); ?></span></dd>
+			<?php endif; ?>
 			<dt><?php esc_html_e( 'Booking code', 'simple-booking' ); ?></dt>
 			<dd><code translate="no"><?php echo esc_html( $booking['booking_code'] ); ?></code></dd>
 			<dt><?php esc_html_e( 'Status', 'simple-booking' ); ?></dt>

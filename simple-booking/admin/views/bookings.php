@@ -81,6 +81,7 @@ $filtered  = (bool) array_filter( $filters );
 							<th scope="col"><?php esc_html_e( 'Service', 'simple-booking' ); ?></th>
 							<th scope="col"><?php esc_html_e( 'Staff', 'simple-booking' ); ?></th>
 							<th scope="col"><?php esc_html_e( 'Customer', 'simple-booking' ); ?></th>
+							<th scope="col" class="sb-num"><?php esc_html_e( 'Price', 'simple-booking' ); ?></th>
 							<th scope="col"><?php esc_html_e( 'Notes', 'simple-booking' ); ?></th>
 							<th scope="col"><?php esc_html_e( 'Status', 'simple-booking' ); ?></th>
 							<th scope="col"><span class="screen-reader-text"><?php esc_html_e( 'Actions', 'simple-booking' ); ?></span></th>
@@ -111,6 +112,16 @@ $filtered  = (bool) array_filter( $filters );
 									<a class="sb-link" href="<?php echo esc_url( 'mailto:' . $b['customer_email'] ); ?>"><?php echo esc_html( $b['customer_email'] ); ?></a>
 									<?php if ( ! empty( $b['customer_phone'] ) ) : ?>
 										<br><a class="sb-link" href="<?php echo esc_url( 'tel:' . $b['customer_phone'] ); ?>"><?php echo esc_html( $b['customer_phone'] ); ?></a>
+									<?php endif; ?>
+								</td>
+								<td class="sb-num">
+									<?php
+									$pricing = json_decode( (string) ( $b['pricing'] ?? '' ), true );
+									echo null !== $b['total'] ? esc_html( sb_price( $b['total'] ) ) : '<span class="sb-muted">—</span>';
+									if ( is_array( $pricing ) && ( $pricing['extras'] || $pricing['discount'] > 0 ) ) :
+										$detail = array_slice( SB_Pricing::lines( $pricing ), 1, -1 );
+										?>
+										<br><span class="sb-muted sb-price-detail"><?php echo esc_html( implode( ', ', array_map( fn( $l ) => $l[0] . ' ' . sb_price( abs( $l[1] ) ), $detail ) ) ); ?></span>
 									<?php endif; ?>
 								</td>
 								<td class="sb-note">

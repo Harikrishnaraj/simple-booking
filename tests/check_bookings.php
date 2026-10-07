@@ -33,7 +33,7 @@ if ( ! defined( 'HOUR_IN_SECONDS' ) ) define( 'HOUR_IN_SECONDS', 3600 );
 function sanitize_key( $v ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $v ) ); }
 
 class FakeWpdb {
-	public $prefix = 'wp_'; public $insert_id = 0; public $rows = []; public $lock = 1; public $customers = [];
+	public $prefix = 'wp_'; public $coupons_by_code = []; public $insert_id = 0; public $rows = []; public $lock = 1; public $customers = [];
 	public $staff = [ 7 => [ 'id' => 7, 'status' => 'active', 'services' => '' ], 8 => [ 'id' => 8, 'status' => 'inactive', 'services' => '' ], 9 => [ 'id' => 9, 'status' => 'active', 'services' => '[5]' ] ];
 	function prepare( $q, ...$a ) { return [ $q, $a ]; }
 	function get_var( $p ) {
@@ -45,6 +45,7 @@ class FakeWpdb {
 		[ $q, $a ] = $p;
 		if ( str_contains( $q, 'sb_staff' ) ) return $this->staff[ $a[0] ] ?? null;
 		if ( str_contains( $q, 'sb_bookings' ) ) return $this->rows[ $a[0] - 1 ] ?? null;
+		if ( str_contains( $q, 'sb_coupons' ) ) return $this->coupons_by_code[ $a[0] ] ?? null;
 		return null;
 	}
 	function update( $t, $d, $w ) { $i = $w['id'] - 1; if ( ! isset( $this->rows[ $i ] ) ) return 0; $this->rows[ $i ] = $d + $this->rows[ $i ]; return 1; }
@@ -74,6 +75,7 @@ require $base . 'class-reports.php';
 require $base . 'class-notifications.php';
 require $base . 'class-custom-fields.php';
 require $base . 'class-manage.php';
+require $base . 'class-pricing.php';
 
 $wpdb     = new FakeWpdb();
 $services = [ 1 => [ 'id' => 1, 'duration' => 60, 'status' => 'active' ], 2 => [ 'id' => 2, 'duration' => 30, 'status' => 'inactive' ] ];
@@ -234,5 +236,37 @@ $opts['sb_settings']['customer_changes'] = false;
 assert( ! SB_Manage::can_change( $row ), 'switched off' );
 $opts['sb_settings']['customer_changes'] = true;
 assert( ! SB_Manage::allowed_start( $soon->format( 'Y-m-d' ), $soon->format( 'H:i' ) ) && SB_Manage::allowed_start( $row['booking_date'], '10:00' ), 'new time must be past the cut-off' );
+
+// Pricing: extras per service, coupons (percent/fixed, rules), tax included or added
+$services[1]['price'] = 1000;
+SB_Pricing::save_extra( [ 'name' => 'Hair wash', 'price' => 200, 'services' => [ 1 ] ] );
+SB_Pricing::save_extra( [ 'name' => 'Other-service extra', 'price' => 50, 'services' => [ 2 ] ] );
+[ $wash, $other ] = array_column( SB_Pricing::extras(), 'id' );
+$opts['sb_settings'] = [ 'tax_name' => 'GST', 'tax_rate' => 18, 'prices_include_tax' => true ] + $opts['sb_settings'];
+$q = SB_Pricing::quote( 1, [ $wash, $other, 'bogus' ], '', $monday );
+assert( 1200.0 === $q['subtotal'] && 1 === count( $q['extras'] ) && 1200.0 === $q['total'] && 183.05 === $q['tax'], 'tax included: 1200 - 1200/1.18' );
+$opts['sb_settings']['prices_include_tax'] = false;
+$q = SB_Pricing::quote( 1, [ $wash ], '', $monday );
+assert( 216.0 === $q['tax'] && 1416.0 === $q['total'], 'tax added on top' );
+$wpdb->coupons_by_code = [
+	'TEN'  => [ 'id' => 1, 'code' => 'TEN', 'type' => 'percent', 'value' => 10, 'services' => '[]', 'valid_from' => null, 'valid_to' => null, 'max_uses' => 0, 'used' => 0, 'status' => 'active' ],
+	'BIG'  => [ 'id' => 2, 'code' => 'BIG', 'type' => 'fixed', 'value' => 5000, 'services' => '[]', 'valid_from' => null, 'valid_to' => null, 'max_uses' => 0, 'used' => 0, 'status' => 'active' ],
+	'S2'   => [ 'id' => 3, 'code' => 'S2', 'type' => 'fixed', 'value' => 50, 'services' => '[2]', 'valid_from' => null, 'valid_to' => null, 'max_uses' => 0, 'used' => 0, 'status' => 'active' ],
+	'OLD'  => [ 'id' => 4, 'code' => 'OLD', 'type' => 'fixed', 'value' => 50, 'services' => '[]', 'valid_from' => null, 'valid_to' => '2020-01-01', 'max_uses' => 0, 'used' => 0, 'status' => 'active' ],
+	'GONE' => [ 'id' => 5, 'code' => 'GONE', 'type' => 'fixed', 'value' => 50, 'services' => '[]', 'valid_from' => null, 'valid_to' => null, 'max_uses' => 3, 'used' => 3, 'status' => 'active' ],
+];
+$q = SB_Pricing::quote( 1, [ $wash ], ' ten ', $monday );
+assert( 120.0 === $q['discount'] && 194.4 === $q['tax'] && 1274.4 === $q['total'], 'percent coupon, code normalised' );
+$q = SB_Pricing::quote( 1, [], 'BIG', $monday );
+assert( 1000.0 === $q['discount'] && 0.0 === $q['total'], 'discount capped at subtotal' );
+foreach ( [ 'S2', 'OLD', 'GONE', 'NOPE' ] as $code ) {
+	$q = SB_Pricing::quote( 1, [], $code, $monday );
+	assert( '' !== $q['coupon_error'] && 0.0 === $q['discount'] && null === $q['coupon'], "coupon $code rejected" );
+}
+$stored = SB_Pricing::to_store( SB_Pricing::quote( 1, [ $wash ], 'TEN', $monday ) );
+assert( 'TEN' === $stored['coupon_code'] && ! isset( $stored['coupon'] ) );
+$lines  = SB_Pricing::lines( $stored );
+assert( [ 'Service', '+ Hair wash', 'Coupon TEN', 'GST (18%)', 'Total' ] === array_column( $lines, 0 ) && -120.0 === $lines[2][1] );
+$opts['sb_settings']['tax_rate'] = 0;
 
 echo "all checks passed\n";

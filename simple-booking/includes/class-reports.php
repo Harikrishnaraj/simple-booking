@@ -24,7 +24,7 @@ class SB_Reports {
 
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT b.customer_id, b.status, b.booking_time, b.end_time, s.price
+				"SELECT b.customer_id, b.status, b.booking_time, b.end_time, COALESCE(b.total, s.price) AS price
 				 FROM {$p}sb_bookings b
 				 LEFT JOIN {$p}sb_services s ON s.id = b.service_id
 				 WHERE b.booking_date BETWEEN %s AND %s AND b.status IN (" . self::ACTIVE . ')',

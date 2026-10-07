@@ -6,6 +6,7 @@
  * @var array $staff     Active staff, each with 'service_ids'
  * @var array $customers Existing customers (newest first)
  * @var array $fields    Custom fields
+ * @var array $extras    Paid add-ons
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -116,6 +117,21 @@ $when_fields = static function ( string $prefix ): void {
 				<label><input type="checkbox" name="notify" value="1" checked> <?php esc_html_e( 'Email the customer', 'simple-booking' ); ?></label>
 			</p>
 		</div>
+		<?php if ( $extras ) : ?>
+			<fieldset class="sb-field">
+				<legend class="sb-label"><?php esc_html_e( 'Extras', 'simple-booking' ); ?></legend>
+				<?php foreach ( $extras as $extra ) : ?>
+					<label class="sb-check-label" data-sb-field data-services="<?php echo esc_attr( implode( ',', $extra['services'] ) ); ?>">
+						<input type="checkbox" name="extras[]" value="<?php echo esc_attr( $extra['id'] ); ?>">
+						<?php echo esc_html( $extra['name'] . ' (+' . sb_price( $extra['price'] ) . ')' ); ?>
+					</label>
+				<?php endforeach; ?>
+			</fieldset>
+		<?php endif; ?>
+		<p class="sb-field">
+			<label for="sb-b-coupon"><?php esc_html_e( 'Coupon code (optional)', 'simple-booking' ); ?></label>
+			<input id="sb-b-coupon" class="sb-input sb-input--wide" type="text" name="coupon" maxlength="50" autocomplete="off" spellcheck="false">
+		</p>
 		<?php
 		sb_view( 'admin/views/partials/custom-field-inputs', [
 			'fields'       => $fields,

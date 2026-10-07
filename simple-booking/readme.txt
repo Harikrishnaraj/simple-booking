@@ -4,7 +4,7 @@ Tags: booking, appointment, salon, clinic, scheduling, shortcode
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 8.0
-Stable tag: 1.9.0
+Stable tag: 2.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,6 +23,17 @@ Simple Booking allows business owners (salons, clinics, consultants, personal tr
 Simply insert the shortcode `[simple_booking]` into any page, post, or widget area.
 
 == Changelog ==
+= 2.0.0 =
+* New Pricing page with three tabs:
+  * Extras: paid add-ons per service that customers tick on the booking form.
+  * Coupons: percentage or fixed codes, optional dates, usage limit and services.
+  * Tax: name and rate, with prices including or excluding tax.
+* The booking form shows a live price summary (service, extras, coupon, tax, total) and says payment is at the appointment.
+* Each booking keeps its own price breakdown; the Bookings page shows the total, and emails get {price} (total) and {price_details}.
+* The admin booking dialog takes extras and a coupon too (one coupon use per series).
+* Dashboard revenue uses each booking's own total.
+* New table `sb_coupons`, new columns `bookings.pricing` and `bookings.total` (added automatically on update).
+
 = 1.9.0 =
 * Recurring appointments: in the admin "Book appointment" dialog choose Repeat (every week, 2 weeks or 4 weeks) and the number of sessions. Dates that aren't free are skipped and listed.
 * The customer gets one email for the whole series; {recurring_details} lists all sessions (included in the default booking and confirmation emails).

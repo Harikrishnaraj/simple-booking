@@ -150,6 +150,9 @@ class SB_Public_Controller {
 			'groups' => $this->group_by_category( $services ),
 			'staff'     => $staff,
 			'fields'    => SB_Custom_Fields::all(),
+			'extras'    => SB_Pricing::extras(),
+			// Price summary and coupon box only when something costs money.
+			'priced'    => (bool) array_filter( $services, fn( $s ) => (float) $s['price'] > 0 ) || SB_Pricing::extras(),
 			// The location question only appears when there is a choice.
 			'locations' => count( $locations ) > 1 ? $locations : [],
 		] );
@@ -265,6 +268,28 @@ class SB_Public_Controller {
 	}
 
 	/**
+	 * Price preview for the form. Public and read-only; it doesn't use up the coupon.
+	 */
+	public function ajax_quote(): void {
+		// phpcs:disable WordPress.Security.NonceVerification
+		$q = SB_Pricing::quote(
+			absint( $_POST['service_id'] ?? 0 ),
+			array_map( 'sanitize_key', (array) wp_unslash( $_POST['extras'] ?? [] ) ),
+			sanitize_text_field( wp_unslash( $_POST['coupon'] ?? '' ) ),
+			sanitize_text_field( wp_unslash( $_POST['date'] ?? '' ) ) ?: wp_date( 'Y-m-d' )
+		);
+		// phpcs:enable
+		// Wrong codes count towards the rate limit, so coupon codes can't be guessed by trying many.
+		if ( $q['coupon_error'] && $this->is_rate_limited() ) {
+			wp_send_json_error( [ 'message' => __( 'Too many attempts. Please wait a few minutes and try again.', 'simple-booking' ) ], 429 );
+		}
+		wp_send_json_success( [
+			'lines'       => array_map( fn( $l ) => [ $l[0], sb_price( $l[1] ) ], SB_Pricing::lines( $q ) ),
+			'couponError' => $q['coupon_error'],
+		] );
+	}
+
+	/**
 	 * Read-only and public, so no nonce: it only reveals which times are free.
 	 */
 	public function ajax_get_available_slots(): void {
@@ -303,6 +328,13 @@ class SB_Public_Controller {
 		}
 		$data['custom_fields'] = $answers;
 
+		// Price is always worked out here; the form's summary is only a preview.
+		$quote = SB_Pricing::quote( $data['service_id'], (array) ( $post['extras'] ?? [] ), sanitize_text_field( $post['coupon'] ?? '' ), $data['booking_date'] );
+		if ( $quote['coupon_error'] ) {
+			wp_send_json_error( [ 'message' => $quote['coupon_error'] ], 422 );
+		}
+		$data['pricing'] = SB_Pricing::to_store( $quote );
+
 		$bookings = new SB_Bookings();
 		$taken    = static fn() => wp_send_json_error( [
 			'code'    => 'slot_unavailable',
@@ -320,8 +352,15 @@ class SB_Public_Controller {
 			wp_send_json_error( [ 'message' => __( 'Your booking could not be saved. Please try again.', 'simple-booking' ) ], 500 );
 		}
 
+		// Count the coupon use first (atomically), and give it back if the booking fails.
+		if ( $quote['coupon'] && ! SB_Pricing::redeem( (int) $quote['coupon']['id'] ) ) {
+			wp_send_json_error( [ 'message' => __( 'This coupon has been used up.', 'simple-booking' ) ], 422 );
+		}
 		$booking_id = $bookings->create_booking( [ 'customer_id' => $customer_id ] + $data );
 		if ( ! $booking_id ) {
+			if ( $quote['coupon'] ) {
+				SB_Pricing::unredeem( (int) $quote['coupon']['id'] );
+			}
 			$taken();
 		}
 

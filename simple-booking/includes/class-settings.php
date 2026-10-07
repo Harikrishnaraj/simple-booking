@@ -27,6 +27,9 @@ class SB_Settings {
 			'booking_page_id'      => 0,
 			'customer_changes'     => true,
 			'change_cutoff_hours'  => 24,
+			'tax_name'             => '',
+			'tax_rate'             => 0,
+			'prices_include_tax'   => true,
 		];
 	}
 
@@ -63,12 +66,15 @@ class SB_Settings {
 				$new_settings[ $key ] = min( 1000000, absint( $new_settings[ $key ] ) );
 			}
 		}
-		foreach ( [ 'customer_notification', 'admin_notification', 'delete_data_on_uninstall', 'customer_changes' ] as $key ) {
+		if ( isset( $new_settings['tax_rate'] ) ) {
+			$new_settings['tax_rate'] = min( 100, max( 0, round( (float) $new_settings['tax_rate'], 3 ) ) );
+		}
+		foreach ( [ 'customer_notification', 'admin_notification', 'delete_data_on_uninstall', 'customer_changes', 'prices_include_tax' ] as $key ) {
 			if ( isset( $new_settings[ $key ] ) ) {
 				$new_settings[ $key ] = rest_sanitize_boolean( $new_settings[ $key ] );
 			}
 		}
-		foreach ( [ 'business_name', 'currency_symbol', 'time_zone' ] as $key ) {
+		foreach ( [ 'business_name', 'currency_symbol', 'time_zone', 'tax_name' ] as $key ) {
 			if ( isset( $new_settings[ $key ] ) ) {
 				$new_settings[ $key ] = sanitize_text_field( (string) $new_settings[ $key ] );
 			}

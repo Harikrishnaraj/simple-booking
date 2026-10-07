@@ -156,7 +156,8 @@ class SB_Email {
 			'{booking_date}'   => mysql2date( get_option( 'date_format' ), $d['booking_date'] ),
 			'{booking_time}'   => substr( (string) $d['booking_time'], 0, 5 ),
 			'{end_time}'       => substr( (string) $d['end_time'], 0, 5 ),
-			'{price}'          => sb_price( $d['price'] ),
+			'{price}'          => sb_price( $d['total'] ?? $d['price'] ),
+			'{price_details}'  => $this->price_text( $d ),
 			'{booking_code}'   => (string) $d['booking_code'],
 			'{status}'         => $statuses[ $d['status'] ] ?? (string) $d['status'],
 			'{notes}'          => (string) $d['notes'],
@@ -168,6 +169,17 @@ class SB_Email {
 			'{location_name}'  => (string) ( $d['location_name'] ?? '' ),
 			'{location_address}' => preg_replace( '/\s*\R\s*/', ', ', trim( (string) ( $d['location_address'] ?? '' ) ) ),
 		];
+	}
+
+	/**
+	 * "Label: amount" lines from the booking's stored breakdown, or '' for free bookings.
+	 */
+	private function price_text( array $d ): string {
+		$pricing = json_decode( (string) ( $d['pricing'] ?? '' ), true );
+		if ( ! is_array( $pricing ) || (float) $pricing['total'] <= 0 ) {
+			return '';
+		}
+		return implode( "\n", array_map( fn( $l ) => $l[0] . ': ' . sb_price( $l[1] ), SB_Pricing::lines( $pricing ) ) );
 	}
 
 	/**
