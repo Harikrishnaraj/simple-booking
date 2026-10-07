@@ -159,9 +159,16 @@ class SB_Public_Controller {
 	 * Next DAYS_AHEAD days in the site timezone, flagged open/closed from the working days.
 	 */
 	private function upcoming_days(): array {
-		$work_days = (array) SB_Settings::get_settings()['work_days'];
+		$staff_mgr = new SB_Staff();
+		$staff     = $staff_mgr->get_all();
 		$day       = new DateTimeImmutable( 'today', wp_timezone() );
 		$days      = [];
+
+		// Open if anyone works that day (or, with no staff, the business is open). Per-service
+		// and per-staff detail is left to the times list.
+		$open = static fn( DateTimeImmutable $d ) => $staff
+			? (bool) array_filter( $staff, fn( $m ) => null !== $staff_mgr->hours_on( $m, $d->format( 'Y-m-d' ) ) )
+			: null !== SB_Staff::business_hours_on( $d->format( 'l' ) );
 
 		for ( $i = 0; $i < self::DAYS_AHEAD; $i++, $day = $day->modify( '+1 day' ) ) {
 			$ts     = $day->getTimestamp();
@@ -171,7 +178,7 @@ class SB_Public_Controller {
 				'day'   => wp_date( 'j', $ts ),
 				'month' => wp_date( 'M', $ts ),
 				'label' => wp_date( get_option( 'date_format' ), $ts ),
-				'open'  => in_array( $day->format( 'l' ), $work_days, true ),
+				'open'  => $open( $day ),
 			];
 		}
 		return $days;

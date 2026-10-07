@@ -51,6 +51,8 @@ class SB_Database {
 			phone varchar(50) NULL,
 			services text NULL,
 			photo_id bigint(20) UNSIGNED NULL,
+			schedule text NULL,
+			days_off text NULL,
 			status varchar(20) NOT NULL DEFAULT 'active',
 			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
 			PRIMARY KEY  (id)

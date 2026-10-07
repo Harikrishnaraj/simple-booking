@@ -75,22 +75,25 @@ class SB_Reports {
 	}
 
 	/**
-	 * Bookable minutes in the range: working days × opening hours × active staff (at least 1).
+	 * Bookable minutes in the range: each active staff member's working hours (their own
+	 * schedule and days off, or the business hours), or the business hours when there's no staff.
 	 */
 	public function capacity_minutes( string $from, string $to ): int {
-		$settings = SB_Settings::get_settings();
-		$open     = strtotime( "1970-01-01 {$settings['business_hours_start']} UTC" );
-		$close    = strtotime( "1970-01-01 {$settings['business_hours_end']} UTC" );
-		$per_day  = max( 0, (int) ( ( $close - $open ) / 60 ) );
-		$people   = max( 1, count( ( new SB_Staff() )->get_all() ) );
+		$staff_mgr = new SB_Staff();
+		$staff     = $staff_mgr->get_all();
+		$length    = static fn( ?array $r ) => $r ? max( 0, (int) ( ( strtotime( "1970-01-01 {$r[1]} UTC" ) - strtotime( "1970-01-01 {$r[0]} UTC" ) ) / 60 ) ) : 0;
 
-		$days = 0;
+		$minutes = 0;
 		foreach ( $this->dates( $from, $to ) as $day ) {
-			if ( in_array( $day->format( 'l' ), (array) $settings['work_days'], true ) ) {
-				$days++;
+			if ( ! $staff ) {
+				$minutes += $length( SB_Staff::business_hours_on( $day->format( 'l' ) ) );
+				continue;
+			}
+			foreach ( $staff as $member ) {
+				$minutes += $length( $staff_mgr->hours_on( $member, $day->format( 'Y-m-d' ) ) );
 			}
 		}
-		return $days * $per_day * $people;
+		return $minutes;
 	}
 
 	/**
