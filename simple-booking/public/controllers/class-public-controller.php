@@ -200,6 +200,8 @@ class SB_Public_Controller {
 			'staff_name'   => $staff['name'] ?? '',
 			'location'     => $location ? trim( $location['name'] . "\n" . $location['address'] ) : '',
 			'can_change'   => SB_Manage::can_change( $booking ),
+			'deposit'      => (float) ( json_decode( (string) ( $booking['pricing'] ?? '' ), true )['deposit'] ?? 0 ),
+			'invoice_url'  => empty( $booking['pricing'] ) ? '' : add_query_arg( [ 'action' => 'sb_invoice', 'id' => (int) $booking['id'], 'token' => SB_Manage::token( $booking ) ], admin_url( 'admin-post.php' ) ),
 			'deadline'     => SB_Manage::deadline( $booking ),
 		];
 	}
@@ -265,6 +267,39 @@ class SB_Public_Controller {
 		/* translators: %s: the old date and time */
 		( new SB_Email() )->customer_changed( (int) $booking['id'], sprintf( __( 'The customer moved this booking from %s to:', 'simple-booking' ), $old ) );
 		wp_send_json_success( [ 'message' => __( 'Your appointment has been moved. We have emailed you the new details.', 'simple-booking' ) ] );
+	}
+
+	/**
+	 * Printable invoice (admin-post.php?action=sb_invoice&id=…). Admins get here with a nonce;
+	 * customers with their booking's signed token (link on their manage page).
+	 */
+	public function render_invoice(): void {
+		// phpcs:disable WordPress.Security.NonceVerification -- checked below (nonce or signed token)
+		$id    = absint( $_GET['id'] ?? 0 );
+		$token = sanitize_key( wp_unslash( $_GET['token'] ?? '' ) );
+		// phpcs:enable
+		$booking = null;
+		if ( current_user_can( 'manage_options' ) && wp_verify_nonce( sanitize_key( $_GET['_wpnonce'] ?? '' ), 'sb_invoice_' . $id ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+			$booking = ( new SB_Bookings() )->get_by_id( $id );
+		} elseif ( $token ) {
+			$booking = SB_Manage::verify( $id, $token );
+		}
+		if ( ! $booking || empty( $booking['pricing'] ) ) {
+			wp_die( esc_html__( 'This invoice is not available.', 'simple-booking' ), '', [ 'response' => 403 ] );
+		}
+
+		nocache_headers();
+		$details  = $this->booking_details( $booking );
+		$customer = ( new SB_Customers() )->get_by_id( (int) $booking['customer_id'] );
+		sb_view( 'public/views/invoice', [
+			'booking'  => $details,
+			'invoice'  => SB_Payments::invoice( $booking ),
+			'customer' => $customer,
+			'pricing'  => json_decode( (string) $booking['pricing'], true ),
+			'payments' => ( new SB_Payments() )->for_booking( $id ),
+			'settings' => SB_Settings::get_settings(),
+		] );
+		exit;
 	}
 
 	/**

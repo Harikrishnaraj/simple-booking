@@ -76,6 +76,7 @@ require $base . 'class-notifications.php';
 require $base . 'class-custom-fields.php';
 require $base . 'class-manage.php';
 require $base . 'class-pricing.php';
+require $base . 'class-payments.php';
 
 $wpdb     = new FakeWpdb();
 $services = [ 1 => [ 'id' => 1, 'duration' => 60, 'status' => 'active' ], 2 => [ 'id' => 2, 'duration' => 30, 'status' => 'inactive' ] ];
@@ -268,5 +269,11 @@ assert( 'TEN' === $stored['coupon_code'] && ! isset( $stored['coupon'] ) );
 $lines  = SB_Pricing::lines( $stored );
 assert( [ 'Service', '+ Hair wash', 'Coupon TEN', 'GST (18%)', 'Total' ] === array_column( $lines, 0 ) && -120.0 === $lines[2][1] );
 $opts['sb_settings']['tax_rate'] = 0;
+
+// Payment status
+assert( 'free' === SB_Payments::status( 0.0, 0.0 ) && 'free' === SB_Payments::status( null, 0.0 ) );
+assert( 'unpaid' === SB_Payments::status( 63.0, 0.0 ) && 'partial' === SB_Payments::status( 63.0, 20.0 ) );
+assert( 'paid' === SB_Payments::status( 63.0, 63.0 ) && 'paid' === SB_Payments::status( 63.0, 62.999 ) && 'overpaid' === SB_Payments::status( 63.0, 70.0 ) );
+assert( 'unpaid' === SB_Payments::status( 63.0, -5.0 ), 'refund only' );
 
 echo "all checks passed\n";

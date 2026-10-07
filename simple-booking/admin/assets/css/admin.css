@@ -629,6 +629,45 @@ body.sb-admin-screen #wpfooter {
 	white-space: normal;
 }
 
+.sb-pay {
+	font-size: 11px;
+	font-weight: 600;
+}
+
+.sb-pay--paid     { color: var(--sb-confirmed-fg); }
+.sb-pay--partial  { color: var(--sb-pending-fg); }
+.sb-pay--unpaid   { color: var(--sb-danger); }
+.sb-pay--overpaid { color: var(--sb-completed-fg); }
+
+.sb-payment-history {
+	margin: 0 0 12px;
+	padding: 0;
+	list-style: none;
+}
+
+.sb-payment-history li {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 6px 0;
+	border-bottom: 1px solid var(--sb-border);
+}
+
+.sb-stat--plain {
+	padding: 12px 16px;
+	border: 1px solid var(--sb-border);
+	border-radius: 10px;
+}
+
+.sb-stat--plain .sb-stat__label {
+	margin: 0;
+}
+
+.sb-stat__value--small {
+	font-size: 20px;
+}
+
 .sb-series {
 	font-size: 12px;
 	white-space: nowrap;

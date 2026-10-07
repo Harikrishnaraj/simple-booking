@@ -63,7 +63,12 @@ class SB_Reports {
 
 		$capacity = $this->capacity_minutes( $from, $to );
 
+		$received = (float) $wpdb->get_var(
+			$wpdb->prepare( "SELECT SUM(amount) FROM {$p}sb_payments WHERE paid_at BETWEEN %s AND %s", $from . ' 00:00:00', $to . ' 23:59:59' )
+		);
+
 		return [
+			'received'          => $received,
 			'appointments'      => count( $rows ),
 			'revenue'           => $revenue,
 			'customers'         => count( $customer_ids ),

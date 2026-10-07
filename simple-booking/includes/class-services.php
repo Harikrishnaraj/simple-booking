@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class SB_Services {
 
-	private const FORMATS = [ '%s', '%s', '%d', '%f', '%d', '%s' ];
+	private const FORMATS = [ '%s', '%s', '%d', '%f', '%f', '%d', '%s' ];
 
 	private string $table_name;
 
@@ -76,11 +76,14 @@ class SB_Services {
 			return null;
 		}
 		$category = absint( $data['category_id'] ?? 0 );
+		$price    = max( 0, round( floatval( $data['price'] ?? 0 ), 2 ) );
 		return [
 			'name'        => $name,
 			'description' => sanitize_textarea_field( $data['description'] ?? '' ),
 			'duration'    => $duration,
-			'price'       => max( 0, round( floatval( $data['price'] ?? 0 ), 2 ) ),
+			'price'       => $price,
+			// Amount asked for in advance; never more than the price.
+			'deposit'     => min( $price, max( 0, round( floatval( $data['deposit'] ?? 0 ), 2 ) ) ),
 			'category_id' => $category && ( new SB_Categories() )->exists( $category ) ? $category : null,
 			'status'      => in_array( $status, [ 'active', 'inactive' ], true ) ? $status : 'active',
 		];

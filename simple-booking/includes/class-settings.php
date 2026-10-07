@@ -30,6 +30,9 @@ class SB_Settings {
 			'tax_name'             => '',
 			'tax_rate'             => 0,
 			'prices_include_tax'   => true,
+			'business_address'     => '',
+			'tax_id'               => '',
+			'invoice_prefix'       => 'INV-',
 		];
 	}
 
@@ -74,7 +77,10 @@ class SB_Settings {
 				$new_settings[ $key ] = rest_sanitize_boolean( $new_settings[ $key ] );
 			}
 		}
-		foreach ( [ 'business_name', 'currency_symbol', 'time_zone', 'tax_name' ] as $key ) {
+		if ( isset( $new_settings['business_address'] ) ) {
+			$new_settings['business_address'] = sanitize_textarea_field( (string) $new_settings['business_address'] );
+		}
+		foreach ( [ 'business_name', 'currency_symbol', 'time_zone', 'tax_name', 'tax_id', 'invoice_prefix' ] as $key ) {
 			if ( isset( $new_settings[ $key ] ) ) {
 				$new_settings[ $key ] = sanitize_text_field( (string) $new_settings[ $key ] );
 			}

@@ -1,6 +1,7 @@
 <?php
 /**
  * @var array  $bookings
+ * @var array  $payments booking id => payments
  * @var array  $filters  search, status, staff_id, date_from, date_to
  * @var int    $total
  * @var int    $page
@@ -117,7 +118,14 @@ $filtered  = (bool) array_filter( $filters );
 								<td class="sb-num">
 									<?php
 									$pricing = json_decode( (string) ( $b['pricing'] ?? '' ), true );
+									$paid    = array_sum( array_map( 'floatval', array_column( $payments[ $b['id'] ] ?? [], 'amount' ) ) );
+									$state   = SB_Payments::status( null === $b['total'] ? null : (float) $b['total'], $paid );
 									echo null !== $b['total'] ? esc_html( sb_price( $b['total'] ) ) : '<span class="sb-muted">—</span>';
+									if ( 'free' !== $state ) :
+										?>
+										<br><span class="sb-pay sb-pay--<?php echo esc_attr( $state ); ?>"><?php echo esc_html( SB_Payments::status_label( $state ) ); ?></span>
+										<?php
+									endif;
 									if ( is_array( $pricing ) && ( $pricing['extras'] || $pricing['discount'] > 0 ) ) :
 										$detail = array_slice( SB_Pricing::lines( $pricing ), 1, -1 );
 										?>
@@ -139,6 +147,16 @@ $filtered  = (bool) array_filter( $filters );
 									</select>
 								</td>
 								<td class="sb-actions">
+									<?php if ( null !== $b['total'] ) : ?>
+										<button type="button" class="sb-button sb-button--ghost sb-button--small" data-sb-open="sb-payment-dialog"
+											data-sb-fill="<?php echo esc_attr( wp_json_encode( [
+												'id'       => (int) $b['id'],
+												'amount'   => number_format( max( 0, (float) $b['total'] - $paid ), 2, '.', '' ),
+												'summary'  => $b['booking_code'] . ' · ' . ( $b['customer_name'] ?? '' ) . ' · ' . sb_price( $b['total'] ),
+												'history'  => array_map( fn( $p ) => [ 'id' => (int) $p['id'], 'text' => mysql2date( get_option( 'date_format' ), $p['paid_at'] ) . ' · ' . ( SB_Payments::methods()[ $p['method'] ] ?? $p['method'] ) . ' · ' . sb_price( $p['amount'] ) . ( $p['note'] ? ' · ' . $p['note'] : '' ) ], $payments[ $b['id'] ] ?? [] ),
+												'invoice'  => wp_nonce_url( admin_url( 'admin-post.php?action=sb_invoice&id=' . (int) $b['id'] ), 'sb_invoice_' . (int) $b['id'] ),
+											] ) ); ?>"><?php esc_html_e( 'Payments', 'simple-booking' ); ?></button>
+									<?php endif; ?>
 									<?php if ( ! empty( $b['series_id'] ) && in_array( $b['status'], [ 'pending', 'confirmed' ], true ) ) : ?>
 										<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-delete="sb_cancel_series" data-id="<?php echo esc_attr( $b['series_id'] ); ?>"
 											data-sb-confirm="<?php esc_attr_e( 'Cancel all upcoming sessions in this series? The customer is not emailed.', 'simple-booking' ); ?>"><?php esc_html_e( 'Cancel series', 'simple-booking' ); ?></button>

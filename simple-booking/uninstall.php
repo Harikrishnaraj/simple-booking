@@ -24,6 +24,7 @@ delete_option( 'sb_settings' );
 delete_option( 'sb_email_templates' );
 delete_option( 'sb_custom_fields' );
 delete_option( 'sb_extras' );
+delete_option( 'sb_invoice_counter' );
 
 // Drop tables if configured to scrub data
 $tables = [
@@ -34,6 +35,7 @@ $tables = [
 	$wpdb->prefix . 'sb_categories',
 	$wpdb->prefix . 'sb_locations',
 	$wpdb->prefix . 'sb_coupons',
+	$wpdb->prefix . 'sb_payments',
 	$wpdb->prefix . 'sb_settings', // no longer created; dropped for installs from 1.0.0
 ];
 

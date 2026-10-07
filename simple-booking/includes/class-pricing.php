@@ -194,7 +194,9 @@ class SB_Pricing {
 		$tax      = $included ? $net - $net / ( 1 + $rate ) : $net * $rate;
 		$tax      = round( $tax, 2 );
 
+		$total = round( $included ? $net : $net + $tax, 2 );
 		return [
+			'deposit'      => min( $total, (float) ( $service['deposit'] ?? 0 ) ),
 			'tax_name'     => (string) $settings['tax_name'],
 			'tax_rate'     => (float) $settings['tax_rate'],
 			'price'        => round( $price, 2 ),
@@ -205,7 +207,7 @@ class SB_Pricing {
 			'coupon'       => $coupon,
 			'coupon_error' => $error,
 			'tax'          => $tax,
-			'total'        => round( $included ? $net : $net + $tax, 2 ),
+			'total'        => $total,
 			'tax_included' => $included,
 		];
 	}

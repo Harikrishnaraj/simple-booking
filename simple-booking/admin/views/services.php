@@ -88,6 +88,11 @@ $form_category = (int) ( $editing['category_id'] ?? ( is_int( $category ) ? $cat
 							<input id="sb-service-price" name="price" type="number" min="0" step="0.01" inputmode="decimal" value="<?php echo esc_attr( $editing['price'] ?? '0.00' ); ?>">
 						</div>
 						<div class="form-field">
+							<label for="sb-service-deposit"><?php esc_html_e( 'Deposit (optional)', 'simple-booking' ); ?></label>
+							<input id="sb-service-deposit" name="deposit" type="number" min="0" step="0.01" inputmode="decimal" value="<?php echo esc_attr( $editing['deposit'] ?? '0.00' ); ?>">
+							<p class="description"><?php esc_html_e( 'Amount to ask for in advance. Shown to the customer as {deposit} in emails; record it on the Bookings page when paid.', 'simple-booking' ); ?></p>
+						</div>
+						<div class="form-field">
 							<label for="sb-service-category"><?php esc_html_e( 'Category', 'simple-booking' ); ?></label>
 							<select id="sb-service-category" name="category_id">
 								<option value="0"><?php esc_html_e( 'None', 'simple-booking' ); ?></option>
