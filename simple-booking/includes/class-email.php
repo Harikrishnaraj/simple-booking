@@ -35,6 +35,17 @@ class SB_Email {
 		}
 	}
 
+	/**
+	 * Tell the admin a customer cancelled or moved a booking from their link.
+	 */
+	public function customer_changed( int $booking_id, string $what ): void {
+		$data = $this->get_booking_data( $booking_id );
+		if ( $data ) {
+			$data['change'] = $what;
+			$this->send( 'admin_customer_change', (string) SB_Settings::get_settings()['admin_email'], $data );
+		}
+	}
+
 	public function rescheduled( int $booking_id ): void {
 		$data = $this->get_booking_data( $booking_id );
 		if ( $data ) {
@@ -150,6 +161,8 @@ class SB_Email {
 			'{status}'         => $statuses[ $d['status'] ] ?? (string) $d['status'],
 			'{notes}'          => (string) $d['notes'],
 			'{custom_fields}'  => SB_Custom_Fields::as_text( $d['custom_fields'] ?? null ),
+			'{manage_link}'    => isset( $d['id'] ) ? SB_Manage::url( $d ) : home_url( '/' ),
+			'{change}'         => (string) ( $d['change'] ?? '' ),
 			'{business_name}'  => (string) SB_Settings::get_settings()['business_name'],
 		];
 	}

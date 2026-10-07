@@ -4,7 +4,7 @@ Tags: booking, appointment, salon, clinic, scheduling, shortcode
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 8.0
-Stable tag: 1.6.0
+Stable tag: 1.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,6 +23,11 @@ Simple Booking allows business owners (salons, clinics, consultants, personal tr
 Simply insert the shortcode `[simple_booking]` into any page, post, or widget area.
 
 == Changelog ==
+= 1.7.0 =
+* Customer self-service: the new {manage_link} placeholder gives each customer a private link to see their booking and, up to a cut-off you set (24 hours by default), cancel it or move it to another free time. Added to the default booking, confirmation, rescheduled and reminder emails.
+* New admin email "Customer cancelled or moved" tells you when a customer uses the link.
+* Settings: booking page (found automatically if not set), allow customer changes, and the cut-off.
+
 = 1.6.0 =
 * Custom fields (Simple Booking → Custom Fields): add your own questions to the booking form (short or long text, dropdown, checkbox, date), make them required, limit them to certain services, and reorder them.
 * Answers are saved with each booking, shown on the Bookings page and in the admin booking dialog, and available in emails as {custom_fields} (included in the staff and admin new-booking emails by default).

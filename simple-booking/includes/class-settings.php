@@ -24,6 +24,9 @@ class SB_Settings {
 			'currency_symbol'      => '$',
 			'delete_data_on_uninstall' => false,
 			'ip_header'            => 'REMOTE_ADDR',
+			'booking_page_id'      => 0,
+			'customer_changes'     => true,
+			'change_cutoff_hours'  => 24,
 		];
 	}
 
@@ -55,7 +58,12 @@ class SB_Settings {
 				unset( $new_settings[ $key ] );
 			}
 		}
-		foreach ( [ 'customer_notification', 'admin_notification', 'delete_data_on_uninstall' ] as $key ) {
+		foreach ( [ 'booking_page_id', 'change_cutoff_hours' ] as $key ) {
+			if ( isset( $new_settings[ $key ] ) ) {
+				$new_settings[ $key ] = min( 1000000, absint( $new_settings[ $key ] ) );
+			}
+		}
+		foreach ( [ 'customer_notification', 'admin_notification', 'delete_data_on_uninstall', 'customer_changes' ] as $key ) {
 			if ( isset( $new_settings[ $key ] ) ) {
 				$new_settings[ $key ] = rest_sanitize_boolean( $new_settings[ $key ] );
 			}

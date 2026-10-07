@@ -28,6 +28,8 @@ class SB_Email { function __call( $n, $a ) { $GLOBALS['mails'][] = $n; return tr
 function esc_html( $v ) { return htmlspecialchars( (string) $v, ENT_QUOTES ); }
 function wp_strip_all_tags( $v ) { return strip_tags( (string) $v ); }
 function wpautop( $v ) { return $v; }
+function wp_salt( $s = '' ) { return 'test-salt'; }
+if ( ! defined( 'HOUR_IN_SECONDS' ) ) define( 'HOUR_IN_SECONDS', 3600 );
 function sanitize_key( $v ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $v ) ); }
 
 class FakeWpdb {
@@ -71,6 +73,7 @@ require $base . 'class-customers.php';
 require $base . 'class-reports.php';
 require $base . 'class-notifications.php';
 require $base . 'class-custom-fields.php';
+require $base . 'class-manage.php';
 
 $wpdb     = new FakeWpdb();
 $services = [ 1 => [ 'id' => 1, 'duration' => 60, 'status' => 'active' ], 2 => [ 'id' => 2, 'duration' => 30, 'status' => 'inactive' ] ];
@@ -189,5 +192,22 @@ SB_Custom_Fields::move( $skin, -1 );
 assert( $skin === SB_Custom_Fields::all()[1]['id'] );
 SB_Custom_Fields::delete( $first );
 assert( 2 === count( SB_Custom_Fields::all() ) );
+
+// Customer manage link: token bound to id + code; changes allowed until the cut-off
+$wpdb->rows = [];
+$opts['sb_settings']['change_cutoff_hours'] = 24;
+$far = $b->create_booking( [ 'booking_date' => ( new DateTimeImmutable( $monday ) )->modify( '+7 days' )->format( 'Y-m-d' ), 'booking_time' => '10:00' ] + $req );
+$row = $wpdb->rows[ $far - 1 ];
+$tok = SB_Manage::token( $row );
+assert( 32 === strlen( $tok ) && SB_Manage::verify( $far, $tok ) );
+assert( null === SB_Manage::verify( $far, strrev( $tok ) ) && null === SB_Manage::verify( $far + 1, $tok ), 'wrong token or id' );
+assert( SB_Manage::can_change( $row ) );
+assert( ! SB_Manage::can_change( [ 'status' => 'cancelled' ] + $row ) );
+$soon = ( new DateTimeImmutable( '+3 hours', wp_timezone() ) );
+assert( ! SB_Manage::can_change( [ 'booking_date' => $soon->format( 'Y-m-d' ), 'booking_time' => $soon->format( 'H:i:s' ) ] + $row ), 'inside cut-off' );
+$opts['sb_settings']['customer_changes'] = false;
+assert( ! SB_Manage::can_change( $row ), 'switched off' );
+$opts['sb_settings']['customer_changes'] = true;
+assert( ! SB_Manage::allowed_start( $soon->format( 'Y-m-d' ), $soon->format( 'H:i' ) ) && SB_Manage::allowed_start( $row['booking_date'], '10:00' ), 'new time must be past the cut-off' );
 
 echo "all checks passed\n";
