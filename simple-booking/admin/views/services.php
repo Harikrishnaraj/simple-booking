@@ -3,18 +3,19 @@
  * @var array      $services
  * @var array|null $editing
  * @var string     $page_url
+ * @var string     $theme
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-<div class="wrap">
-	<h1><?php esc_html_e( 'Services', 'simple-booking' ); ?></h1>
+<div class="wrap sb-app">
+	<?php sb_view( 'admin/views/partials/header', [ 'title' => __( 'Services', 'simple-booking' ), 'theme' => $theme ] ); ?>
 
-	<div id="col-container" class="wp-clearfix">
-		<div id="col-left">
-			<div class="col-wrap">
-				<h2><?php echo $editing ? esc_html__( 'Edit Service', 'simple-booking' ) : esc_html__( 'Add Service', 'simple-booking' ); ?></h2>
+	<div class="sb-split">
+		<section class="sb-card sb-split__form">
+			<div>
+				<h2 class="sb-card__title"><?php echo $editing ? esc_html__( 'Edit Service', 'simple-booking' ) : esc_html__( 'Add Service', 'simple-booking' ); ?></h2>
 				<form data-sb-action="sb_save_service" data-sb-redirect="<?php echo esc_url( $page_url ); ?>">
 					<input type="hidden" name="id" value="<?php echo (int) ( $editing['id'] ?? 0 ); ?>">
 					<div class="form-field form-required">
@@ -42,15 +43,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 					</div>
 					<?php submit_button( $editing ? __( 'Update Service', 'simple-booking' ) : __( 'Add Service', 'simple-booking' ) ); ?>
 					<?php if ( $editing ) : ?>
-						<a href="<?php echo esc_url( $page_url ); ?>"><?php esc_html_e( 'Cancel', 'simple-booking' ); ?></a>
+						<a class="sb-link" href="<?php echo esc_url( $page_url ); ?>"><?php esc_html_e( 'Cancel', 'simple-booking' ); ?></a>
 					<?php endif; ?>
 				</form>
 			</div>
-		</div>
+		</section>
 
-		<div id="col-right">
-			<div class="col-wrap">
-				<table class="widefat striped">
+		<section class="sb-card sb-split__list">
+			<div class="sb-table-wrap">
+				<table class="sb-table">
 					<thead>
 						<tr>
 							<th scope="col"><?php esc_html_e( 'Name', 'simple-booking' ); ?></th>
@@ -69,16 +70,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 								<td><strong><?php echo esc_html( $s['name'] ); ?></strong></td>
 								<td><?php echo esc_html( sprintf( _n( '%d minute', '%d minutes', (int) $s['duration'], 'simple-booking' ), (int) $s['duration'] ) ); ?></td>
 								<td><?php echo esc_html( sb_price( $s['price'] ) ); ?></td>
-								<td><?php echo 'active' === $s['status'] ? esc_html__( 'Active', 'simple-booking' ) : esc_html__( 'Inactive', 'simple-booking' ); ?></td>
-								<td>
-									<a class="button button-small" href="<?php echo esc_url( add_query_arg( 'edit', (int) $s['id'], $page_url ) ); ?>"><?php esc_html_e( 'Edit', 'simple-booking' ); ?></a>
-									<button type="button" class="button button-small button-link-delete" data-sb-delete="sb_delete_service" data-id="<?php echo (int) $s['id']; ?>"><?php esc_html_e( 'Delete', 'simple-booking' ); ?></button>
+								<td><?php sb_view( 'admin/views/partials/active-badge', [ 'active' => 'active' === $s['status'] ] ); ?></td>
+								<td class="sb-actions">
+									<a class="sb-button sb-button--ghost sb-button--small" href="<?php echo esc_url( add_query_arg( 'edit', (int) $s['id'], $page_url ) ); ?>"><?php esc_html_e( 'Edit', 'simple-booking' ); ?></a>
+									<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-delete="sb_delete_service" data-id="<?php echo (int) $s['id']; ?>"><?php esc_html_e( 'Delete', 'simple-booking' ); ?></button>
 								</td>
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
 				</table>
 			</div>
-		</div>
+		</section>
 	</div>
 </div>

@@ -1,4 +1,4 @@
-/* Simple Booking admin: AJAX for forms, delete buttons and status selects. */
+/* Simple Booking admin: AJAX for forms, delete buttons and status selects, plus the theme toggle and dialogs. */
 (function () {
 	'use strict';
 
@@ -78,12 +78,63 @@
 		data.append('status', select.value);
 		try {
 			await post('sb_update_booking_status', data);
+			select.classList.replace('sb-status--' + select.dataset.previous, 'sb-status--' + select.value);
 			select.dataset.previous = select.value;
 		} catch (err) {
 			select.value = select.dataset.previous;
 			window.alert(err.message);
 		} finally {
 			select.disabled = false;
+		}
+	});
+
+	// Dark/light theme: switch immediately, remember it for this user.
+	document.addEventListener('click', (e) => {
+		const button = e.target.closest('[data-sb-theme-toggle]');
+		if (!button) {
+			return;
+		}
+		const dark = !document.body.classList.contains('sb-theme-dark');
+		document.body.classList.toggle('sb-theme-dark', dark);
+		document.body.classList.toggle('sb-theme-light', !dark);
+		button.setAttribute('aria-pressed', String(dark));
+		const icon = button.querySelector('.dashicons');
+		icon.classList.toggle('dashicons-lightbulb', dark);
+		icon.classList.toggle('dashicons-admin-appearance', !dark);
+		const data = new FormData();
+		data.append('theme', dark ? 'dark' : 'light');
+		post('sb_save_theme', data).catch(() => {});
+	});
+
+	// Dialogs: [data-sb-open="id"] opens; data-sb-fill (JSON) fills the form fields for editing.
+	document.addEventListener('click', (e) => {
+		const opener = e.target.closest('[data-sb-open]');
+		if (opener) {
+			const dialog = document.getElementById(opener.dataset.sbOpen);
+			const form = dialog.querySelector('form');
+			const values = opener.dataset.sbFill ? JSON.parse(opener.dataset.sbFill) : null;
+			form.reset();
+			form.elements.id.value = values ? values.id : 0;
+			if (values) {
+				Object.keys(values).forEach((name) => {
+					if (form.elements[name]) {
+						form.elements[name].value = values[name] ?? '';
+					}
+				});
+			}
+			const title = dialog.querySelector('[data-new]');
+			title.textContent = values ? title.dataset.edit : title.dataset.new;
+			dialog.showModal();
+			return;
+		}
+		if (e.target.closest('[data-sb-close]')) {
+			e.target.closest('dialog').close();
+		}
+	});
+
+	document.addEventListener('change', (e) => {
+		if (e.target.matches('select[data-sb-autosubmit]')) {
+			e.target.form.submit();
 		}
 	});
 })();

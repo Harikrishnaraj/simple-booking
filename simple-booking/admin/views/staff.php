@@ -5,6 +5,7 @@
  * @var int[]      $editing_ids
  * @var array      $all_services
  * @var string     $page_url
+ * @var string     $theme
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -12,13 +13,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 $service_names = array_column( $all_services, 'name', 'id' );
 $staff_mgr     = new SB_Staff();
 ?>
-<div class="wrap">
-	<h1><?php esc_html_e( 'Staff', 'simple-booking' ); ?></h1>
+<div class="wrap sb-app">
+	<?php sb_view( 'admin/views/partials/header', [ 'title' => __( 'Staff', 'simple-booking' ), 'theme' => $theme ] ); ?>
 
-	<div id="col-container" class="wp-clearfix">
-		<div id="col-left">
-			<div class="col-wrap">
-				<h2><?php echo $editing ? esc_html__( 'Edit Staff Member', 'simple-booking' ) : esc_html__( 'Add Staff Member', 'simple-booking' ); ?></h2>
+	<div class="sb-split">
+		<section class="sb-card sb-split__form">
+			<div>
+				<h2 class="sb-card__title"><?php echo $editing ? esc_html__( 'Edit Staff Member', 'simple-booking' ) : esc_html__( 'Add Staff Member', 'simple-booking' ); ?></h2>
 				<form data-sb-action="sb_save_staff" data-sb-redirect="<?php echo esc_url( $page_url ); ?>">
 					<input type="hidden" name="id" value="<?php echo (int) ( $editing['id'] ?? 0 ); ?>">
 					<div class="form-field form-required">
@@ -52,15 +53,15 @@ $staff_mgr     = new SB_Staff();
 					</div>
 					<?php submit_button( $editing ? __( 'Update Staff Member', 'simple-booking' ) : __( 'Add Staff Member', 'simple-booking' ) ); ?>
 					<?php if ( $editing ) : ?>
-						<a href="<?php echo esc_url( $page_url ); ?>"><?php esc_html_e( 'Cancel', 'simple-booking' ); ?></a>
+						<a class="sb-link" href="<?php echo esc_url( $page_url ); ?>"><?php esc_html_e( 'Cancel', 'simple-booking' ); ?></a>
 					<?php endif; ?>
 				</form>
 			</div>
-		</div>
+		</section>
 
-		<div id="col-right">
-			<div class="col-wrap">
-				<table class="widefat striped">
+		<section class="sb-card sb-split__list">
+			<div class="sb-table-wrap">
+				<table class="sb-table">
 					<thead>
 						<tr>
 							<th scope="col"><?php esc_html_e( 'Name', 'simple-booking' ); ?></th>
@@ -77,7 +78,12 @@ $staff_mgr     = new SB_Staff();
 						<?php foreach ( $staff as $member ) : ?>
 							<?php $ids = $staff_mgr->service_ids( $member ); ?>
 							<tr>
-								<td><strong><?php echo esc_html( $member['name'] ); ?></strong></td>
+								<td>
+									<span class="sb-person">
+										<span class="sb-avatar" aria-hidden="true"><?php echo esc_html( mb_strtoupper( mb_substr( $member['name'], 0, 1 ) ) ); ?></span>
+										<strong><?php echo esc_html( $member['name'] ); ?></strong>
+									</span>
+								</td>
 								<td>
 									<?php echo esc_html( $member['email'] ); ?>
 									<?php if ( ! empty( $member['phone'] ) ) : ?><br><?php echo esc_html( $member['phone'] ); ?><?php endif; ?>
@@ -89,16 +95,17 @@ $staff_mgr     = new SB_Staff();
 										: esc_html__( 'All services', 'simple-booking' );
 									?>
 								</td>
-								<td><?php echo 'active' === $member['status'] ? esc_html__( 'Active', 'simple-booking' ) : esc_html__( 'Inactive', 'simple-booking' ); ?></td>
-								<td>
-									<a class="button button-small" href="<?php echo esc_url( add_query_arg( 'edit', (int) $member['id'], $page_url ) ); ?>"><?php esc_html_e( 'Edit', 'simple-booking' ); ?></a>
-									<button type="button" class="button button-small button-link-delete" data-sb-delete="sb_delete_staff" data-id="<?php echo (int) $member['id']; ?>"><?php esc_html_e( 'Delete', 'simple-booking' ); ?></button>
+								<td><?php sb_view( 'admin/views/partials/active-badge', [ 'active' => 'active' === $member['status'] ] ); ?></td>
+								<td class="sb-actions">
+									<a class="sb-button sb-button--ghost sb-button--small" href="<?php echo esc_url( admin_url( 'admin.php?page=sb-calendar&staff=' . (int) $member['id'] ) ); ?>"><?php esc_html_e( 'Calendar', 'simple-booking' ); ?></a>
+									<a class="sb-button sb-button--ghost sb-button--small" href="<?php echo esc_url( add_query_arg( 'edit', (int) $member['id'], $page_url ) ); ?>"><?php esc_html_e( 'Edit', 'simple-booking' ); ?></a>
+									<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-delete="sb_delete_staff" data-id="<?php echo (int) $member['id']; ?>"><?php esc_html_e( 'Delete', 'simple-booking' ); ?></button>
 								</td>
 							</tr>
 						<?php endforeach; ?>
 					</tbody>
 				</table>
 			</div>
-		</div>
+		</section>
 	</div>
 </div>

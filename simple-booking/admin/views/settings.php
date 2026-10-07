@@ -1,16 +1,17 @@
 <?php
 /**
- * @var array $settings
+ * @var array  $settings
+ * @var string $theme
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 global $wp_locale;
 ?>
-<div class="wrap">
-	<h1><?php esc_html_e( 'Booking Settings', 'simple-booking' ); ?></h1>
+<div class="wrap sb-app">
+	<?php sb_view( 'admin/views/partials/header', [ 'title' => __( 'Settings', 'simple-booking' ), 'theme' => $theme ] ); ?>
 
-	<form data-sb-action="sb_save_settings">
+	<form class="sb-card" data-sb-action="sb_save_settings">
 		<table class="form-table" role="presentation">
 			<tr>
 				<th scope="row"><label for="sb-business-name"><?php esc_html_e( 'Business name', 'simple-booking' ); ?></label></th>
