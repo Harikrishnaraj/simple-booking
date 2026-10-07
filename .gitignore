@@ -1,0 +1,3 @@
+# Build output and local backups
+*.zip
+booking-slots-old-simplebooking-backup/

@@ -1,0 +1,106 @@
+<?php
+// Stubbed-WordPress check for SB_Bookings slot logic + create_booking guards.
+define( 'ABSPATH', __DIR__ );
+define( 'MINUTE_IN_SECONDS', 60 );
+define( 'ARRAY_A', 'ARRAY_A' );
+date_default_timezone_set( 'UTC' );
+
+function wp_timezone() { return new DateTimeZone( 'Europe/London' ); }
+function wp_date( $f, $ts ) { return ( new DateTimeImmutable( '@' . $ts ) )->setTimezone( wp_timezone() )->format( $f ); }
+function absint( $v ) { return abs( (int) $v ); }
+function sanitize_text_field( $v ) { return trim( (string) $v ); }
+function sanitize_textarea_field( $v ) { return (string) $v; }
+function wp_generate_password( $n ) { return substr( md5( uniqid() ), 0, $n ); }
+function get_option( $k, $d = [] ) { return $GLOBALS['opts'][ $k ] ?? $d; }
+function update_option( $k, $v ) { $GLOBALS['opts'][ $k ] = $v; return true; }
+function wp_parse_args( $a, $d ) { return array_merge( $d, (array) $a ); }
+function get_bloginfo() { return 'x'; }
+function wp_timezone_string() { return 'Europe/London'; }
+function sanitize_email( $v ) { return trim( (string) $v ); }
+function is_email( $v ) { return (bool) filter_var( $v, FILTER_VALIDATE_EMAIL ); }
+function __( $s ) { return $s; }
+class WP_Error { function __construct( public $code, public $msg ) {} function get_error_message() { return $this->msg; } }
+function is_wp_error( $v ) { return $v instanceof WP_Error; }
+function rest_sanitize_boolean( $v ) { return in_array( strtolower( (string) $v ), [ '1', 'true', 'yes', 'on' ], true ) || true === $v; }
+
+class SB_Services { function get_by_id( $id ) { return $GLOBALS['services'][ $id ] ?? null; } }
+class SB_Email { function __call( $n, $a ) { $GLOBALS['mails'][] = $n; return true; } }
+
+class FakeWpdb {
+	public $prefix = 'wp_'; public $insert_id = 0; public $rows = []; public $lock = 1; public $customers = [];
+	public $staff = [ 7 => [ 'id' => 7, 'status' => 'active', 'services' => '' ], 8 => [ 'id' => 8, 'status' => 'inactive', 'services' => '' ], 9 => [ 'id' => 9, 'status' => 'active', 'services' => '[5]' ] ];
+	function prepare( $q, ...$a ) { return [ $q, $a ]; }
+	function get_var( $p ) {
+		[ $q, $a ] = $p;
+		if ( str_contains( $q, 'GET_LOCK' ) ) return (string) $this->lock;
+		if ( str_contains( $q, 'sb_customers' ) ) return array_search( $a[0], $this->customers, true ) ?: null;
+	}
+	function get_row( $p ) { [ $q, $a ] = $p; return str_contains( $q, 'sb_staff' ) ? ( $this->staff[ $a[0] ] ?? null ) : null; }
+	function query( $p ) { return 1; }
+	function get_results( $p ) {
+		[ $q, $a ] = $p;
+		if ( str_contains( $q, 'sb_staff' ) ) return array_values( array_filter( $this->staff, fn( $m ) => $m['status'] === $a[0] ) );
+		$out = [];
+		foreach ( $this->rows as $r ) {
+			if ( $r['booking_date'] !== $a[0] || ! in_array( $r['status'], [ 'pending', 'confirmed' ], true ) ) continue;
+			$out[] = [ 'booking_time' => $r['booking_time'], 'end_time' => $r['end_time'], 'staff_id' => null === $r['staff_id'] ? null : (string) $r['staff_id'] ]; // like wpdb: strings
+		}
+		return $out;
+	}
+	function insert( $t, $d ) {
+		if ( str_contains( $t, 'sb_customers' ) ) { if ( in_array( $d['email'], $this->customers, true ) ) return false; $this->insert_id = count( $this->customers ) + 1; $this->customers[ $this->insert_id ] = $d['email']; return 1; }
+		$this->rows[] = $d; $this->insert_id = count( $this->rows ); return 1; }
+}
+
+$base = __DIR__ . '/../simple-booking/includes/';
+require $base . 'class-settings.php';
+require $base . 'class-bookings.php';
+require $base . 'class-staff.php';
+require $base . 'class-validator.php';
+require $base . 'class-customers.php';
+
+$wpdb     = new FakeWpdb();
+$services = [ 1 => [ 'id' => 1, 'duration' => 60, 'status' => 'active' ], 2 => [ 'id' => 2, 'duration' => 30, 'status' => 'inactive' ] ];
+$opts     = [ 'sb_settings' => [ 'business_hours_start' => '09:00', 'business_hours_end' => '12:00', 'slot_duration' => 30 ] ];
+$b        = new SB_Bookings();
+
+$monday = ( new DateTimeImmutable( 'next monday', wp_timezone() ) )->format( 'Y-m-d' );
+$sunday = ( new DateTimeImmutable( 'next sunday', wp_timezone() ) )->format( 'Y-m-d' );
+
+// Slot generation
+assert( $b->get_available_slots( 1, null, $monday ) === [ '09:00', '09:30', '10:00', '10:30', '11:00' ] );
+assert( $b->get_available_slots( 1, null, $sunday ) === [], 'work_days respected' );
+assert( $b->get_available_slots( 1, null, '2020-01-06' ) === [], 'past date' );
+assert( $b->get_available_slots( 1, null, '2026-13-45' ) === [], 'invalid date' );
+assert( $b->get_available_slots( 2, null, $monday ) === [], 'inactive service' );
+assert( $b->get_available_slots( 1, 8, $monday ) === [], 'inactive staff' );
+
+// slot_duration 0 must not hang
+$opts['sb_settings']['slot_duration'] = 0;
+assert( count( $b->get_available_slots( 1, null, $monday ) ) > 0 );
+$opts['sb_settings']['slot_duration'] = 30;
+
+// create_booking: valid, then same slot again rejected, bad time rejected
+$req = [ 'service_id' => 1, 'customer_id' => 3, 'booking_date' => $monday, 'booking_time' => '10:00' ];
+assert( 1 === $b->create_booking( $req ) );
+assert( '11:00:00' === $wpdb->rows[0]['end_time'] );
+assert( false === $b->create_booking( $req ), 'double booking blocked' );
+assert( false === $b->create_booking( [ 'booking_time' => '10:30' ] + $req ), 'overlap blocked' );
+assert( false === $b->create_booking( [ 'booking_time' => '23:45' ] + $req ), 'outside hours blocked' );
+assert( false === $b->create_booking( [ 'booking_time' => 'garbage' ] + $req ) );
+assert( false === $b->create_booking( [ 'booking_date' => $sunday ] + $req ) );
+
+// Staff/no-staff mixing: the no-staff 10:00 booking blocks staff 7 too
+assert( ! in_array( '10:00', $b->get_available_slots( 1, 7, $monday ), true ) );
+
+// Lock timeout -> reject
+$wpdb->lock = 0;
+assert( false === $b->create_booking( [ 'booking_time' => '09:00' ] + $req ) );
+$wpdb->lock = 1;
+
+// Settings sanitization
+SB_Settings::update_settings( [ 'slot_duration' => '0', 'business_hours_end' => 'evil', 'junk' => 1, 'delete_data_on_uninstall' => 'false' ] );
+$s = SB_Settings::get_settings();
+assert( 5 === $s['slot_duration'] && '12:00' === $s['business_hours_end'] && ! isset( $s['junk'] ) && false === $s['delete_data_on_uninstall'] );
+
+echo "all checks passed\n";

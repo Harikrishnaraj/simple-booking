@@ -1,0 +1,83 @@
+<?php
+/**
+ * @var array $settings
+ */
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+global $wp_locale;
+?>
+<div class="wrap">
+	<h1><?php esc_html_e( 'Booking Settings', 'simple-booking' ); ?></h1>
+
+	<form data-sb-action="sb_save_settings">
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><label for="sb-business-name"><?php esc_html_e( 'Business name', 'simple-booking' ); ?></label></th>
+				<td><input id="sb-business-name" class="regular-text" name="settings[business_name]" type="text" value="<?php echo esc_attr( $settings['business_name'] ); ?>"></td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Business hours', 'simple-booking' ); ?></th>
+				<td>
+					<label for="sb-hours-start" class="screen-reader-text"><?php esc_html_e( 'Opening time', 'simple-booking' ); ?></label>
+					<input id="sb-hours-start" name="settings[business_hours_start]" type="time" required value="<?php echo esc_attr( $settings['business_hours_start'] ); ?>">
+					–
+					<label for="sb-hours-end" class="screen-reader-text"><?php esc_html_e( 'Closing time', 'simple-booking' ); ?></label>
+					<input id="sb-hours-end" name="settings[business_hours_end]" type="time" required value="<?php echo esc_attr( $settings['business_hours_end'] ); ?>">
+					<p class="description"><?php echo esc_html( sprintf( __( 'Times are in the site timezone (%s).', 'simple-booking' ), wp_timezone_string() ) ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Working days', 'simple-booking' ); ?></th>
+				<td>
+					<fieldset>
+						<legend class="screen-reader-text"><?php esc_html_e( 'Working days', 'simple-booking' ); ?></legend>
+						<input type="hidden" name="settings[work_days][]" value="">
+						<?php foreach ( SB_Settings::WEEK_DAYS as $day ) : ?>
+							<label>
+								<input type="checkbox" name="settings[work_days][]" value="<?php echo esc_attr( $day ); ?>" <?php checked( in_array( $day, (array) $settings['work_days'], true ) ); ?>>
+								<?php echo esc_html( $wp_locale->get_weekday( (int) gmdate( 'w', strtotime( $day ) ) ) ); ?>
+							</label><br>
+						<?php endforeach; ?>
+					</fieldset>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="sb-slot-duration"><?php esc_html_e( 'Slot interval (minutes)', 'simple-booking' ); ?></label></th>
+				<td>
+					<input id="sb-slot-duration" class="small-text" name="settings[slot_duration]" type="number" min="5" step="5" required value="<?php echo (int) $settings['slot_duration']; ?>">
+					<p class="description"><?php esc_html_e( 'How often a new start time is offered, e.g. every 30 minutes.', 'simple-booking' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="sb-currency"><?php esc_html_e( 'Currency symbol', 'simple-booking' ); ?></label></th>
+				<td><input id="sb-currency" class="small-text" name="settings[currency_symbol]" type="text" maxlength="5" value="<?php echo esc_attr( $settings['currency_symbol'] ); ?>"></td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="sb-admin-email"><?php esc_html_e( 'Notification email', 'simple-booking' ); ?></label></th>
+				<td><input id="sb-admin-email" class="regular-text" name="settings[admin_email]" type="email" spellcheck="false" required value="<?php echo esc_attr( $settings['admin_email'] ); ?>"></td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Emails', 'simple-booking' ); ?></th>
+				<td>
+					<fieldset>
+						<legend class="screen-reader-text"><?php esc_html_e( 'Emails', 'simple-booking' ); ?></legend>
+						<input type="hidden" name="settings[customer_notification]" value="0">
+						<label><input type="checkbox" name="settings[customer_notification]" value="1" <?php checked( ! empty( $settings['customer_notification'] ) ); ?>> <?php esc_html_e( 'Email customers when they book and when the status changes', 'simple-booking' ); ?></label><br>
+						<input type="hidden" name="settings[admin_notification]" value="0">
+						<label><input type="checkbox" name="settings[admin_notification]" value="1" <?php checked( ! empty( $settings['admin_notification'] ) ); ?>> <?php esc_html_e( 'Email me when a new booking arrives', 'simple-booking' ); ?></label>
+					</fieldset>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Uninstall', 'simple-booking' ); ?></th>
+				<td>
+					<input type="hidden" name="settings[delete_data_on_uninstall]" value="0">
+					<label><input type="checkbox" name="settings[delete_data_on_uninstall]" value="1" <?php checked( ! empty( $settings['delete_data_on_uninstall'] ) ); ?>> <?php esc_html_e( 'Delete all bookings, customers, services and staff when the plugin is deleted', 'simple-booking' ); ?></label>
+					<p class="description"><?php esc_html_e( 'This cannot be undone. Leave unticked to keep your data.', 'simple-booking' ); ?></p>
+				</td>
+			</tr>
+		</table>
+		<?php submit_button( __( 'Save Settings', 'simple-booking' ) ); ?>
+	</form>
+</div>
