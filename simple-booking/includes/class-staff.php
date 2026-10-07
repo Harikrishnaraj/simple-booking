@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class SB_Staff {
 
-	private const FORMATS = [ '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s' ];
+	private const FORMATS = [ '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%d' ];
 
 	private string $table_name;
 
@@ -77,15 +77,16 @@ class SB_Staff {
 	}
 
 	/**
-	 * Ids of active staff who offer this service.
+	 * Ids of active staff who offer this service (and work at $location_id, if given).
 	 *
 	 * @return int[]
 	 */
-	public function qualified_ids( int $service_id ): array {
+	public function qualified_ids( int $service_id, ?int $location_id = null ): array {
 		$ids = [];
 		foreach ( $this->get_all() as $member ) {
 			$offers = $this->service_ids( $member );
-			if ( ! $offers || in_array( $service_id, $offers, true ) ) {
+			$here   = ! $location_id || (int) ( $member['location_id'] ?? 0 ) === $location_id;
+			if ( $here && ( ! $offers || in_array( $service_id, $offers, true ) ) ) {
 				$ids[] = (int) $member['id'];
 			}
 		}
@@ -210,6 +211,7 @@ class SB_Staff {
 			'status'   => in_array( $status, [ 'active', 'inactive' ], true ) ? $status : 'active',
 			'schedule' => self::sanitize_schedule( $data ),
 			'days_off' => self::sanitize_days_off( $data ),
+			'location_id' => absint( $data['location_id'] ?? 0 ) ?: null,
 		];
 	}
 }

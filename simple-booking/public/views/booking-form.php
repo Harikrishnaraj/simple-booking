@@ -6,6 +6,7 @@
  * @var array $groups Active services grouped by category name ('' = no categories in use).
  * @var array $staff  Active staff, each with 'service_ids' and 'photo_url'.
  * @var array $fields Custom fields (shown per service).
+ * @var array $locations Active locations, or [] when there's only one (no question).
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -54,6 +55,17 @@ $uid = wp_unique_id( 'sb-' );
 				</select>
 			</div>
 
+			<?php if ( $locations ) : ?>
+				<div class="sb-form-group">
+					<label for="<?php echo esc_attr( $uid ); ?>-location"><?php esc_html_e( 'Location', 'simple-booking' ); ?></label>
+					<select id="<?php echo esc_attr( $uid ); ?>-location" class="sb-form-control" name="location_id" required>
+						<?php foreach ( $locations as $location ) : ?>
+							<option value="<?php echo (int) $location['id']; ?>"><?php echo esc_html( $location['name'] . ( $location['address'] ? ' — ' . strtok( $location['address'], "\n" ) : '' ) ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</div>
+			<?php endif; ?>
+
 			<?php if ( $staff ) : ?>
 				<div class="sb-form-group">
 					<label for="<?php echo esc_attr( $uid ); ?>-staff"><?php esc_html_e( 'Staff member', 'simple-booking' ); ?></label>
@@ -62,7 +74,7 @@ $uid = wp_unique_id( 'sb-' );
 						<select id="<?php echo esc_attr( $uid ); ?>-staff" class="sb-form-control" name="staff_id">
 							<option value=""><?php esc_html_e( 'Any available', 'simple-booking' ); ?></option>
 							<?php foreach ( $staff as $member ) : ?>
-								<option value="<?php echo (int) $member['id']; ?>" data-services="<?php echo esc_attr( implode( ',', $member['service_ids'] ) ); ?>" data-photo="<?php echo esc_url( $member['photo_url'] ); ?>"><?php echo esc_html( $member['name'] ); ?></option>
+								<option value="<?php echo (int) $member['id']; ?>" data-services="<?php echo esc_attr( implode( ',', $member['service_ids'] ) ); ?>" data-photo="<?php echo esc_url( $member['photo_url'] ); ?>" data-location="<?php echo (int) ( $member['location_id'] ?? 0 ); ?>"><?php echo esc_html( $member['name'] ); ?></option>
 							<?php endforeach; ?>
 						</select>
 					</div>

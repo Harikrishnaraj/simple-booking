@@ -52,7 +52,7 @@
 		const slotsEl = root.querySelector('.sb-slots-grid');
 		const summary = root.querySelector('.sb-summary');
 		const toDetails = root.querySelector('[data-sb-go="3"]');
-		const { service_id: service, staff_id: staff, booking_date: dateInput, booking_time: timeInput } = form.elements;
+		const { service_id: service, staff_id: staff, location_id: location, booking_date: dateInput, booking_time: timeInput } = form.elements;
 		let request = 0;
 
 		function slotsNote(text) {
@@ -95,7 +95,8 @@
 					return;
 				}
 				const ids = o.dataset.services ? o.dataset.services.split(',') : [];
-				o.hidden = o.disabled = ids.length > 0 && !ids.includes(service.value);
+				const elsewhere = location && o.dataset.location !== location.value;
+				o.hidden = o.disabled = elsewhere || (ids.length > 0 && !ids.includes(service.value));
 			});
 			if (staff.selectedOptions[0] && staff.selectedOptions[0].disabled) {
 				staff.value = '';
@@ -126,6 +127,7 @@
 			const data = new FormData();
 			data.append('service_id', service.value);
 			data.append('staff_id', staff ? staff.value : '');
+			data.append('location_id', location ? location.value : '');
 			data.append('date', dateInput.value);
 
 			try {
@@ -219,6 +221,9 @@
 		showFields();
 
 		service.addEventListener('change', filterStaff);
+		if (location) {
+			location.addEventListener('change', filterStaff);
+		}
 		if (staff) {
 			staff.addEventListener('change', showStaffPhoto);
 		}

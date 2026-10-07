@@ -156,6 +156,18 @@ assert( $b->get_available_slots( 1, 7, $monday ) === [] && $b->get_available_slo
 unset( $wpdb->staff[7]['schedule'], $wpdb->staff[7]['days_off'], $wpdb->staff[9]['schedule'] );
 assert( count( $b->get_available_slots( 1, 7, $monday ) ) === 5, 'back to business hours' );
 
+// Locations: "any available" limited to staff at the chosen location; booking stores it
+$wpdb->rows = [];
+$wpdb->staff[7]['location_id'] = 1;
+$wpdb->staff[9]['location_id'] = 2;
+$wpdb->staff[9]['schedule'] = json_encode( [ 'Monday' => [ '09:00', '10:00' ] ] );
+assert( [ '09:00' ] === $b->get_available_slots( 5, null, $monday, null, 2 ), 'only staff 9 works at location 2' );
+assert( 5 === count( $b->get_available_slots( 5, null, $monday, null, 1 ) ), 'staff 7 at location 1' );
+assert( [] === $b->get_available_slots( 5, null, $monday, null, 3 ), 'nobody at location 3' );
+$loc = $b->create_booking( [ 'service_id' => 5, 'location_id' => 2, 'booking_time' => '09:00' ] + $req );
+assert( $loc && 9 === $wpdb->rows[ $loc - 1 ]['staff_id'] && 2 === $wpdb->rows[ $loc - 1 ]['location_id'] );
+unset( $wpdb->staff[7]['location_id'], $wpdb->staff[9]['location_id'], $wpdb->staff[9]['schedule'] );
+
 // Dashboard comparison period: same length, ending the day before
 assert( SB_Reports::previous_range( '2026-10-01', '2026-10-31' ) === [ '2026-08-31', '2026-09-30' ] );
 assert( SB_Reports::previous_range( '2026-03-01', '2026-03-01' ) === [ '2026-02-28', '2026-02-28' ] );

@@ -4,7 +4,7 @@ Tags: booking, appointment, salon, clinic, scheduling, shortcode
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 8.0
-Stable tag: 1.7.0
+Stable tag: 1.8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,6 +23,12 @@ Simple Booking allows business owners (salons, clinics, consultants, personal tr
 Simply insert the shortcode `[simple_booking]` into any page, post, or widget area.
 
 == Changelog ==
+= 1.8.0 =
+* Locations (Simple Booking → Locations): name, address and phone. Assign each staff member to a location.
+* With two or more active locations the booking form asks "Location" first and only offers staff (and "any available" times) at that location.
+* Bookings remember their location: shown on the Bookings page, on the customer's manage page, and in emails via {location_name} and {location_address} (a "Where:" line in the default emails).
+* New table `sb_locations`, new columns `staff.location_id` and `bookings.location_id` (added automatically on update).
+
 = 1.7.0 =
 * Customer self-service: the new {manage_link} placeholder gives each customer a private link to see their booking and, up to a cut-off you set (24 hours by default), cancel it or move it to another free time. Added to the default booking, confirmation, rescheduled and reminder emails.
 * New admin email "Customer cancelled or moved" tells you when a customer uses the link.

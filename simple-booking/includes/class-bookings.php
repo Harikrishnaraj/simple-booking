@@ -28,6 +28,7 @@ class SB_Bookings {
 		$status      = 'confirmed' === ( $data['status'] ?? '' ) ? 'confirmed' : 'pending';
 		$service_id  = absint( $data['service_id'] ?? 0 );
 		$staff_id    = ! empty( $data['staff_id'] ) ? absint( $data['staff_id'] ) : null;
+		$location_id = ! empty( $data['location_id'] ) ? absint( $data['location_id'] ) : null;
 		$customer_id = absint( $data['customer_id'] ?? 0 );
 		$date        = sanitize_text_field( $data['booking_date'] ?? '' );
 		$time        = substr( sanitize_text_field( $data['booking_time'] ?? '' ), 0, 5 );
@@ -37,11 +38,11 @@ class SB_Bookings {
 			return false;
 		}
 
-		$booking_id = $this->with_date_lock( $date, function () use ( $wpdb, $service, $service_id, $staff_id, $customer_id, $date, $time, $status, $data ) {
+		$booking_id = $this->with_date_lock( $date, function () use ( $wpdb, $service, $service_id, $staff_id, $location_id, $customer_id, $date, $time, $status, $data ) {
 			// Availability is the single source of truth for a valid date/time (work day,
 			// business hours, not in the past, active service, no overlap). For "any
 			// available" it also picks which staff member gets the booking.
-			$free = $this->free_slots( $service_id, $staff_id, $date );
+			$free = $this->free_slots( $service_id, $staff_id, $date, null, $location_id );
 			if ( ! array_key_exists( $time, $free ) ) {
 				return false;
 			}
@@ -55,6 +56,8 @@ class SB_Bookings {
 				'service_id'   => $service_id,
 				'staff_id'     => $staff_id,
 				'customer_id'  => $customer_id,
+				// The staff member's location, or the one the customer picked when there's no staff member.
+				'location_id'  => $this->location_for( $free[ $time ], $location_id ),
 				'booking_date' => $date,
 				'booking_time' => "$time:00",
 				'end_time'     => $end_time,
@@ -69,7 +72,7 @@ class SB_Bookings {
 			// booking_code is UNIQUE; retry with a fresh code on the rare collision.
 			for ( $attempt = 0, $inserted = false; ! $inserted && $attempt < 3; $attempt++ ) {
 				$row['booking_code'] = $this->generate_booking_code();
-				$inserted = $wpdb->insert( $this->table_name, $row, [ '%s', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ] );
+				$inserted = $wpdb->insert( $this->table_name, $row, [ '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ] );
 			}
 
 			return $inserted ? (int) $wpdb->insert_id : false;
@@ -108,10 +111,11 @@ class SB_Bookings {
 					'booking_time'  => "$time:00",
 					'end_time'      => wp_date( 'H:i:s', $start->getTimestamp() + absint( $service['duration'] ) * MINUTE_IN_SECONDS ),
 					'staff_id'      => $free[ $time ],
+					'location_id'   => $this->location_for( $free[ $time ], $booking['location_id'] ? (int) $booking['location_id'] : null ),
 					'reminder_sent' => SB_Email::inside_reminder_window( $date, "$time:00" ) ? current_time( 'mysql', true ) : null,
 				],
 				[ 'id' => $id ],
-				[ '%s', '%s', '%s', '%d', '%s' ],
+				[ '%s', '%s', '%s', '%d', '%d', '%s' ],
 				[ '%d' ]
 			);
 		} );
@@ -120,6 +124,11 @@ class SB_Bookings {
 			( new SB_Email() )->rescheduled( $id );
 		}
 		return (bool) $moved;
+	}
+
+	private function location_for( ?int $staff_id, ?int $fallback ): ?int {
+		$member = $staff_id ? ( new SB_Staff() )->get_by_id( $staff_id ) : null;
+		return $member && ! empty( $member['location_id'] ) ? (int) $member['location_id'] : $fallback;
 	}
 
 	public function get_by_id( int $id ): ?array {
@@ -151,8 +160,8 @@ class SB_Bookings {
 	 *
 	 * @param int|null $staff_id A specific staff member, or null for "any available".
 	 */
-	public function get_available_slots( int $service_id, ?int $staff_id, string $date, ?int $exclude_id = null ): array {
-		return array_map( 'strval', array_keys( $this->free_slots( $service_id, $staff_id, $date, $exclude_id ) ) );
+	public function get_available_slots( int $service_id, ?int $staff_id, string $date, ?int $exclude_id = null, ?int $location_id = null ): array {
+		return array_map( 'strval', array_keys( $this->free_slots( $service_id, $staff_id, $date, $exclude_id, $location_id ) ) );
 	}
 
 	/**
@@ -166,10 +175,11 @@ class SB_Bookings {
 	 *   that day blocks the time.
 	 * Bookings with no staff member always block everyone.
 	 * $exclude_id is a booking being rescheduled: its own slot doesn't block it.
+	 * $location_id limits "any available" to staff at that location.
 	 *
 	 * @return array<string, int|null> "H:i" => staff id (or null).
 	 */
-	private function free_slots( int $service_id, ?int $staff_id, string $date, ?int $exclude_id = null ): array {
+	private function free_slots( int $service_id, ?int $staff_id, string $date, ?int $exclude_id = null, ?int $location_id = null ): array {
 		$service = ( new SB_Services() )->get_by_id( $service_id );
 		if ( ! $service || 'active' !== $service['status'] || absint( $service['duration'] ) < 1 ) {
 			return [];
@@ -181,6 +191,12 @@ class SB_Bookings {
 				return [];
 			}
 			$candidates = [ $staff_id ];
+		} elseif ( $location_id ) {
+			// Nobody qualified at that location means no times (not "the business as a whole").
+			$candidates = $staff_mgr->qualified_ids( $service_id, $location_id );
+			if ( ! $candidates ) {
+				return [];
+			}
 		} else {
 			$candidates = $staff_mgr->qualified_ids( $service_id ) ?: [ null ];
 		}
@@ -320,9 +336,10 @@ class SB_Bookings {
 		global $wpdb;
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT b.*, s.name AS service_name, st.name AS staff_name,
+				"SELECT b.*, s.name AS service_name, st.name AS staff_name, l.name AS location_name,
 					c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone
 				 FROM {$this->table_name} b
+				 LEFT JOIN {$wpdb->prefix}sb_locations l ON l.id = b.location_id
 				 LEFT JOIN {$wpdb->prefix}sb_services s ON s.id = b.service_id
 				 LEFT JOIN {$wpdb->prefix}sb_staff st ON st.id = b.staff_id
 				 LEFT JOIN {$wpdb->prefix}sb_customers c ON c.id = b.customer_id

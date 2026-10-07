@@ -17,6 +17,7 @@ class SB_Admin_Controller {
 		add_submenu_page( 'sb-dashboard', __( 'Bookings', 'simple-booking' ), __( 'Bookings', 'simple-booking' ), $cap, 'sb-bookings', [ $this, 'render_bookings' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Customers', 'simple-booking' ), __( 'Customers', 'simple-booking' ), $cap, 'sb-customers', [ $this, 'render_customers' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Services', 'simple-booking' ), __( 'Services', 'simple-booking' ), $cap, 'sb-services', [ $this, 'render_services' ] );
+		add_submenu_page( 'sb-dashboard', __( 'Locations', 'simple-booking' ), __( 'Locations', 'simple-booking' ), $cap, 'sb-locations', [ $this, 'render_locations' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Staff', 'simple-booking' ), __( 'Staff', 'simple-booking' ), $cap, 'sb-staff', [ $this, 'render_staff' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Custom Fields', 'simple-booking' ), __( 'Custom Fields', 'simple-booking' ), $cap, 'sb-custom-fields', [ $this, 'render_custom_fields' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Notifications', 'simple-booking' ), __( 'Notifications', 'simple-booking' ), $cap, 'sb-notifications', [ $this, 'render_notifications' ] );
@@ -202,8 +203,37 @@ class SB_Admin_Controller {
 			'editing'      => $editing,
 			'editing_ids'  => $editing ? $staff->service_ids( $editing ) : [],
 			'all_services' => ( new SB_Services() )->get_all( 'all' ),
+			'locations'    => ( new SB_Locations() )->get_all( 'all' ),
 			'page_url'     => admin_url( 'admin.php?page=sb-staff' ),
 			'theme'        => $this->theme(),
+		] );
+	}
+
+	public function render_locations(): void {
+		global $wpdb;
+		$locations = new SB_Locations();
+		sb_view( 'admin/views/locations', [
+			'locations'   => $locations->get_all( 'all' ),
+			'staff_count' => array_column( $wpdb->get_results( "SELECT location_id, COUNT(*) AS n FROM {$wpdb->prefix}sb_staff WHERE location_id IS NOT NULL GROUP BY location_id", ARRAY_A ), 'n', 'location_id' ),
+			'theme'       => $this->theme(),
+		] );
+	}
+
+	public function ajax_save_location(): void {
+		$post  = $this->guard();
+		$error = ( new SB_Locations() )->save( absint( $post['id'] ?? 0 ), $post );
+		'' === $error ? wp_send_json_success() : wp_send_json_error( [ 'message' => $error ], 422 );
+	}
+
+	public function ajax_delete_location(): void {
+		$post      = $this->guard();
+		$id        = absint( $post['id'] ?? 0 );
+		$locations = new SB_Locations();
+		if ( ! $locations->delete( $id ) ) {
+			wp_send_json_error( [ 'message' => __( 'Could not delete the location.', 'simple-booking' ) ], 500 );
+		}
+		wp_send_json_success( [
+			'message' => $locations->get_by_id( $id ) ? __( 'This location has bookings, so it was deactivated instead of deleted.', 'simple-booking' ) : '',
 		] );
 	}
 

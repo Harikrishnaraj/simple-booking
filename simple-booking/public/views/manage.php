@@ -29,6 +29,10 @@ $statuses = [
 				<dt><?php esc_html_e( 'With', 'simple-booking' ); ?></dt>
 				<dd><?php echo esc_html( $booking['staff_name'] ); ?></dd>
 			<?php endif; ?>
+			<?php if ( $booking['location'] ) : ?>
+				<dt><?php esc_html_e( 'Where', 'simple-booking' ); ?></dt>
+				<dd><?php echo nl2br( esc_html( $booking['location'] ) ); ?></dd>
+			<?php endif; ?>
 			<dt><?php esc_html_e( 'Booking code', 'simple-booking' ); ?></dt>
 			<dd><code translate="no"><?php echo esc_html( $booking['booking_code'] ); ?></code></dd>
 			<dt><?php esc_html_e( 'Status', 'simple-booking' ); ?></dt>

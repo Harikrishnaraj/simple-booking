@@ -3,7 +3,7 @@
  * Plugin Name:       Simple Booking
  * Plugin URI:        https://simplebookingplugin.com/
  * Description:       A lightweight, commercial-grade WordPress booking plugin for salons, clinics, consultants, and service providers.
- * Version:           1.7.0
+ * Version:           1.8.0
  * Author:            Simple Booking Team
  * Author URI:        https://simplebookingplugin.com/
  * License:           GPL-2.0+
@@ -22,7 +22,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Define Plugin Constants.
  */
-define( 'SB_VERSION', '1.7.0' );
+define( 'SB_VERSION', '1.8.0' );
 define( 'SB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SB_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -38,6 +38,7 @@ require_once SB_PLUGIN_DIR . 'includes/class-security.php';
 require_once SB_PLUGIN_DIR . 'includes/class-validator.php';
 require_once SB_PLUGIN_DIR . 'includes/class-services.php';
 require_once SB_PLUGIN_DIR . 'includes/class-categories.php';
+require_once SB_PLUGIN_DIR . 'includes/class-locations.php';
 require_once SB_PLUGIN_DIR . 'includes/class-staff.php';
 require_once SB_PLUGIN_DIR . 'includes/class-customers.php';
 require_once SB_PLUGIN_DIR . 'includes/class-bookings.php';
@@ -136,6 +137,8 @@ final class Simple_Booking {
 		$this->loader->add_action( 'wp_ajax_sb_delete_category', $admin, 'ajax_delete_category' );
 		$this->loader->add_action( 'wp_ajax_sb_save_template', $admin, 'ajax_save_template' );
 		$this->loader->add_action( 'wp_ajax_sb_save_field', $admin, 'ajax_save_field' );
+		$this->loader->add_action( 'wp_ajax_sb_save_location', $admin, 'ajax_save_location' );
+		$this->loader->add_action( 'wp_ajax_sb_delete_location', $admin, 'ajax_delete_location' );
 		$this->loader->add_action( 'wp_ajax_sb_delete_field', $admin, 'ajax_delete_field' );
 		$this->loader->add_action( 'wp_ajax_sb_move_field', $admin, 'ajax_move_field' );
 		$this->loader->add_action( 'wp_ajax_sb_admin_slots', $admin, 'ajax_admin_slots' );
