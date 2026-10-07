@@ -26,6 +26,7 @@ $tables = [
 	$wpdb->prefix . 'sb_staff',
 	$wpdb->prefix . 'sb_services',
 	$wpdb->prefix . 'sb_customers',
+	$wpdb->prefix . 'sb_categories',
 	$wpdb->prefix . 'sb_settings', // no longer created; dropped for installs from 1.0.0
 ];
 

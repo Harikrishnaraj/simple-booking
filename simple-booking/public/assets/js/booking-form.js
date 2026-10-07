@@ -100,6 +100,20 @@
 			if (staff.selectedOptions[0] && staff.selectedOptions[0].disabled) {
 				staff.value = '';
 			}
+			showStaffPhoto();
+		}
+
+		// Photo of the chosen staff member beside the dropdown (decorative: the name is in the select).
+		function showStaffPhoto() {
+			const img = staff && form.querySelector('.sb-staff-photo');
+			if (!img) {
+				return;
+			}
+			const url = staff.selectedOptions[0] ? staff.selectedOptions[0].dataset.photo : '';
+			img.hidden = !url;
+			if (url) {
+				img.src = url;
+			}
 		}
 
 		async function loadSlots() {
@@ -192,6 +206,9 @@
 		});
 
 		service.addEventListener('change', filterStaff);
+		if (staff) {
+			staff.addEventListener('change', showStaffPhoto);
+		}
 		filterStaff();
 
 		form.addEventListener('submit', async (e) => {

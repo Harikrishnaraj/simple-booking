@@ -42,7 +42,7 @@
 
 	document.addEventListener('click', async (e) => {
 		const button = e.target.closest('[data-sb-delete]');
-		if (!button || !window.confirm(cfg.i18n.confirmDelete)) {
+		if (!button || !window.confirm(button.dataset.sbConfirm || cfg.i18n.confirmDelete)) {
 			return;
 		}
 		button.disabled = true;
@@ -53,7 +53,11 @@
 			if (res.message) {
 				window.alert(res.message);
 			}
-			window.location.reload();
+			if (button.dataset.sbRedirect) {
+				window.location.href = button.dataset.sbRedirect;
+			} else {
+				window.location.reload();
+			}
 		} catch (err) {
 			window.alert(err.message);
 			button.disabled = false;
@@ -136,5 +140,45 @@
 		if (e.target.matches('select[data-sb-autosubmit]')) {
 			e.target.form.submit();
 		}
+	});
+
+	// Staff photo: pick an image from the media library into the hidden photo_id field.
+	let mediaFrame = null;
+	document.addEventListener('click', (e) => {
+		const field = e.target.closest('[data-sb-photo]');
+		if (!field) {
+			return;
+		}
+		const input = field.querySelector('input[name="photo_id"]');
+		const preview = field.querySelector('.sb-photo-preview');
+		const show = (url) => {
+			preview.src = url || '';
+			preview.hidden = !url;
+			field.querySelector('.sb-photo-placeholder').hidden = !!url;
+			field.querySelector('[data-sb-photo-remove]').hidden = !url;
+		};
+
+		if (e.target.closest('[data-sb-photo-remove]')) {
+			input.value = '0';
+			show('');
+			return;
+		}
+		if (!e.target.closest('[data-sb-photo-choose]') || !window.wp || !window.wp.media) {
+			return;
+		}
+		if (!mediaFrame) {
+			mediaFrame = window.wp.media({
+				title: cfg.i18n.choosePhoto,
+				button: { text: cfg.i18n.usePhoto },
+				library: { type: 'image' },
+				multiple: false,
+			});
+		}
+		mediaFrame.off('select').on('select', () => {
+			const image = mediaFrame.state().get('selection').first().toJSON();
+			input.value = image.id;
+			show((image.sizes && image.sizes.thumbnail && image.sizes.thumbnail.url) || image.url);
+		});
+		mediaFrame.open();
 	});
 })();

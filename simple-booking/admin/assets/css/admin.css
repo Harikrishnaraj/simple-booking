@@ -407,6 +407,116 @@ body.sb-admin-screen #wpfooter {
 	margin-left: 4px;
 }
 
+.sb-icon-button--small {
+	width: 28px;
+	height: 28px;
+}
+
+.sb-icon-button--small .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+}
+
+.sb-icon-button--danger {
+	color: var(--sb-danger);
+}
+
+.sb-icon-button--danger:hover {
+	border-color: var(--sb-danger);
+	color: var(--sb-danger);
+}
+
+.sb-split__form > .sb-card:last-child {
+	margin-bottom: 0;
+}
+
+/* ---------- Categories (Services page) ---------- */
+
+.sb-categories {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.sb-categories li {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin: 0 0 2px;
+	border-left: 3px solid transparent;
+	border-radius: 6px;
+}
+
+.sb-categories li.is-current {
+	background: var(--sb-surface-2);
+	border-left-color: var(--sb-accent);
+}
+
+.sb-categories a {
+	display: flex;
+	flex: 1;
+	justify-content: space-between;
+	gap: 8px;
+	min-width: 0;
+	padding: 8px 10px;
+	color: var(--sb-text);
+	text-decoration: none;
+}
+
+.sb-categories li:hover {
+	background: var(--sb-surface-2);
+}
+
+.sb-categories__actions {
+	display: inline-flex;
+	gap: 4px;
+	padding-right: 6px;
+}
+
+/* ---------- Staff photo field ---------- */
+
+.sb-label {
+	display: block;
+	margin-bottom: 4px;
+	font-weight: 600;
+	color: var(--sb-text);
+}
+
+.sb-photo-field__row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.sb-photo-preview,
+.sb-photo-placeholder {
+	flex: none;
+	width: 64px;
+	height: 64px;
+	border-radius: 50%;
+	border: 1px solid var(--sb-border);
+	object-fit: cover;
+}
+
+.sb-photo-placeholder {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--sb-surface-2);
+	color: var(--sb-muted);
+}
+
+.sb-photo-placeholder .dashicons {
+	font-size: 32px;
+	width: 32px;
+	height: 32px;
+}
+
+.sb-app [hidden] {
+	display: none !important;
+}
+
 /* ---------- Tables ---------- */
 
 .sb-table-wrap {
@@ -469,6 +579,11 @@ body.sb-admin-screen #wpfooter {
 
 .sb-person strong {
 	white-space: nowrap;
+}
+
+img.sb-avatar {
+	object-fit: cover;
+	padding: 0;
 }
 
 .sb-avatar {

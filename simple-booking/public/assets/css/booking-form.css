@@ -250,6 +250,24 @@
   outline-offset: 2px;
 }
 
+.sb-booking-wrapper .sb-staff-pick {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sb-booking-wrapper .sb-staff-photo {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.sb-booking-wrapper .sb-staff-photo[hidden] {
+  display: none;
+}
+
 .sb-booking-wrapper textarea.sb-form-control {
   resize: vertical;
   font-family: inherit;

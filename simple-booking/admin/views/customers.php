@@ -48,7 +48,7 @@ $page_url = admin_url( 'admin.php?page=sb-customers' );
 								<td class="sb-muted"><?php echo (int) $c['id']; ?></td>
 								<td>
 									<span class="sb-person">
-										<span class="sb-avatar" aria-hidden="true"><?php echo esc_html( mb_strtoupper( mb_substr( $c['name'], 0, 1 ) ) ); ?></span>
+										<?php echo sb_avatar( $c['name'] ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in sb_avatar() ?>
 										<strong><?php echo esc_html( $c['name'] ); ?></strong>
 									</span>
 								</td>

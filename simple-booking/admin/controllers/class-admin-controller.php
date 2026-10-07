@@ -26,6 +26,9 @@ class SB_Admin_Controller {
 			return;
 		}
 		wp_enqueue_style( 'sb-admin', SB_PLUGIN_URL . 'admin/assets/css/admin.css', [], SB_VERSION );
+		if ( 'sb-staff' === sanitize_key( $_GET['page'] ?? '' ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+			wp_enqueue_media(); // staff photo picker
+		}
 		wp_enqueue_script( 'sb-admin', SB_PLUGIN_URL . 'admin/assets/js/admin.js', [], SB_VERSION, true );
 		wp_localize_script( 'sb-admin', 'sbAdmin', [
 			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
@@ -33,6 +36,9 @@ class SB_Admin_Controller {
 			'i18n'    => [
 				'error'         => __( 'Something went wrong. Please try again.', 'simple-booking' ),
 				'confirmDelete' => __( 'Delete this item? Items with bookings are deactivated instead.', 'simple-booking' ),
+				'confirmDeleteCategory' => __( 'Delete this category? Its services are kept and become uncategorized.', 'simple-booking' ),
+				'choosePhoto'   => __( 'Choose a photo', 'simple-booking' ),
+				'usePhoto'      => __( 'Use this photo', 'simple-booking' ),
 			],
 		] );
 	}
@@ -149,11 +155,25 @@ class SB_Admin_Controller {
 	public function render_services(): void {
 		$services = new SB_Services();
 		$edit_id  = absint( $_GET['edit'] ?? 0 ); // phpcs:ignore WordPress.Security.NonceVerification
+		$all      = $services->get_all( 'all' );
+
+		// ?category=ID shows one category, ?category=none the uncategorized services.
+		$category = sanitize_key( $_GET['category'] ?? '' ); // phpcs:ignore WordPress.Security.NonceVerification
+		$category = 'none' === $category ? 'none' : absint( $category );
+		$shown    = ! $category ? $all : array_filter(
+			$all,
+			fn( $s ) => 'none' === $category ? empty( $s['category_id'] ) : (int) $s['category_id'] === $category
+		);
+
 		sb_view( 'admin/views/services', [
-			'services' => $services->get_all( 'all' ),
-			'editing'  => $edit_id ? $services->get_by_id( $edit_id ) : null,
-			'page_url' => admin_url( 'admin.php?page=sb-services' ),
-			'theme'    => $this->theme(),
+			'services'      => $shown,
+			'total'         => count( $all ),
+			'uncategorized' => count( array_filter( $all, fn( $s ) => empty( $s['category_id'] ) ) ),
+			'categories'    => ( new SB_Categories() )->get_all(),
+			'category'      => $category,
+			'editing'       => $edit_id ? $services->get_by_id( $edit_id ) : null,
+			'page_url'      => admin_url( 'admin.php?page=sb-services' ),
+			'theme'         => $this->theme(),
 		] );
 	}
 
@@ -234,6 +254,19 @@ class SB_Admin_Controller {
 		$post   = $this->guard();
 		$result = ( new SB_Customers() )->save( absint( $post['id'] ?? 0 ), $post );
 		is_int( $result ) ? wp_send_json_success( [ 'id' => $result ] ) : wp_send_json_error( [ 'message' => $result ], 422 );
+	}
+
+	public function ajax_save_category(): void {
+		$post = $this->guard();
+		$id   = ( new SB_Categories() )->save( absint( $post['id'] ?? 0 ), (string) ( $post['name'] ?? '' ) );
+		$id ? wp_send_json_success( [ 'id' => $id ] ) : wp_send_json_error( [ 'message' => __( 'Please enter a category name.', 'simple-booking' ) ], 422 );
+	}
+
+	public function ajax_delete_category(): void {
+		$post = $this->guard();
+		( new SB_Categories() )->delete( absint( $post['id'] ?? 0 ) )
+			? wp_send_json_success()
+			: wp_send_json_error( [ 'message' => __( 'Could not delete the category.', 'simple-booking' ) ], 500 );
 	}
 
 	public function ajax_save_theme(): void {

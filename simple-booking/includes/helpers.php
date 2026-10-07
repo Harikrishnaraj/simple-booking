@@ -15,3 +15,13 @@ function sb_view( string $view, array $vars = [] ): void {
 function sb_price( $amount ): string {
 	return SB_Settings::get_settings()['currency_symbol'] . number_format_i18n( (float) $amount, 2 );
 }
+
+/**
+ * Round avatar: the photo when there is one, otherwise the first letter of the name.
+ */
+function sb_avatar( string $name, string $photo_url = '' ): string {
+	if ( $photo_url ) {
+		return '<img class="sb-avatar" src="' . esc_url( $photo_url ) . '" alt="" width="30" height="30" loading="lazy">';
+	}
+	return '<span class="sb-avatar" aria-hidden="true">' . esc_html( mb_strtoupper( mb_substr( $name, 0, 1 ) ) ) . '</span>';
+}

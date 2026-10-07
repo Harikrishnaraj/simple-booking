@@ -5,6 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class SB_Staff {
 
+	private const FORMATS = [ '%s', '%s', '%s', '%s', '%d', '%s' ];
+
 	private string $table_name;
 
 	public function __construct() {
@@ -38,7 +40,7 @@ class SB_Staff {
 		if ( ! $row ) {
 			return false;
 		}
-		$inserted = $wpdb->insert( $this->table_name, $row, [ '%s', '%s', '%s', '%s', '%s' ] );
+		$inserted = $wpdb->insert( $this->table_name, $row, self::FORMATS );
 		return $inserted ? $wpdb->insert_id : false;
 	}
 
@@ -48,7 +50,7 @@ class SB_Staff {
 		if ( ! $row ) {
 			return false;
 		}
-		return false !== $wpdb->update( $this->table_name, $row, [ 'id' => $id ], [ '%s', '%s', '%s', '%s', '%s' ], [ '%d' ] );
+		return false !== $wpdb->update( $this->table_name, $row, [ 'id' => $id ], self::FORMATS, [ '%d' ] );
 	}
 
 	/**
@@ -99,10 +101,19 @@ class SB_Staff {
 		return ! $ids || in_array( $service_id, $ids, true );
 	}
 
+	/**
+	 * URL of the staff member's photo at a registered image size, or '' when there is none.
+	 */
+	public function photo_url( array $staff, string $size = 'thumbnail' ): string {
+		$id = absint( $staff['photo_id'] ?? 0 );
+		return $id ? (string) wp_get_attachment_image_url( $id, $size ) : '';
+	}
+
 	private function sanitize( array $data ): ?array {
 		$name   = sanitize_text_field( $data['name'] ?? '' );
 		$email  = sanitize_email( $data['email'] ?? '' );
 		$status = sanitize_key( $data['status'] ?? 'active' );
+		$photo  = absint( $data['photo_id'] ?? 0 );
 		if ( '' === $name || ! is_email( $email ) ) {
 			return null;
 		}
@@ -111,6 +122,7 @@ class SB_Staff {
 			'email'    => $email,
 			'phone'    => sanitize_text_field( $data['phone'] ?? '' ),
 			'services' => wp_json_encode( array_values( array_unique( array_filter( array_map( 'absint', (array) ( $data['services'] ?? [] ) ) ) ) ) ),
+			'photo_id' => $photo && wp_attachment_is_image( $photo ) ? $photo : null,
 			'status'   => in_array( $status, [ 'active', 'inactive' ], true ) ? $status : 'active',
 		];
 	}
