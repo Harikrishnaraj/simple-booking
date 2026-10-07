@@ -45,7 +45,8 @@ class SB_Notifications {
 			'{booking_date}'   => __( 'Date', 'simple-booking' ),
 			'{booking_time}'   => __( 'Start time', 'simple-booking' ),
 			'{end_time}'       => __( 'End time', 'simple-booking' ),
-			'{price}'          => __( 'Price', 'simple-booking' ),
+			'{price}'          => __( 'Total price', 'simple-booking' ),
+			'{price_details}'  => __( 'Price breakdown (extras, coupon, tax, total)', 'simple-booking' ),
 			'{booking_code}'   => __( 'Booking code', 'simple-booking' ),
 			'{status}'         => __( 'Status', 'simple-booking' ),
 			'{notes}'          => __( 'Customer notes', 'simple-booking' ),
@@ -153,12 +154,12 @@ class SB_Notifications {
 				'enabled' => $customer,
 				/* translators: {booking_code} stays as is: it is replaced by the booking code. */
 				'subject' => __( 'We received your booking {booking_code}', 'simple-booking' ),
-				'body'    => __( 'Hi {customer_name},', 'simple-booking' ) . "\n\n" . __( 'Thank you for booking with {business_name}. We will email you again once it is confirmed.', 'simple-booking' ) . "\n\n" . $details . "\n\n{recurring_details}" . $manage,
+				'body'    => __( 'Hi {customer_name},', 'simple-booking' ) . "\n\n" . __( 'Thank you for booking with {business_name}. We will email you again once it is confirmed.', 'simple-booking' ) . "\n\n" . $details . "\n\n{price_details}\n\n{recurring_details}" . $manage,
 			],
 			'customer_confirmed' => [
 				'enabled' => $customer,
 				'subject' => __( 'Your booking is confirmed: {service_name} on {booking_date}', 'simple-booking' ),
-				'body'    => __( 'Hi {customer_name},', 'simple-booking' ) . "\n\n" . __( 'Your appointment is confirmed. See you then!', 'simple-booking' ) . "\n\n" . $details . "\n\n{recurring_details}" . $manage,
+				'body'    => __( 'Hi {customer_name},', 'simple-booking' ) . "\n\n" . __( 'Your appointment is confirmed. See you then!', 'simple-booking' ) . "\n\n" . $details . "\n\n{price_details}\n\n{recurring_details}" . $manage,
 			],
 			'customer_cancelled' => [
 				'enabled' => $customer,

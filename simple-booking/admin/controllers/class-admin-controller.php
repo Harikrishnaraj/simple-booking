@@ -19,6 +19,7 @@ class SB_Admin_Controller {
 		add_submenu_page( 'sb-dashboard', __( 'Services', 'simple-booking' ), __( 'Services', 'simple-booking' ), $cap, 'sb-services', [ $this, 'render_services' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Locations', 'simple-booking' ), __( 'Locations', 'simple-booking' ), $cap, 'sb-locations', [ $this, 'render_locations' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Staff', 'simple-booking' ), __( 'Staff', 'simple-booking' ), $cap, 'sb-staff', [ $this, 'render_staff' ] );
+		add_submenu_page( 'sb-dashboard', __( 'Pricing', 'simple-booking' ), __( 'Pricing', 'simple-booking' ), $cap, 'sb-pricing', [ $this, 'render_pricing' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Custom Fields', 'simple-booking' ), __( 'Custom Fields', 'simple-booking' ), $cap, 'sb-custom-fields', [ $this, 'render_custom_fields' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Notifications', 'simple-booking' ), __( 'Notifications', 'simple-booking' ), $cap, 'sb-notifications', [ $this, 'render_notifications' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Settings', 'simple-booking' ), __( 'Settings', 'simple-booking' ), $cap, 'sb-settings', [ $this, 'render_settings' ] );
@@ -153,6 +154,7 @@ class SB_Admin_Controller {
 			'staff'     => array_map( fn( $m ) => $m + [ 'service_ids' => $staff_mgr->service_ids( $m ) ], $staff_mgr->get_all() ),
 			'customers' => ( new SB_Customers() )->get_list( '', 1, 500 ),
 			'fields'    => SB_Custom_Fields::all(),
+			'extras'    => SB_Pricing::extras(),
 		] );
 	}
 
@@ -235,6 +237,39 @@ class SB_Admin_Controller {
 		wp_send_json_success( [
 			'message' => $locations->get_by_id( $id ) ? __( 'This location has bookings, so it was deactivated instead of deleted.', 'simple-booking' ) : '',
 		] );
+	}
+
+	public function render_pricing(): void {
+		$tab = sanitize_key( $_GET['tab'] ?? '' ); // phpcs:ignore WordPress.Security.NonceVerification
+		sb_view( 'admin/views/pricing', [
+			'tab'      => in_array( $tab, [ 'extras', 'coupons', 'tax' ], true ) ? $tab : 'extras',
+			'extras'   => SB_Pricing::extras(),
+			'coupons'  => SB_Pricing::coupons(),
+			'services' => ( new SB_Services() )->get_all( 'all' ),
+			'settings' => SB_Settings::get_settings(),
+			'theme'    => $this->theme(),
+		] );
+	}
+
+	public function ajax_save_extra(): void {
+		$error = SB_Pricing::save_extra( $this->guard() );
+		'' === $error ? wp_send_json_success() : wp_send_json_error( [ 'message' => $error ], 422 );
+	}
+
+	public function ajax_delete_extra(): void {
+		SB_Pricing::delete_extra( sanitize_key( $this->guard()['id'] ?? '' ) );
+		wp_send_json_success();
+	}
+
+	public function ajax_save_coupon(): void {
+		$post  = $this->guard();
+		$error = SB_Pricing::save_coupon( absint( $post['id'] ?? 0 ), $post );
+		'' === $error ? wp_send_json_success() : wp_send_json_error( [ 'message' => $error ], 422 );
+	}
+
+	public function ajax_delete_coupon(): void {
+		SB_Pricing::delete_coupon( absint( $this->guard()['id'] ?? 0 ) );
+		wp_send_json_success();
 	}
 
 	public function render_custom_fields(): void {
@@ -337,6 +372,12 @@ class SB_Admin_Controller {
 			wp_send_json_error( [ 'message' => $data['custom_fields']->get_error_message() ], 422 );
 		}
 
+		$quote = SB_Pricing::quote( $data['service_id'], (array) ( $post['extras'] ?? [] ), sanitize_text_field( $post['coupon'] ?? '' ), $data['booking_date'] );
+		if ( $quote['coupon_error'] ) {
+			wp_send_json_error( [ 'message' => $quote['coupon_error'] ], 422 );
+		}
+		$data['pricing'] = SB_Pricing::to_store( $quote );
+
 		$bookings = new SB_Bookings();
 		$free     = $bookings->get_available_slots( $data['service_id'], $data['staff_id'] ?: null, $data['booking_date'] );
 		// Only save a new customer once the time is known to be free.
@@ -348,11 +389,22 @@ class SB_Admin_Controller {
 			'notify_customer' => ! empty( $post['notify'] ),
 		] + $data;
 
+		// A coupon counts once, for a single booking or a whole series.
+		if ( $customer_id && $quote['coupon'] && ! SB_Pricing::redeem( (int) $quote['coupon']['id'] ) ) {
+			wp_send_json_error( [ 'message' => __( 'This coupon has been used up.', 'simple-booking' ) ], 422 );
+		}
+		$release = static function () use ( $quote ) {
+			if ( $quote['coupon'] ) {
+				SB_Pricing::unredeem( (int) $quote['coupon']['id'] );
+			}
+		};
+
 		$every = absint( $post['repeat_weeks'] ?? 0 );
 		$count = absint( $post['repeat_count'] ?? 1 );
 		if ( $customer_id && $every && $count > 1 ) {
 			$series = $bookings->create_series( $args, $every, $count );
 			if ( ! $series['ids'] ) {
+				$release();
 				wp_send_json_error( [ 'message' => __( 'That time is no longer free. Please pick another.', 'simple-booking' ) ], 409 );
 			}
 			$message = $series['missed']
@@ -367,6 +419,9 @@ class SB_Admin_Controller {
 		}
 
 		$booking_id = $customer_id ? $bookings->create_booking( $args ) : false;
+		if ( $customer_id && ! $booking_id ) {
+			$release();
+		}
 		$booking_id
 			? wp_send_json_success( [ 'id' => $booking_id ] )
 			: wp_send_json_error( [ 'message' => __( 'That time is no longer free. Please pick another.', 'simple-booking' ) ], 409 );

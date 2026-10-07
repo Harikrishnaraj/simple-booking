@@ -66,6 +66,9 @@ class SB_Bookings {
 				// Validated answers from SB_Custom_Fields::answers().
 				'custom_fields' => ! empty( $data['custom_fields'] ) ? wp_json_encode( $data['custom_fields'] ) : null,
 				'series_id'     => ! empty( $data['series_id'] ) ? substr( sanitize_key( $data['series_id'] ), 0, 20 ) : null,
+				// SB_Pricing::to_store() breakdown; total kept separately for reports.
+				'pricing'       => ! empty( $data['pricing'] ) ? wp_json_encode( $data['pricing'] ) : null,
+				'total'         => isset( $data['pricing']['total'] ) ? (float) $data['pricing']['total'] : null,
 				// Already inside the reminder window: the booking email is reminder enough.
 				'reminder_sent' => SB_Email::inside_reminder_window( $date, "$time:00" ) ? current_time( 'mysql', true ) : null,
 			];
@@ -73,7 +76,7 @@ class SB_Bookings {
 			// booking_code is UNIQUE; retry with a fresh code on the rare collision.
 			for ( $attempt = 0, $inserted = false; ! $inserted && $attempt < 3; $attempt++ ) {
 				$row['booking_code'] = $this->generate_booking_code();
-				$inserted = $wpdb->insert( $this->table_name, $row, [ '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ] );
+				$inserted = $wpdb->insert( $this->table_name, $row, [ '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%f', '%s' ] );
 			}
 
 			return $inserted ? (int) $wpdb->insert_id : false;

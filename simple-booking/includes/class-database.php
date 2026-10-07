@@ -19,6 +19,7 @@ class SB_Database {
 		$table_customers = $wpdb->prefix . 'sb_customers';
 		$table_categories = $wpdb->prefix . 'sb_categories';
 		$table_locations  = $wpdb->prefix . 'sb_locations';
+		$table_coupons    = $wpdb->prefix . 'sb_coupons';
 
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 
@@ -45,6 +46,23 @@ class SB_Database {
 			status varchar(20) NOT NULL DEFAULT 'active',
 			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
 			PRIMARY KEY  (id)
+		) $charset_collate;";
+
+		// Coupons (bookings keep their own price breakdown in bookings.pricing)
+		$sql_coupons = "CREATE TABLE $table_coupons (
+			id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			code varchar(50) NOT NULL,
+			type varchar(10) NOT NULL DEFAULT 'percent',
+			value decimal(10,2) NOT NULL DEFAULT 0.00,
+			services text NULL,
+			valid_from date NULL,
+			valid_to date NULL,
+			max_uses int(11) NOT NULL DEFAULT 0,
+			used int(11) NOT NULL DEFAULT 0,
+			status varchar(20) NOT NULL DEFAULT 'active',
+			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY code (code)
 		) $charset_collate;";
 
 		// Service categories (services.category_id; NULL = uncategorized)
@@ -98,6 +116,8 @@ class SB_Database {
 			notes text NULL,
 			custom_fields text NULL,
 			series_id varchar(20) NULL,
+			pricing text NULL,
+			total decimal(10,2) NULL,
 			reminder_sent datetime NULL,
 			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
 			PRIMARY KEY  (id),
@@ -112,6 +132,7 @@ class SB_Database {
 		dbDelta( $sql_services );
 		dbDelta( $sql_categories );
 		dbDelta( $sql_locations );
+		dbDelta( $sql_coupons );
 		dbDelta( $sql_staff );
 		dbDelta( $sql_customers );
 		dbDelta( $sql_bookings );

@@ -201,6 +201,7 @@
 				loadSlots(); // Service or staff may have changed; refresh times for the chosen day.
 			}
 			if (n === 3) {
+				refreshPrice();
 				const day = daysEl.querySelector('.selected');
 				summary.textContent = service.selectedOptions[0].textContent.trim() + ' · ' + day.getAttribute('aria-label') + ' · ' + timeInput.value;
 			}
@@ -219,6 +220,53 @@
 		}
 		service.addEventListener('change', showFields);
 		showFields();
+
+		// Price preview (the server works out the real price on submit).
+		const priceTable = form.querySelector('[data-sb-price]');
+		const couponError = form.querySelector('.sb-coupon-error');
+		async function refreshPrice() {
+			if (!priceTable) {
+				return;
+			}
+			const data = new FormData();
+			data.append('service_id', service.value);
+			data.append('date', dateInput.value);
+			data.append('coupon', form.elements.coupon ? form.elements.coupon.value : '');
+			form.querySelectorAll('input[name="extras[]"]:checked:not(:disabled)').forEach((x) => data.append('extras[]', x.value));
+			try {
+				const res = await post('sb_quote', data);
+				priceTable.tBodies[0].replaceChildren(...res.lines.map(([label, amount], i) => {
+					const tr = document.createElement('tr');
+					if (i === res.lines.length - 1) {
+						tr.className = 'sb-price-total';
+					}
+					const th = document.createElement('th');
+					th.scope = 'row';
+					th.textContent = label;
+					const td = document.createElement('td');
+					td.textContent = amount;
+					tr.append(th, td);
+					return tr;
+				}));
+				couponError.textContent = res.couponError;
+				couponError.hidden = !res.couponError;
+			} catch (err) {
+				// Leave the last preview in place; the booking itself is priced on the server.
+			}
+		}
+		form.addEventListener('click', (e) => {
+			if (e.target.closest('[data-sb-apply-coupon]')) {
+				refreshPrice();
+			}
+		});
+		if (form.elements.coupon) {
+			form.elements.coupon.addEventListener('keydown', (e) => {
+				if (e.key === 'Enter') {
+					e.preventDefault();
+					refreshPrice();
+				}
+			});
+		}
 
 		service.addEventListener('change', filterStaff);
 		if (location) {

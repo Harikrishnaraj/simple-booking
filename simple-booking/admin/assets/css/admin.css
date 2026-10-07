@@ -594,6 +594,41 @@ body.sb-admin-screen #wpfooter {
 	}
 }
 
+.sb-tabs {
+	display: flex;
+	gap: 4px;
+	margin: 0 0 -1px;
+}
+
+.sb-app .sb-tab {
+	padding: 8px 16px;
+	border: 1px solid transparent;
+	border-bottom: 0;
+	border-radius: 8px 8px 0 0;
+	color: var(--sb-muted);
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.sb-app .sb-tab.is-current {
+	background: var(--sb-surface);
+	border-color: var(--sb-border);
+	color: var(--sb-text);
+}
+
+.sb-tabs + .sb-card {
+	border-top-left-radius: 0;
+}
+
+.sb-narrow {
+	max-width: 520px;
+}
+
+.sb-price-detail {
+	font-size: 12px;
+	white-space: normal;
+}
+
 .sb-series {
 	font-size: 12px;
 	white-space: nowrap;

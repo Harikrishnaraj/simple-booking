@@ -350,3 +350,57 @@
 .sb-booking-wrapper .sb-manage-reschedule {
   margin-top: 20px;
 }
+
+/* Extras, coupon and price summary */
+.sb-booking-wrapper .sb-extras {
+  border: 0;
+  padding: 0;
+}
+
+.sb-booking-wrapper .sb-extras .sb-check-label {
+  display: flex;
+  margin-bottom: 6px;
+}
+
+.sb-booking-wrapper .sb-extra-price {
+  margin-left: auto;
+  color: #4b5563;
+  font-variant-numeric: tabular-nums;
+}
+
+.sb-booking-wrapper .sb-coupon {
+  display: flex;
+  gap: 8px;
+}
+
+.sb-booking-wrapper .sb-coupon-error {
+  margin: 6px 0 0;
+  color: #b91c1c;
+  font-size: 0.875rem;
+}
+
+.sb-booking-wrapper .sb-price-summary {
+  width: 100%;
+  margin: 8px 0 4px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.sb-booking-wrapper .sb-price-summary th,
+.sb-booking-wrapper .sb-price-summary td {
+  padding: 4px 0;
+  border: 0;
+  font-weight: 400;
+  text-align: left;
+}
+
+.sb-booking-wrapper .sb-price-summary td {
+  text-align: right;
+}
+
+.sb-booking-wrapper .sb-price-summary .sb-price-total th,
+.sb-booking-wrapper .sb-price-summary .sb-price-total td {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 8px;
+  font-weight: 700;
+}
