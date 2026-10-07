@@ -48,6 +48,7 @@ class SB_Notifications {
 			'{booking_code}'   => __( 'Booking code', 'simple-booking' ),
 			'{status}'         => __( 'Status', 'simple-booking' ),
 			'{notes}'          => __( 'Customer notes', 'simple-booking' ),
+			'{custom_fields}'  => __( 'Answers to custom fields', 'simple-booking' ),
 			'{business_name}'  => __( 'Business name', 'simple-booking' ),
 		];
 	}
@@ -176,13 +177,13 @@ class SB_Notifications {
 				'enabled' => false,
 				'subject' => __( 'New booking: {service_name} on {booking_date} at {booking_time}', 'simple-booking' ),
 				'body'    => __( 'Hi {staff_name},', 'simple-booking' ) . "\n\n" . __( 'You have a new booking.', 'simple-booking' ) . "\n\n" . $details . "\n\n" .
-					__( 'Customer:', 'simple-booking' ) . " {customer_name}\n{customer_email}\n{customer_phone}\n" . __( 'Notes:', 'simple-booking' ) . ' {notes}',
+					__( 'Customer:', 'simple-booking' ) . " {customer_name}\n{customer_email}\n{customer_phone}\n" . __( 'Notes:', 'simple-booking' ) . " {notes}\n{custom_fields}",
 			],
 			'admin_new'          => [
 				'enabled' => ! empty( $settings['admin_notification'] ),
 				'subject' => __( 'New booking {booking_code}: {customer_name}', 'simple-booking' ),
 				'body'    => __( 'A new booking is waiting for you.', 'simple-booking' ) . "\n\n" . $details . "\n" . __( 'Status:', 'simple-booking' ) . " {status}\n\n" .
-					__( 'Customer:', 'simple-booking' ) . " {customer_name}\n{customer_email}\n{customer_phone}\n" . __( 'Notes:', 'simple-booking' ) . ' {notes}',
+					__( 'Customer:', 'simple-booking' ) . " {customer_name}\n{customer_email}\n{customer_phone}\n" . __( 'Notes:', 'simple-booking' ) . " {notes}\n{custom_fields}",
 			],
 		];
 	}

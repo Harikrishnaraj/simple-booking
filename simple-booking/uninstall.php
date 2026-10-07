@@ -22,6 +22,7 @@ if ( empty( $settings['delete_data_on_uninstall'] ) ) {
 delete_option( 'sb_db_version' );
 delete_option( 'sb_settings' );
 delete_option( 'sb_email_templates' );
+delete_option( 'sb_custom_fields' );
 
 // Drop tables if configured to scrub data
 $tables = [

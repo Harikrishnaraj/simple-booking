@@ -18,6 +18,7 @@ class SB_Admin_Controller {
 		add_submenu_page( 'sb-dashboard', __( 'Customers', 'simple-booking' ), __( 'Customers', 'simple-booking' ), $cap, 'sb-customers', [ $this, 'render_customers' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Services', 'simple-booking' ), __( 'Services', 'simple-booking' ), $cap, 'sb-services', [ $this, 'render_services' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Staff', 'simple-booking' ), __( 'Staff', 'simple-booking' ), $cap, 'sb-staff', [ $this, 'render_staff' ] );
+		add_submenu_page( 'sb-dashboard', __( 'Custom Fields', 'simple-booking' ), __( 'Custom Fields', 'simple-booking' ), $cap, 'sb-custom-fields', [ $this, 'render_custom_fields' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Notifications', 'simple-booking' ), __( 'Notifications', 'simple-booking' ), $cap, 'sb-notifications', [ $this, 'render_notifications' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Settings', 'simple-booking' ), __( 'Settings', 'simple-booking' ), $cap, 'sb-settings', [ $this, 'render_settings' ] );
 	}
@@ -150,6 +151,7 @@ class SB_Admin_Controller {
 			'services'  => ( new SB_Services() )->get_all(),
 			'staff'     => array_map( fn( $m ) => $m + [ 'service_ids' => $staff_mgr->service_ids( $m ) ], $staff_mgr->get_all() ),
 			'customers' => ( new SB_Customers() )->get_list( '', 1, 500 ),
+			'fields'    => SB_Custom_Fields::all(),
 		] );
 	}
 
@@ -202,6 +204,14 @@ class SB_Admin_Controller {
 			'all_services' => ( new SB_Services() )->get_all( 'all' ),
 			'page_url'     => admin_url( 'admin.php?page=sb-staff' ),
 			'theme'        => $this->theme(),
+		] );
+	}
+
+	public function render_custom_fields(): void {
+		sb_view( 'admin/views/custom-fields', [
+			'fields'   => SB_Custom_Fields::all(),
+			'services' => ( new SB_Services() )->get_all( 'all' ),
+			'theme'    => $this->theme(),
 		] );
 	}
 
@@ -291,6 +301,12 @@ class SB_Admin_Controller {
 		if ( is_wp_error( $data ) ) {
 			wp_send_json_error( [ 'message' => $data->get_error_message() ], 422 );
 		}
+		// The admin may leave questions unanswered (e.g. a phone booking).
+		$data['custom_fields'] = SB_Custom_Fields::answers( $post, $data['service_id'], false );
+		if ( is_wp_error( $data['custom_fields'] ) ) {
+			wp_send_json_error( [ 'message' => $data['custom_fields']->get_error_message() ], 422 );
+		}
+
 		$bookings = new SB_Bookings();
 		$free     = $bookings->get_available_slots( $data['service_id'], $data['staff_id'] ?: null, $data['booking_date'] );
 		// Only save a new customer once the time is known to be free.
@@ -342,6 +358,22 @@ class SB_Admin_Controller {
 		( new SB_Categories() )->delete( absint( $post['id'] ?? 0 ) )
 			? wp_send_json_success()
 			: wp_send_json_error( [ 'message' => __( 'Could not delete the category.', 'simple-booking' ) ], 500 );
+	}
+
+	public function ajax_save_field(): void {
+		$error = SB_Custom_Fields::save( $this->guard() );
+		'' === $error ? wp_send_json_success() : wp_send_json_error( [ 'message' => $error ], 422 );
+	}
+
+	public function ajax_delete_field(): void {
+		SB_Custom_Fields::delete( sanitize_key( $this->guard()['id'] ?? '' ) );
+		wp_send_json_success();
+	}
+
+	public function ajax_move_field(): void {
+		$post = $this->guard();
+		SB_Custom_Fields::move( sanitize_key( $post['id'] ?? '' ), (int) ( $post['direction'] ?? 0 ) );
+		wp_send_json_success();
 	}
 
 	public function ajax_save_template(): void {

@@ -5,6 +5,7 @@
  * @var array $services  Active services
  * @var array $staff     Active staff, each with 'service_ids'
  * @var array $customers Existing customers (newest first)
+ * @var array $fields    Custom fields
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -98,6 +99,15 @@ $when_fields = static function ( string $prefix ): void {
 				<label><input type="checkbox" name="notify" value="1" checked> <?php esc_html_e( 'Email the customer', 'simple-booking' ); ?></label>
 			</p>
 		</div>
+		<?php
+		sb_view( 'admin/views/partials/custom-field-inputs', [
+			'fields'       => $fields,
+			'id_prefix'    => 'sb-b-cf',
+			'group_class'  => 'sb-field',
+			'input_class'  => 'sb-input sb-input--wide',
+			'use_required' => false,
+		] );
+		?>
 		<p class="sb-field">
 			<label for="sb-b-notes"><?php esc_html_e( 'Notes', 'simple-booking' ); ?></label>
 			<textarea id="sb-b-notes" class="sb-input" name="notes" rows="2" maxlength="2000"></textarea>

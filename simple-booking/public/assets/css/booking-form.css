@@ -250,6 +250,22 @@
   outline-offset: 2px;
 }
 
+.sb-booking-wrapper .sb-form-group[hidden] {
+  display: none;
+}
+
+.sb-booking-wrapper .sb-form-group .sb-check-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.sb-booking-wrapper .sb-optional {
+  font-weight: 400;
+  color: #6b7280;
+}
+
 .sb-booking-wrapper .sb-staff-pick {
   display: flex;
   align-items: center;

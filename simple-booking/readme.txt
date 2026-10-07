@@ -4,7 +4,7 @@ Tags: booking, appointment, salon, clinic, scheduling, shortcode
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 8.0
-Stable tag: 1.5.1
+Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,6 +23,11 @@ Simple Booking allows business owners (salons, clinics, consultants, personal tr
 Simply insert the shortcode `[simple_booking]` into any page, post, or widget area.
 
 == Changelog ==
+= 1.6.0 =
+* Custom fields (Simple Booking → Custom Fields): add your own questions to the booking form (short or long text, dropdown, checkbox, date), make them required, limit them to certain services, and reorder them.
+* Answers are saved with each booking, shown on the Bookings page and in the admin booking dialog, and available in emails as {custom_fields} (included in the staff and admin new-booking emails by default).
+* New column `bookings.custom_fields` (added automatically on update).
+
 = 1.5.1 =
 * Booking pages are no longer stored by page-cache plugins (no-cache headers and DONOTCACHEPAGE; LiteSpeed supported), so visitors never get an expired form or yesterday's days.
 * New setting "Visitor IP comes from" for sites behind Cloudflare or a proxy, so the booking rate limit counts each visitor separately.

@@ -82,6 +82,7 @@ class SB_Database {
 			end_time time NOT NULL,
 			status varchar(20) NOT NULL DEFAULT 'pending',
 			notes text NULL,
+			custom_fields text NULL,
 			reminder_sent datetime NULL,
 			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
 			PRIMARY KEY  (id),

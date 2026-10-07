@@ -5,6 +5,7 @@
  *
  * @var array $groups Active services grouped by category name ('' = no categories in use).
  * @var array $staff  Active staff, each with 'service_ids' and 'photo_url'.
+ * @var array $fields Custom fields (shown per service).
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -103,6 +104,15 @@ $uid = wp_unique_id( 'sb-' );
 				<label for="<?php echo esc_attr( $uid ); ?>-phone"><?php esc_html_e( 'Phone (optional)', 'simple-booking' ); ?></label>
 				<input id="<?php echo esc_attr( $uid ); ?>-phone" class="sb-form-control" name="phone" type="tel" maxlength="50" autocomplete="tel">
 			</div>
+			<?php
+			sb_view( 'admin/views/partials/custom-field-inputs', [
+				'fields'       => $fields,
+				'id_prefix'    => $uid . '-cf',
+				'group_class'  => 'sb-form-group',
+				'input_class'  => 'sb-form-control',
+				'use_required' => true,
+			] );
+			?>
 			<div class="sb-form-group">
 				<label for="<?php echo esc_attr( $uid ); ?>-notes"><?php esc_html_e( 'Notes (optional)', 'simple-booking' ); ?></label>
 				<textarea id="<?php echo esc_attr( $uid ); ?>-notes" class="sb-form-control" name="notes" rows="3" maxlength="2000"></textarea>
