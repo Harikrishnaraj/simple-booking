@@ -95,7 +95,12 @@ $filtered  = (bool) array_filter( $filters );
 									<span class="sb-muted"><?php echo esc_html( substr( $b['booking_time'], 0, 5 ) . '–' . substr( $b['end_time'], 0, 5 ) ); ?></span>
 								</td>
 								<td><?php echo esc_html( $b['service_name'] ?? '—' ); ?></td>
-								<td><?php echo esc_html( $b['staff_name'] ?? __( 'Any', 'simple-booking' ) ); ?></td>
+								<td>
+									<?php echo esc_html( $b['staff_name'] ?? __( 'Any', 'simple-booking' ) ); ?>
+									<?php if ( ! empty( $b['location_name'] ) ) : ?>
+										<br><span class="sb-muted"><?php echo esc_html( $b['location_name'] ); ?></span>
+									<?php endif; ?>
+								</td>
 								<td>
 									<?php echo esc_html( $b['customer_name'] ?? '—' ); ?><br>
 									<a class="sb-link" href="<?php echo esc_url( 'mailto:' . $b['customer_email'] ); ?>"><?php echo esc_html( $b['customer_email'] ); ?></a>

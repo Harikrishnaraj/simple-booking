@@ -143,11 +143,15 @@ class SB_Public_Controller {
 			],
 		] );
 
+		$locations = ( new SB_Locations() )->get_all();
+
 		ob_start();
 		sb_view( 'public/views/booking-form', [
 			'groups' => $this->group_by_category( $services ),
-			'staff'  => $staff,
-			'fields' => SB_Custom_Fields::all(),
+			'staff'     => $staff,
+			'fields'    => SB_Custom_Fields::all(),
+			// The location question only appears when there is a choice.
+			'locations' => count( $locations ) > 1 ? $locations : [],
 		] );
 		return (string) ob_get_clean();
 	}
@@ -186,10 +190,12 @@ class SB_Public_Controller {
 	 */
 	private function booking_details( array $booking ): array {
 		$service = ( new SB_Services() )->get_by_id( (int) $booking['service_id'] );
-		$staff   = $booking['staff_id'] ? ( new SB_Staff() )->get_by_id( (int) $booking['staff_id'] ) : null;
+		$staff    = $booking['staff_id'] ? ( new SB_Staff() )->get_by_id( (int) $booking['staff_id'] ) : null;
+		$location = ( new SB_Locations() )->get_by_id( (int) ( $booking['location_id'] ?? 0 ) );
 		return $booking + [
 			'service_name' => $service['name'] ?? '',
 			'staff_name'   => $staff['name'] ?? '',
+			'location'     => $location ? trim( $location['name'] . "\n" . $location['address'] ) : '',
 			'can_change'   => SB_Manage::can_change( $booking ),
 			'deadline'     => SB_Manage::deadline( $booking ),
 		];
@@ -266,10 +272,11 @@ class SB_Public_Controller {
 		$service_id = absint( $_POST['service_id'] ?? 0 );
 		$staff_id   = absint( $_POST['staff_id'] ?? 0 ) ?: null;
 		$date       = sanitize_text_field( wp_unslash( $_POST['date'] ?? '' ) );
+		$location   = absint( $_POST['location_id'] ?? 0 ) ?: null;
 		// phpcs:enable
 
 		wp_send_json_success( [
-			'slots' => ( new SB_Bookings() )->get_available_slots( $service_id, $staff_id, $date ),
+			'slots' => ( new SB_Bookings() )->get_available_slots( $service_id, $staff_id, $date, null, $location ),
 		] );
 	}
 
@@ -304,7 +311,7 @@ class SB_Public_Controller {
 
 		// Check the time before saving the customer, so rejected requests don't leave customer records.
 		// create_booking() checks again under the lock.
-		if ( ! in_array( $data['booking_time'], $bookings->get_available_slots( $data['service_id'], $data['staff_id'] ?: null, $data['booking_date'] ), true ) ) {
+		if ( ! in_array( $data['booking_time'], $bookings->get_available_slots( $data['service_id'], $data['staff_id'] ?: null, $data['booking_date'], null, $data['location_id'] ?: null ), true ) ) {
 			$taken();
 		}
 

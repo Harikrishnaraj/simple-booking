@@ -18,6 +18,7 @@ class SB_Validator {
 			'phone'        => sanitize_text_field( $in['phone'] ?? '' ),
 			'service_id'   => absint( $in['service_id'] ?? 0 ),
 			'staff_id'     => absint( $in['staff_id'] ?? 0 ),
+			'location_id'  => absint( $in['location_id'] ?? 0 ),
 			'booking_date' => sanitize_text_field( $in['booking_date'] ?? '' ),
 			'booking_time' => sanitize_text_field( $in['booking_time'] ?? '' ),
 			'notes'        => sanitize_textarea_field( $in['notes'] ?? '' ),

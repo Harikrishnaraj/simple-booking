@@ -4,13 +4,15 @@
  * @var array|null $editing
  * @var int[]      $editing_ids
  * @var array      $all_services
+ * @var array      $locations
  * @var string     $page_url
  * @var string     $theme
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-$service_names = array_column( $all_services, 'name', 'id' );
+$service_names  = array_column( $all_services, 'name', 'id' );
+$location_names = array_column( $locations, 'name', 'id' );
 $staff_mgr     = new SB_Staff();
 ?>
 <div class="wrap sb-app">
@@ -56,6 +58,18 @@ $staff_mgr     = new SB_Staff();
 							</label><br>
 						<?php endforeach; ?>
 					</fieldset>
+					<?php if ( $locations ) : ?>
+						<div class="form-field">
+							<label for="sb-staff-location"><?php esc_html_e( 'Location', 'simple-booking' ); ?></label>
+							<select id="sb-staff-location" name="location_id">
+								<option value="0"><?php esc_html_e( 'None', 'simple-booking' ); ?></option>
+								<?php foreach ( $locations as $location ) : ?>
+									<option value="<?php echo (int) $location['id']; ?>" <?php selected( (int) ( $editing['location_id'] ?? 0 ), (int) $location['id'] ); ?>><?php echo esc_html( $location['name'] ); ?></option>
+								<?php endforeach; ?>
+							</select>
+							<p class="description"><?php esc_html_e( 'With two or more locations, customers pick one first and only see staff working there.', 'simple-booking' ); ?></p>
+						</div>
+					<?php endif; ?>
 					<?php sb_view( 'admin/views/partials/staff-schedule', [ 'editing' => $editing ] ); ?>
 					<div class="form-field">
 						<label for="sb-staff-status"><?php esc_html_e( 'Status', 'simple-booking' ); ?></label>
@@ -105,6 +119,9 @@ $staff_mgr     = new SB_Staff();
 								<td>
 									<?php echo esc_html( $member['email'] ); ?>
 									<?php if ( ! empty( $member['phone'] ) ) : ?><br><?php echo esc_html( $member['phone'] ); ?><?php endif; ?>
+									<?php if ( isset( $location_names[ $member['location_id'] ?? 0 ] ) ) : ?>
+										<br><span class="sb-muted"><span class="dashicons dashicons-location" aria-hidden="true"></span><?php echo esc_html( $location_names[ $member['location_id'] ] ); ?></span>
+									<?php endif; ?>
 								</td>
 								<td>
 									<?php

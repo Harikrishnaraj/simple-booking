@@ -164,6 +164,8 @@ class SB_Email {
 			'{manage_link}'    => isset( $d['id'] ) ? SB_Manage::url( $d ) : home_url( '/' ),
 			'{change}'         => (string) ( $d['change'] ?? '' ),
 			'{business_name}'  => (string) SB_Settings::get_settings()['business_name'],
+			'{location_name}'  => (string) ( $d['location_name'] ?? '' ),
+			'{location_address}' => preg_replace( '/\s*\R\s*/', ', ', trim( (string) ( $d['location_address'] ?? '' ) ) ),
 		];
 	}
 
@@ -197,8 +199,10 @@ class SB_Email {
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				"SELECT b.*, s.name AS service_name, s.price, c.name AS customer_name, c.email AS customer_email,
-					c.phone AS customer_phone, st.name AS staff_name, st.email AS staff_email
+					c.phone AS customer_phone, st.name AS staff_name, st.email AS staff_email,
+					l.name AS location_name, l.address AS location_address
 				 FROM {$p}sb_bookings b
+				 LEFT JOIN {$p}sb_locations l ON l.id = b.location_id
 				 JOIN {$p}sb_services s ON b.service_id = s.id
 				 JOIN {$p}sb_customers c ON b.customer_id = c.id
 				 LEFT JOIN {$p}sb_staff st ON b.staff_id = st.id

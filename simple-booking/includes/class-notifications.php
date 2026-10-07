@@ -51,6 +51,8 @@ class SB_Notifications {
 			'{notes}'          => __( 'Customer notes', 'simple-booking' ),
 			'{custom_fields}'  => __( 'Answers to custom fields', 'simple-booking' ),
 			'{business_name}'  => __( 'Business name', 'simple-booking' ),
+			'{location_name}'  => __( 'Location', 'simple-booking' ),
+			'{location_address}' => __( 'Location address', 'simple-booking' ),
 			'{manage_link}'    => __( 'Link for the customer to view, cancel or reschedule', 'simple-booking' ),
 			'{change}'         => __( 'What the customer changed (admin email)', 'simple-booking' ),
 		];
@@ -142,6 +144,7 @@ class SB_Notifications {
 			__( 'Date:', 'simple-booking' ) . " {booking_date}\n" .
 			__( 'Time:', 'simple-booking' ) . " {booking_time}–{end_time}\n" .
 			__( 'With:', 'simple-booking' ) . " {staff_name}\n" .
+			__( 'Where:', 'simple-booking' ) . " {location_name} {location_address}\n" .
 			__( 'Booking code:', 'simple-booking' ) . ' {booking_code}';
 
 		return [

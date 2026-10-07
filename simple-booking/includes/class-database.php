@@ -18,6 +18,7 @@ class SB_Database {
 		$table_bookings  = $wpdb->prefix . 'sb_bookings';
 		$table_customers = $wpdb->prefix . 'sb_customers';
 		$table_categories = $wpdb->prefix . 'sb_categories';
+		$table_locations  = $wpdb->prefix . 'sb_locations';
 
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 
@@ -33,6 +34,17 @@ class SB_Database {
 			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
 			PRIMARY KEY  (id),
 			KEY category_id (category_id)
+		) $charset_collate;";
+
+		// Locations (staff.location_id, bookings.location_id)
+		$sql_locations = "CREATE TABLE $table_locations (
+			id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			name varchar(191) NOT NULL,
+			address text NULL,
+			phone varchar(50) NULL,
+			status varchar(20) NOT NULL DEFAULT 'active',
+			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+			PRIMARY KEY  (id)
 		) $charset_collate;";
 
 		// Service categories (services.category_id; NULL = uncategorized)
@@ -53,6 +65,7 @@ class SB_Database {
 			photo_id bigint(20) UNSIGNED NULL,
 			schedule text NULL,
 			days_off text NULL,
+			location_id bigint(20) UNSIGNED NULL,
 			status varchar(20) NOT NULL DEFAULT 'active',
 			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
 			PRIMARY KEY  (id)
@@ -77,6 +90,7 @@ class SB_Database {
 			service_id bigint(20) UNSIGNED NOT NULL,
 			staff_id bigint(20) UNSIGNED NULL,
 			customer_id bigint(20) UNSIGNED NOT NULL,
+			location_id bigint(20) UNSIGNED NULL,
 			booking_date date NOT NULL,
 			booking_time time NOT NULL,
 			end_time time NOT NULL,
@@ -95,6 +109,7 @@ class SB_Database {
 
 		dbDelta( $sql_services );
 		dbDelta( $sql_categories );
+		dbDelta( $sql_locations );
 		dbDelta( $sql_staff );
 		dbDelta( $sql_customers );
 		dbDelta( $sql_bookings );
