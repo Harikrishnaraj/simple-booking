@@ -5,6 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class SB_Services {
 
+	private const FORMATS = [ '%s', '%s', '%d', '%f', '%d', '%s' ];
+
 	private string $table_name;
 
 	public function __construct() {
@@ -38,7 +40,7 @@ class SB_Services {
 		if ( ! $row ) {
 			return false;
 		}
-		$inserted = $wpdb->insert( $this->table_name, $row, [ '%s', '%s', '%d', '%f', '%s' ] );
+		$inserted = $wpdb->insert( $this->table_name, $row, self::FORMATS );
 		return $inserted ? $wpdb->insert_id : false;
 	}
 
@@ -48,7 +50,7 @@ class SB_Services {
 		if ( ! $row ) {
 			return false;
 		}
-		$updated = $wpdb->update( $this->table_name, $row, [ 'id' => $id ], [ '%s', '%s', '%d', '%f', '%s' ], [ '%d' ] );
+		$updated = $wpdb->update( $this->table_name, $row, [ 'id' => $id ], self::FORMATS, [ '%d' ] );
 		return false !== $updated;
 	}
 
@@ -73,11 +75,13 @@ class SB_Services {
 		if ( '' === $name || $duration < 1 ) {
 			return null;
 		}
+		$category = absint( $data['category_id'] ?? 0 );
 		return [
 			'name'        => $name,
 			'description' => sanitize_textarea_field( $data['description'] ?? '' ),
 			'duration'    => $duration,
 			'price'       => max( 0, round( floatval( $data['price'] ?? 0 ), 2 ) ),
+			'category_id' => $category && ( new SB_Categories() )->exists( $category ) ? $category : null,
 			'status'      => in_array( $status, [ 'active', 'inactive' ], true ) ? $status : 'active',
 		];
 	}

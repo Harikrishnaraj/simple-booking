@@ -15,14 +15,54 @@ class SB_Public_Controller {
 	}
 
 	public function enqueue_styles_and_scripts(): void {
-		wp_register_style( 'sb-booking-form', SB_PLUGIN_URL . 'public/assets/css/booking-form.css', [], SB_VERSION );
-		wp_register_script( 'sb-booking-form', SB_PLUGIN_URL . 'public/assets/js/booking-form.js', [], SB_VERSION, true );
+		$this->register_assets();
 
 		// Load the stylesheet in <head> on pages that use the shortcode, so the form doesn't flash unstyled.
 		$post = get_post();
 		if ( is_singular() && $post && has_shortcode( $post->post_content, 'simple_booking' ) ) {
 			wp_enqueue_style( 'sb-booking-form' );
 		}
+	}
+
+	/**
+	 * Safe to call more than once. Block themes render the shortcode before wp_enqueue_scripts,
+	 * and wp_localize_script() silently drops its data for a handle that isn't registered yet.
+	 */
+	private function register_assets(): void {
+		if ( ! wp_script_is( 'sb-booking-form', 'registered' ) ) {
+			wp_register_style( 'sb-booking-form', SB_PLUGIN_URL . 'public/assets/css/booking-form.css', [], SB_VERSION );
+			wp_register_script( 'sb-booking-form', SB_PLUGIN_URL . 'public/assets/js/booking-form.js', [], SB_VERSION, true );
+		}
+	}
+
+	/**
+	 * Services grouped under their category name, categories A–Z, uncategorized last.
+	 * A single '' group means no categories are in use, so the form shows a flat list.
+	 *
+	 * @return array<string, array[]>
+	 */
+	private function group_by_category( array $services ): array {
+		$names  = array_column( ( new SB_Categories() )->get_all(), 'name', 'id' );
+		$groups = [];
+		foreach ( $names as $name ) {
+			$groups[ $name ] = [];
+		}
+		$other = [];
+		foreach ( $services as $s ) {
+			if ( isset( $names[ $s['category_id'] ?? 0 ] ) ) {
+				$groups[ $names[ $s['category_id'] ] ][] = $s;
+			} else {
+				$other[] = $s;
+			}
+		}
+		$groups = array_filter( $groups );
+		if ( ! $groups ) {
+			return [ '' => $other ];
+		}
+		if ( $other ) {
+			$groups[ __( 'Other', 'simple-booking' ) ] = $other;
+		}
+		return $groups;
 	}
 
 	public function render_shortcode(): string {
@@ -33,10 +73,14 @@ class SB_Public_Controller {
 
 		$staff_mgr = new SB_Staff();
 		$staff     = array_map(
-			fn( $member ) => $member + [ 'service_ids' => $staff_mgr->service_ids( $member ) ],
+			fn( $member ) => $member + [
+				'service_ids' => $staff_mgr->service_ids( $member ),
+				'photo_url'   => $staff_mgr->photo_url( $member ),
+			],
 			$staff_mgr->get_all()
 		);
 
+		$this->register_assets();
 		wp_enqueue_style( 'sb-booking-form' );
 		wp_enqueue_script( 'sb-booking-form' );
 		wp_localize_script( 'sb-booking-form', 'sbBooking', [
@@ -52,7 +96,7 @@ class SB_Public_Controller {
 		] );
 
 		ob_start();
-		sb_view( 'public/views/booking-form', [ 'services' => $services, 'staff' => $staff ] );
+		sb_view( 'public/views/booking-form', [ 'groups' => $this->group_by_category( $services ), 'staff' => $staff ] );
 		return (string) ob_get_clean();
 	}
 

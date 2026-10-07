@@ -3,8 +3,8 @@
  * Booking form for the [simple_booking] shortcode.
  * Layout follows the "week strip + time slots" pattern (21st.dev Booking Slot Calendar).
  *
- * @var array $services Active services.
- * @var array $staff    Active staff, each with 'service_ids'.
+ * @var array $groups Active services grouped by category name ('' = no categories in use).
+ * @var array $staff  Active staff, each with 'service_ids' and 'photo_url'.
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -29,18 +29,26 @@ $uid = wp_unique_id( 'sb-' );
 			<div class="sb-form-group">
 				<label for="<?php echo esc_attr( $uid ); ?>-service"><?php esc_html_e( 'Service', 'simple-booking' ); ?></label>
 				<select id="<?php echo esc_attr( $uid ); ?>-service" class="sb-form-control" name="service_id" required>
-					<?php foreach ( $services as $s ) : ?>
-						<option value="<?php echo (int) $s['id']; ?>">
-							<?php
-							echo esc_html( sprintf(
-								/* translators: 1: service name, 2: duration in minutes, 3: price */
-								__( '%1$s (%2$d min, %3$s)', 'simple-booking' ),
-								$s['name'],
-								(int) $s['duration'],
-								sb_price( $s['price'] )
-							) );
-							?>
-						</option>
+					<?php foreach ( $groups as $group => $services ) : ?>
+						<?php if ( '' !== $group ) : ?>
+							<optgroup label="<?php echo esc_attr( $group ); ?>">
+						<?php endif; ?>
+						<?php foreach ( $services as $s ) : ?>
+							<option value="<?php echo (int) $s['id']; ?>">
+								<?php
+								echo esc_html( sprintf(
+									/* translators: 1: service name, 2: duration in minutes, 3: price */
+									__( '%1$s (%2$d min, %3$s)', 'simple-booking' ),
+									$s['name'],
+									(int) $s['duration'],
+									sb_price( $s['price'] )
+								) );
+								?>
+							</option>
+						<?php endforeach; ?>
+						<?php if ( '' !== $group ) : ?>
+							</optgroup>
+						<?php endif; ?>
 					<?php endforeach; ?>
 				</select>
 			</div>
@@ -48,12 +56,15 @@ $uid = wp_unique_id( 'sb-' );
 			<?php if ( $staff ) : ?>
 				<div class="sb-form-group">
 					<label for="<?php echo esc_attr( $uid ); ?>-staff"><?php esc_html_e( 'Staff member', 'simple-booking' ); ?></label>
-					<select id="<?php echo esc_attr( $uid ); ?>-staff" class="sb-form-control" name="staff_id">
-						<option value=""><?php esc_html_e( 'Any available', 'simple-booking' ); ?></option>
-						<?php foreach ( $staff as $member ) : ?>
-							<option value="<?php echo (int) $member['id']; ?>" data-services="<?php echo esc_attr( implode( ',', $member['service_ids'] ) ); ?>"><?php echo esc_html( $member['name'] ); ?></option>
-						<?php endforeach; ?>
-					</select>
+					<div class="sb-staff-pick">
+						<img class="sb-staff-photo" src="" alt="" width="44" height="44" hidden>
+						<select id="<?php echo esc_attr( $uid ); ?>-staff" class="sb-form-control" name="staff_id">
+							<option value=""><?php esc_html_e( 'Any available', 'simple-booking' ); ?></option>
+							<?php foreach ( $staff as $member ) : ?>
+								<option value="<?php echo (int) $member['id']; ?>" data-services="<?php echo esc_attr( implode( ',', $member['service_ids'] ) ); ?>" data-photo="<?php echo esc_url( $member['photo_url'] ); ?>"><?php echo esc_html( $member['name'] ); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</div>
 				</div>
 			<?php endif; ?>
 

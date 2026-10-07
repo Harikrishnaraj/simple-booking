@@ -17,6 +17,7 @@ class SB_Database {
 		$table_staff     = $wpdb->prefix . 'sb_staff';
 		$table_bookings  = $wpdb->prefix . 'sb_bookings';
 		$table_customers = $wpdb->prefix . 'sb_customers';
+		$table_categories = $wpdb->prefix . 'sb_categories';
 
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 
@@ -27,7 +28,17 @@ class SB_Database {
 			description text NULL,
 			duration int(11) NOT NULL DEFAULT 30,
 			price decimal(10,2) NOT NULL DEFAULT 0.00,
+			category_id bigint(20) UNSIGNED NULL,
 			status varchar(20) NOT NULL DEFAULT 'active',
+			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+			PRIMARY KEY  (id),
+			KEY category_id (category_id)
+		) $charset_collate;";
+
+		// Service categories (services.category_id; NULL = uncategorized)
+		$sql_categories = "CREATE TABLE $table_categories (
+			id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			name varchar(191) NOT NULL,
 			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
 			PRIMARY KEY  (id)
 		) $charset_collate;";
@@ -39,6 +50,7 @@ class SB_Database {
 			email varchar(191) NOT NULL,
 			phone varchar(50) NULL,
 			services text NULL,
+			photo_id bigint(20) UNSIGNED NULL,
 			status varchar(20) NOT NULL DEFAULT 'active',
 			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
 			PRIMARY KEY  (id)
@@ -78,6 +90,7 @@ class SB_Database {
 		) $charset_collate;";
 
 		dbDelta( $sql_services );
+		dbDelta( $sql_categories );
 		dbDelta( $sql_staff );
 		dbDelta( $sql_customers );
 		dbDelta( $sql_bookings );

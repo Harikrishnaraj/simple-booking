@@ -30,6 +30,18 @@ $staff_mgr     = new SB_Staff();
 						<label for="sb-staff-email"><?php esc_html_e( 'Email', 'simple-booking' ); ?></label>
 						<input id="sb-staff-email" name="email" type="email" required maxlength="191" spellcheck="false" autocomplete="off" value="<?php echo esc_attr( $editing['email'] ?? '' ); ?>">
 					</div>
+					<?php $photo = $editing ? $staff_mgr->photo_url( $editing ) : ''; ?>
+					<div class="form-field sb-photo-field" data-sb-photo>
+						<span class="sb-label" id="sb-staff-photo-label"><?php esc_html_e( 'Photo', 'simple-booking' ); ?></span>
+						<input type="hidden" name="photo_id" value="<?php echo (int) ( $editing['photo_id'] ?? 0 ); ?>">
+						<div class="sb-photo-field__row">
+							<img class="sb-photo-preview" src="<?php echo esc_url( $photo ); ?>" alt="" width="64" height="64" <?php echo $photo ? '' : 'hidden'; ?>>
+							<span class="sb-photo-placeholder" aria-hidden="true" <?php echo $photo ? 'hidden' : ''; ?>><span class="dashicons dashicons-admin-users"></span></span>
+							<button type="button" class="sb-button sb-button--secondary sb-button--small" data-sb-photo-choose aria-describedby="sb-staff-photo-label"><?php esc_html_e( 'Choose photo', 'simple-booking' ); ?></button>
+							<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-photo-remove <?php echo $photo ? '' : 'hidden'; ?>><?php esc_html_e( 'Remove', 'simple-booking' ); ?></button>
+						</div>
+						<p class="description"><?php esc_html_e( 'Shown in the admin and next to their name on the booking form. A square image works best.', 'simple-booking' ); ?></p>
+					</div>
 					<div class="form-field">
 						<label for="sb-staff-phone"><?php esc_html_e( 'Phone', 'simple-booking' ); ?></label>
 						<input id="sb-staff-phone" name="phone" type="tel" maxlength="50" autocomplete="off" value="<?php echo esc_attr( $editing['phone'] ?? '' ); ?>">
@@ -80,7 +92,7 @@ $staff_mgr     = new SB_Staff();
 							<tr>
 								<td>
 									<span class="sb-person">
-										<span class="sb-avatar" aria-hidden="true"><?php echo esc_html( mb_strtoupper( mb_substr( $member['name'], 0, 1 ) ) ); ?></span>
+										<?php echo sb_avatar( $member['name'], $staff_mgr->photo_url( $member ) ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in sb_avatar() ?>
 										<strong><?php echo esc_html( $member['name'] ); ?></strong>
 									</span>
 								</td>
