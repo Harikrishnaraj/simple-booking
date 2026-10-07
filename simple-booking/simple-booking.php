@@ -3,7 +3,7 @@
  * Plugin Name:       Simple Booking
  * Plugin URI:        https://simplebookingplugin.com/
  * Description:       A lightweight, commercial-grade WordPress booking plugin for salons, clinics, consultants, and service providers.
- * Version:           1.0.1
+ * Version:           1.1.0
  * Author:            Simple Booking Team
  * Author URI:        https://simplebookingplugin.com/
  * License:           GPL-2.0+
@@ -22,7 +22,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Define Plugin Constants.
  */
-define( 'SB_VERSION', '1.0.1' );
+define( 'SB_VERSION', '1.1.0' );
 define( 'SB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SB_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -42,6 +42,7 @@ require_once SB_PLUGIN_DIR . 'includes/class-customers.php';
 require_once SB_PLUGIN_DIR . 'includes/class-bookings.php';
 require_once SB_PLUGIN_DIR . 'includes/class-settings.php';
 require_once SB_PLUGIN_DIR . 'includes/class-email.php';
+require_once SB_PLUGIN_DIR . 'includes/class-reports.php';
 require_once SB_PLUGIN_DIR . 'admin/controllers/class-admin-controller.php';
 require_once SB_PLUGIN_DIR . 'public/controllers/class-public-controller.php';
 
@@ -115,6 +116,7 @@ final class Simple_Booking {
 		$admin = new SB_Admin_Controller();
 		$this->loader->add_action( 'admin_menu', $admin, 'register_admin_menu' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_styles_and_scripts' );
+		$this->loader->add_action( 'admin_body_class', $admin, 'admin_body_class' ); // add_action registers filters too
 		
 		// Admin AJAX Actions
 		$this->loader->add_action( 'wp_ajax_sb_save_service', $admin, 'ajax_save_service' );
@@ -123,6 +125,8 @@ final class Simple_Booking {
 		$this->loader->add_action( 'wp_ajax_sb_delete_staff', $admin, 'ajax_delete_staff' );
 		$this->loader->add_action( 'wp_ajax_sb_update_booking_status', $admin, 'ajax_update_booking_status' );
 		$this->loader->add_action( 'wp_ajax_sb_save_settings', $admin, 'ajax_save_settings' );
+		$this->loader->add_action( 'wp_ajax_sb_save_customer', $admin, 'ajax_save_customer' );
+		$this->loader->add_action( 'wp_ajax_sb_save_theme', $admin, 'ajax_save_theme' );
 	}
 
 	/**

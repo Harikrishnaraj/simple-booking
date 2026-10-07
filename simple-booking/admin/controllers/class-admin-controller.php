@@ -7,18 +7,25 @@ class SB_Admin_Controller {
 
 	private const PER_PAGE = 50;
 
+	private const THEME_META = 'sb_admin_theme';
+
 	public function register_admin_menu(): void {
-		add_menu_page( __( 'Simple Booking', 'simple-booking' ), __( 'Bookings', 'simple-booking' ), 'manage_options', 'sb-bookings', [ $this, 'render_bookings' ], 'dashicons-calendar-alt', 26 );
-		add_submenu_page( 'sb-bookings', __( 'Bookings', 'simple-booking' ), __( 'All Bookings', 'simple-booking' ), 'manage_options', 'sb-bookings', [ $this, 'render_bookings' ] );
-		add_submenu_page( 'sb-bookings', __( 'Services', 'simple-booking' ), __( 'Services', 'simple-booking' ), 'manage_options', 'sb-services', [ $this, 'render_services' ] );
-		add_submenu_page( 'sb-bookings', __( 'Staff', 'simple-booking' ), __( 'Staff', 'simple-booking' ), 'manage_options', 'sb-staff', [ $this, 'render_staff' ] );
-		add_submenu_page( 'sb-bookings', __( 'Settings', 'simple-booking' ), __( 'Settings', 'simple-booking' ), 'manage_options', 'sb-settings', [ $this, 'render_settings' ] );
+		$cap = 'manage_options';
+		add_menu_page( __( 'Simple Booking', 'simple-booking' ), __( 'Simple Booking', 'simple-booking' ), $cap, 'sb-dashboard', [ $this, 'render_dashboard' ], 'dashicons-calendar-alt', 26 );
+		add_submenu_page( 'sb-dashboard', __( 'Dashboard', 'simple-booking' ), __( 'Dashboard', 'simple-booking' ), $cap, 'sb-dashboard', [ $this, 'render_dashboard' ] );
+		add_submenu_page( 'sb-dashboard', __( 'Calendar', 'simple-booking' ), __( 'Calendar', 'simple-booking' ), $cap, 'sb-calendar', [ $this, 'render_calendar' ] );
+		add_submenu_page( 'sb-dashboard', __( 'Bookings', 'simple-booking' ), __( 'Bookings', 'simple-booking' ), $cap, 'sb-bookings', [ $this, 'render_bookings' ] );
+		add_submenu_page( 'sb-dashboard', __( 'Customers', 'simple-booking' ), __( 'Customers', 'simple-booking' ), $cap, 'sb-customers', [ $this, 'render_customers' ] );
+		add_submenu_page( 'sb-dashboard', __( 'Services', 'simple-booking' ), __( 'Services', 'simple-booking' ), $cap, 'sb-services', [ $this, 'render_services' ] );
+		add_submenu_page( 'sb-dashboard', __( 'Staff', 'simple-booking' ), __( 'Staff', 'simple-booking' ), $cap, 'sb-staff', [ $this, 'render_staff' ] );
+		add_submenu_page( 'sb-dashboard', __( 'Settings', 'simple-booking' ), __( 'Settings', 'simple-booking' ), $cap, 'sb-settings', [ $this, 'render_settings' ] );
 	}
 
 	public function enqueue_styles_and_scripts( string $hook ): void {
-		if ( ! str_contains( $hook, 'sb-' ) ) {
+		if ( ! $this->is_plugin_screen() ) {
 			return;
 		}
+		wp_enqueue_style( 'sb-admin', SB_PLUGIN_URL . 'admin/assets/css/admin.css', [], SB_VERSION );
 		wp_enqueue_script( 'sb-admin', SB_PLUGIN_URL . 'admin/assets/js/admin.js', [], SB_VERSION, true );
 		wp_localize_script( 'sb-admin', 'sbAdmin', [
 			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
@@ -30,16 +37,112 @@ class SB_Admin_Controller {
 		] );
 	}
 
+	/**
+	 * Dark or light theme on plugin pages, remembered per user. Dark by default.
+	 */
+	public function admin_body_class( string $classes ): string {
+		if ( ! $this->is_plugin_screen() ) {
+			return $classes;
+		}
+		return $classes . ' sb-admin-screen sb-theme-' . $this->theme();
+	}
+
+	private function theme(): string {
+		return 'light' === get_user_meta( get_current_user_id(), self::THEME_META, true ) ? 'light' : 'dark';
+	}
+
+	private function is_plugin_screen(): bool {
+		$page = sanitize_key( $_GET['page'] ?? '' ); // phpcs:ignore WordPress.Security.NonceVerification
+		return str_starts_with( $page, 'sb-' );
+	}
+
 	/* ---------- Pages ---------- */
 
-	public function render_bookings(): void {
-		$bookings = new SB_Bookings();
-		$page     = max( 1, absint( $_GET['paged'] ?? 1 ) ); // phpcs:ignore WordPress.Security.NonceVerification
-		sb_view( 'admin/views/bookings', [
-			'bookings' => $bookings->get_list( $page, self::PER_PAGE ),
-			'page'     => $page,
-			'pages'    => (int) ceil( $bookings->count() / self::PER_PAGE ),
+	public function render_dashboard(): void {
+		$month_start = wp_date( 'Y-m-01' );
+		$from        = $this->date_param( 'from', $month_start );
+		$to          = $this->date_param( 'to', wp_date( 'Y-m-t' ) );
+		if ( $to < $from ) {
+			[ $from, $to ] = [ $to, $from ];
+		}
+		$reports = new SB_Reports();
+		sb_view( 'admin/views/dashboard', [
+			'from'     => $from,
+			'to'       => $to,
+			'now'      => $reports->summary( $from, $to ),
+			'before'   => $reports->summary( ...SB_Reports::previous_range( $from, $to ) ),
+			'daily'    => $reports->daily_counts( $from, $to ),
+			'upcoming' => $reports->upcoming(),
 			'statuses' => $this->status_labels(),
+			'theme'    => $this->theme(),
+		] );
+	}
+
+	public function render_calendar(): void {
+		$month = sanitize_text_field( wp_unslash( $_GET['month'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification
+		$first = DateTimeImmutable::createFromFormat( '!Y-m-d', $month . '-01', wp_timezone() );
+		if ( ! $first || $first->format( 'Y-m' ) !== $month ) {
+			$first = new DateTimeImmutable( wp_date( 'Y-m-01' ), wp_timezone() );
+		}
+
+		// Grid runs from the week containing the 1st to the week containing the last day.
+		$week_start = (int) get_option( 'start_of_week', 1 );
+		$grid_start = $first->modify( '-' . ( ( (int) $first->format( 'w' ) - $week_start + 7 ) % 7 ) . ' days' );
+		$last       = $first->modify( 'last day of this month' );
+		$grid_end   = $last->modify( '+' . ( ( $week_start + 6 - (int) $last->format( 'w' ) ) % 7 ) . ' days' );
+
+		$staff_id = absint( $_GET['staff'] ?? 0 ); // phpcs:ignore WordPress.Security.NonceVerification
+		sb_view( 'admin/views/calendar', [
+			'first'      => $first,
+			'grid_start' => $grid_start,
+			'grid_end'   => $grid_end,
+			'week_start' => $week_start,
+			'staff_id'   => $staff_id,
+			'staff'      => ( new SB_Staff() )->get_all( 'all' ),
+			'bookings'   => ( new SB_Reports() )->bookings_by_day( $grid_start->format( 'Y-m-d' ), $grid_end->format( 'Y-m-d' ), $staff_id ?: null ),
+			'work_days'  => (array) SB_Settings::get_settings()['work_days'],
+			'page_url'   => admin_url( 'admin.php?page=sb-calendar' ),
+			'theme'      => $this->theme(),
+		] );
+	}
+
+	public function render_bookings(): void {
+		// phpcs:disable WordPress.Security.NonceVerification -- read-only filters
+		$status  = sanitize_key( $_GET['status'] ?? '' );
+		$filters = [
+			'search'    => sanitize_text_field( wp_unslash( $_GET['s'] ?? '' ) ),
+			'status'    => isset( $this->status_labels()[ $status ] ) ? $status : '',
+			'staff_id'  => absint( $_GET['staff'] ?? 0 ),
+			'date_from' => $this->date_param( 'from', '' ),
+			'date_to'   => $this->date_param( 'to', '' ),
+		];
+		$page = max( 1, absint( $_GET['paged'] ?? 1 ) );
+		// phpcs:enable
+
+		$bookings = new SB_Bookings();
+		$total    = $bookings->count( $filters );
+		sb_view( 'admin/views/bookings', [
+			'bookings' => $bookings->get_list( $page, self::PER_PAGE, $filters ),
+			'filters'  => $filters,
+			'total'    => $total,
+			'page'     => $page,
+			'pages'    => (int) ceil( $total / self::PER_PAGE ),
+			'statuses' => $this->status_labels(),
+			'staff'    => ( new SB_Staff() )->get_all( 'all' ),
+			'theme'    => $this->theme(),
+		] );
+	}
+
+	public function render_customers(): void {
+		$search    = sanitize_text_field( wp_unslash( $_GET['s'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification
+		$page      = max( 1, absint( $_GET['paged'] ?? 1 ) ); // phpcs:ignore WordPress.Security.NonceVerification
+		$customers = new SB_Customers();
+		sb_view( 'admin/views/customers', [
+			'customers' => $customers->get_list( $search, $page, self::PER_PAGE ),
+			'search'    => $search,
+			'page'      => $page,
+			'pages'     => (int) ceil( $customers->count( $search ) / self::PER_PAGE ),
+			'theme'     => $this->theme(),
 		] );
 	}
 
@@ -50,6 +153,7 @@ class SB_Admin_Controller {
 			'services' => $services->get_all( 'all' ),
 			'editing'  => $edit_id ? $services->get_by_id( $edit_id ) : null,
 			'page_url' => admin_url( 'admin.php?page=sb-services' ),
+			'theme'    => $this->theme(),
 		] );
 	}
 
@@ -63,11 +167,12 @@ class SB_Admin_Controller {
 			'editing_ids'  => $editing ? $staff->service_ids( $editing ) : [],
 			'all_services' => ( new SB_Services() )->get_all( 'all' ),
 			'page_url'     => admin_url( 'admin.php?page=sb-staff' ),
+			'theme'        => $this->theme(),
 		] );
 	}
 
 	public function render_settings(): void {
-		sb_view( 'admin/views/settings', [ 'settings' => SB_Settings::get_settings() ] );
+		sb_view( 'admin/views/settings', [ 'settings' => SB_Settings::get_settings(), 'theme' => $this->theme() ] );
 	}
 
 	/* ---------- AJAX ---------- */
@@ -123,6 +228,27 @@ class SB_Admin_Controller {
 		// update_option() returns false when nothing changed, so don't treat that as an error.
 		SB_Settings::update_settings( (array) ( $post['settings'] ?? [] ) );
 		wp_send_json_success();
+	}
+
+	public function ajax_save_customer(): void {
+		$post   = $this->guard();
+		$result = ( new SB_Customers() )->save( absint( $post['id'] ?? 0 ), $post );
+		is_int( $result ) ? wp_send_json_success( [ 'id' => $result ] ) : wp_send_json_error( [ 'message' => $result ], 422 );
+	}
+
+	public function ajax_save_theme(): void {
+		$post = $this->guard();
+		update_user_meta( get_current_user_id(), self::THEME_META, 'light' === ( $post['theme'] ?? '' ) ? 'light' : 'dark' );
+		wp_send_json_success();
+	}
+
+	/**
+	 * A "Y-m-d" query arg, or $default when missing or not a real date.
+	 */
+	private function date_param( string $key, string $default ): string {
+		$value = sanitize_text_field( wp_unslash( $_GET[ $key ] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification
+		$date  = DateTimeImmutable::createFromFormat( '!Y-m-d', $value );
+		return $date && $date->format( 'Y-m-d' ) === $value ? $value : $default;
 	}
 
 	/**

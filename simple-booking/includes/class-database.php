@@ -50,6 +50,7 @@ class SB_Database {
 			name varchar(191) NOT NULL,
 			email varchar(191) NOT NULL,
 			phone varchar(50) NULL,
+			note text NULL,
 			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY email (email)

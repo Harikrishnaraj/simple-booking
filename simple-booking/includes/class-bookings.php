@@ -225,8 +225,10 @@ class SB_Bookings {
 
 	/**
 	 * Newest-first page of bookings with service, staff and customer names for the admin list.
+	 *
+	 * @param array $filters Optional: search, status, staff_id, date_from, date_to ("Y-m-d").
 	 */
-	public function get_list( int $page, int $per_page ): array {
+	public function get_list( int $page, int $per_page, array $filters = [] ): array {
 		global $wpdb;
 		return $wpdb->get_results(
 			$wpdb->prepare(
@@ -236,6 +238,7 @@ class SB_Bookings {
 				 LEFT JOIN {$wpdb->prefix}sb_services s ON s.id = b.service_id
 				 LEFT JOIN {$wpdb->prefix}sb_staff st ON st.id = b.staff_id
 				 LEFT JOIN {$wpdb->prefix}sb_customers c ON c.id = b.customer_id
+				 WHERE {$this->filter_sql( $filters )}
 				 ORDER BY b.booking_date DESC, b.booking_time DESC
 				 LIMIT %d OFFSET %d",
 				$per_page,
@@ -245,8 +248,34 @@ class SB_Bookings {
 		);
 	}
 
-	public function count(): int {
+	public function count( array $filters = [] ): int {
 		global $wpdb;
-		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$this->table_name}" );
+		return (int) $wpdb->get_var(
+			"SELECT COUNT(*) FROM {$this->table_name} b
+			 LEFT JOIN {$wpdb->prefix}sb_customers c ON c.id = b.customer_id
+			 WHERE {$this->filter_sql( $filters )}"
+		);
+	}
+
+	private function filter_sql( array $filters ): string {
+		global $wpdb;
+		$where = [ '1=1' ];
+		if ( ! empty( $filters['search'] ) ) {
+			$like    = '%' . $wpdb->esc_like( $filters['search'] ) . '%';
+			$where[] = $wpdb->prepare( '(b.booking_code LIKE %s OR c.name LIKE %s OR c.email LIKE %s)', $like, $like, $like );
+		}
+		if ( ! empty( $filters['status'] ) ) {
+			$where[] = $wpdb->prepare( 'b.status = %s', $filters['status'] );
+		}
+		if ( ! empty( $filters['staff_id'] ) ) {
+			$where[] = $wpdb->prepare( 'b.staff_id = %d', $filters['staff_id'] );
+		}
+		if ( ! empty( $filters['date_from'] ) ) {
+			$where[] = $wpdb->prepare( 'b.booking_date >= %s', $filters['date_from'] );
+		}
+		if ( ! empty( $filters['date_to'] ) ) {
+			$where[] = $wpdb->prepare( 'b.booking_date <= %s', $filters['date_to'] );
+		}
+		return implode( ' AND ', $where );
 	}
 }

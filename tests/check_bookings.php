@@ -58,6 +58,7 @@ require $base . 'class-bookings.php';
 require $base . 'class-staff.php';
 require $base . 'class-validator.php';
 require $base . 'class-customers.php';
+require $base . 'class-reports.php';
 
 $wpdb     = new FakeWpdb();
 $services = [ 1 => [ 'id' => 1, 'duration' => 60, 'status' => 'active' ], 2 => [ 'id' => 2, 'duration' => 30, 'status' => 'inactive' ] ];
@@ -102,5 +103,10 @@ $wpdb->lock = 1;
 SB_Settings::update_settings( [ 'slot_duration' => '0', 'business_hours_end' => 'evil', 'junk' => 1, 'delete_data_on_uninstall' => 'false' ] );
 $s = SB_Settings::get_settings();
 assert( 5 === $s['slot_duration'] && '12:00' === $s['business_hours_end'] && ! isset( $s['junk'] ) && false === $s['delete_data_on_uninstall'] );
+
+// Dashboard comparison period: same length, ending the day before
+assert( SB_Reports::previous_range( '2026-10-01', '2026-10-31' ) === [ '2026-08-31', '2026-09-30' ] );
+assert( SB_Reports::previous_range( '2026-03-01', '2026-03-01' ) === [ '2026-02-28', '2026-02-28' ] );
+assert( SB_Reports::change( 77, 105 ) === -27 && SB_Reports::change( 5, 0 ) === null && SB_Reports::change( 0, 4 ) === -100 );
 
 echo "all checks passed\n";
