@@ -58,6 +58,9 @@ $filtered  = (bool) array_filter( $filters );
 			<?php if ( $filtered ) : ?>
 				<a class="sb-link" href="<?php echo esc_url( $page_url ); ?>"><?php esc_html_e( 'Clear', 'simple-booking' ); ?></a>
 			<?php endif; ?>
+			<button type="button" class="sb-button sb-toolbar__end" data-sb-open="sb-booking-dialog">
+				<span class="dashicons dashicons-plus-alt2" aria-hidden="true"></span><?php esc_html_e( 'Booking', 'simple-booking' ); ?>
+			</button>
 		</form>
 
 		<p class="sb-muted sb-count">
@@ -80,6 +83,7 @@ $filtered  = (bool) array_filter( $filters );
 							<th scope="col"><?php esc_html_e( 'Customer', 'simple-booking' ); ?></th>
 							<th scope="col"><?php esc_html_e( 'Notes', 'simple-booking' ); ?></th>
 							<th scope="col"><?php esc_html_e( 'Status', 'simple-booking' ); ?></th>
+							<th scope="col"><span class="screen-reader-text"><?php esc_html_e( 'Actions', 'simple-booking' ); ?></span></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -106,6 +110,22 @@ $filtered  = (bool) array_filter( $filters );
 											<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $b['status'], $value ); ?>><?php echo esc_html( $label ); ?></option>
 										<?php endforeach; ?>
 									</select>
+								</td>
+								<td class="sb-actions">
+									<?php if ( in_array( $b['status'], [ 'pending', 'confirmed' ], true ) ) : ?>
+										<button type="button" class="sb-button sb-button--ghost sb-button--small" data-sb-open="sb-reschedule-dialog"
+											data-sb-fill="<?php echo esc_attr( wp_json_encode( [
+												'id'           => (int) $b['id'],
+												'service_id'   => (int) $b['service_id'],
+												'staff_id'     => (string) ( $b['staff_id'] ?? '' ),
+												'booking_date' => $b['booking_date'],
+												'current_time' => substr( $b['booking_time'], 0, 5 ),
+												'summary'      => implode( ' · ', array_filter( [ $b['booking_code'], $b['service_name'], $b['customer_name'] ] ) ),
+											] ) ); ?>"
+											aria-label="<?php echo esc_attr( sprintf( __( 'Reschedule booking %s', 'simple-booking' ), $b['booking_code'] ) ); ?>">
+											<?php esc_html_e( 'Reschedule', 'simple-booking' ); ?>
+										</button>
+									<?php endif; ?>
 								</td>
 							</tr>
 						<?php endforeach; ?>

@@ -4,7 +4,7 @@ Tags: booking, appointment, salon, clinic, scheduling, shortcode
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 8.0
-Stable tag: 1.3.0
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,6 +23,11 @@ Simple Booking allows business owners (salons, clinics, consultants, personal tr
 Simply insert the shortcode `[simple_booking]` into any page, post, or widget area.
 
 == Changelog ==
+= 1.4.0 =
+* Book appointments from the admin (Bookings → "+ Booking"): pick an existing customer or enter a new one, choose service, staff, date and a free time, set Confirmed or Pending, and choose whether to email the customer.
+* Reschedule pending or confirmed bookings to another free date, time or staff member. New "Rescheduled" customer email.
+* Fix: changing a cancelled or completed booking back to Pending or Confirmed now checks its time is still free, so it can no longer double-book.
+
 = 1.3.0 =
 * New Notifications page: seven emails (booking received, confirmed, cancelled, completed follow-up and reminder to the customer; new booking to the assigned staff member and to the admin), each with an on/off switch, editable subject and message, placeholders and a "send test" button.
 * Reminder emails: sent once, a set number of hours (default 24) before each pending or confirmed appointment, by an hourly WordPress cron job.

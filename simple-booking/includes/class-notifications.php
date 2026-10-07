@@ -23,6 +23,7 @@ class SB_Notifications {
 			'customer_received'  => [ 'audience' => 'customer', 'label' => __( 'Booking received', 'simple-booking' ), 'when' => __( 'Sent when a customer books.', 'simple-booking' ) ],
 			'customer_confirmed' => [ 'audience' => 'customer', 'label' => __( 'Confirmed', 'simple-booking' ), 'when' => __( 'Sent when you change a booking to Confirmed.', 'simple-booking' ) ],
 			'customer_cancelled' => [ 'audience' => 'customer', 'label' => __( 'Cancelled', 'simple-booking' ), 'when' => __( 'Sent when you change a booking to Cancelled.', 'simple-booking' ) ],
+			'customer_rescheduled' => [ 'audience' => 'customer', 'label' => __( 'Rescheduled', 'simple-booking' ), 'when' => __( 'Sent when you move a booking to another time, unless you untick "Email the customer".', 'simple-booking' ) ],
 			'customer_completed' => [ 'audience' => 'customer', 'label' => __( 'Completed (follow-up)', 'simple-booking' ), 'when' => __( 'Sent when you change a booking to Completed.', 'simple-booking' ) ],
 			'customer_reminder'  => [ 'audience' => 'customer', 'label' => __( 'Reminder', 'simple-booking' ), 'when' => __( 'Sent once before a pending or confirmed appointment.', 'simple-booking' ) ],
 			'staff_new'          => [ 'audience' => 'staff', 'label' => __( 'New booking (staff member)', 'simple-booking' ), 'when' => __( 'Sent to the staff member a new booking is assigned to.', 'simple-booking' ) ],
@@ -154,6 +155,11 @@ class SB_Notifications {
 				'enabled' => $customer,
 				'subject' => __( 'Your booking {booking_code} was cancelled', 'simple-booking' ),
 				'body'    => __( 'Hi {customer_name},', 'simple-booking' ) . "\n\n" . __( 'Your appointment has been cancelled. If this is unexpected, please contact {business_name}.', 'simple-booking' ) . "\n\n" . $details,
+			],
+			'customer_rescheduled' => [
+				'enabled' => $customer,
+				'subject' => __( 'Your booking {booking_code} has a new time', 'simple-booking' ),
+				'body'    => __( 'Hi {customer_name},', 'simple-booking' ) . "\n\n" . __( 'Your appointment has been moved. Here are the new details:', 'simple-booking' ) . "\n\n" . $details,
 			],
 			'customer_completed' => [
 				'enabled' => $customer,

@@ -129,6 +129,7 @@
 			const title = dialog.querySelector('[data-new]');
 			title.textContent = values ? title.dataset.edit : title.dataset.new;
 			dialog.showModal();
+			form.dispatchEvent(new Event('sb:filled'));
 			return;
 		}
 		if (e.target.closest('[data-sb-close]')) {
@@ -220,6 +221,75 @@
 			window.alert(err.message);
 		} finally {
 			test.disabled = false;
+		}
+	});
+
+	// Booking dialogs: staff filtered by service, and free times loaded for the chosen service/staff/date.
+	// A rescheduled booking (id > 0) doesn't block its own slot; its current time is preselected.
+	let slotRequest = 0;
+	async function refreshSlots(form) {
+		const { service_id: service, staff_id: staff, booking_date: date, booking_time: time } = form.elements;
+		Array.from(staff.options).forEach((o) => {
+			const ids = o.dataset.services ? o.dataset.services.split(',') : [];
+			o.hidden = o.disabled = !!o.value && ids.length > 0 && !ids.includes(service.value);
+		});
+		if (staff.selectedOptions[0] && staff.selectedOptions[0].disabled) {
+			staff.value = '';
+		}
+
+		const setOptions = (labels, values = []) => {
+			time.replaceChildren(...labels.map((label, i) => new Option(label, values[i] ?? '')));
+		};
+		if (!service.value || !date.value) {
+			setOptions([cfg.i18n.pickDate]);
+			return;
+		}
+		const mine = ++slotRequest;
+		setOptions([cfg.i18n.loadingTimes]);
+		const data = new FormData();
+		data.append('service_id', service.value);
+		data.append('staff_id', staff.value);
+		data.append('date', date.value);
+		data.append('exclude', form.elements.id.value);
+		try {
+			const res = await post('sb_admin_slots', data);
+			if (mine !== slotRequest) {
+				return;
+			}
+			if (!res.slots.length) {
+				setOptions([cfg.i18n.noTimes]);
+				return;
+			}
+			setOptions(res.slots, res.slots);
+			const current = form.elements.current_time ? form.elements.current_time.value : '';
+			if (current && res.slots.includes(current)) {
+				time.value = current;
+			}
+		} catch (err) {
+			if (mine === slotRequest) {
+				setOptions([err.message]);
+			}
+		}
+	}
+	document.addEventListener('change', (e) => {
+		const form = e.target.closest('form[data-sb-slots]');
+		if (form && ['service_id', 'staff_id', 'booking_date'].includes(e.target.name)) {
+			refreshSlots(form);
+		}
+	});
+	document.addEventListener('sb:filled', (e) => {
+		if (e.target.matches('form[data-sb-slots]')) {
+			refreshSlots(e.target);
+		}
+	}, true);
+
+	// Picking an existing customer's email fills in their name and phone.
+	document.addEventListener('change', (e) => {
+		const input = e.target.closest('[data-sb-customer-email]');
+		const match = input && input.list && Array.from(input.list.options).find((o) => o.value === input.value);
+		if (match) {
+			input.form.elements.name.value = match.dataset.name;
+			input.form.elements.phone.value = match.dataset.phone;
 		}
 	});
 })();
