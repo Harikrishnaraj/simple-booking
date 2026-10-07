@@ -27,6 +27,7 @@ class SB_Notifications {
 			'customer_completed' => [ 'audience' => 'customer', 'label' => __( 'Completed (follow-up)', 'simple-booking' ), 'when' => __( 'Sent when you change a booking to Completed.', 'simple-booking' ) ],
 			'customer_reminder'  => [ 'audience' => 'customer', 'label' => __( 'Reminder', 'simple-booking' ), 'when' => __( 'Sent once before a pending or confirmed appointment.', 'simple-booking' ) ],
 			'staff_new'          => [ 'audience' => 'staff', 'label' => __( 'New booking (staff member)', 'simple-booking' ), 'when' => __( 'Sent to the staff member a new booking is assigned to.', 'simple-booking' ) ],
+			'admin_customer_change' => [ 'audience' => 'staff', 'label' => __( 'Customer cancelled or moved', 'simple-booking' ), 'when' => __( 'Sent to the notification email in Settings when a customer cancels or reschedules from their link.', 'simple-booking' ) ],
 			'admin_new'          => [ 'audience' => 'staff', 'label' => __( 'New booking (admin)', 'simple-booking' ), 'when' => __( 'Sent to the notification email in Settings when a customer books.', 'simple-booking' ) ],
 		];
 	}
@@ -50,6 +51,8 @@ class SB_Notifications {
 			'{notes}'          => __( 'Customer notes', 'simple-booking' ),
 			'{custom_fields}'  => __( 'Answers to custom fields', 'simple-booking' ),
 			'{business_name}'  => __( 'Business name', 'simple-booking' ),
+			'{manage_link}'    => __( 'Link for the customer to view, cancel or reschedule', 'simple-booking' ),
+			'{change}'         => __( 'What the customer changed (admin email)', 'simple-booking' ),
 		];
 	}
 
@@ -134,6 +137,7 @@ class SB_Notifications {
 		$settings = SB_Settings::get_settings();
 		$customer = ! empty( $settings['customer_notification'] );
 
+		$manage  = "\n\n" . __( 'View, cancel or reschedule:', 'simple-booking' ) . ' {manage_link}';
 		$details = "{service_name}\n" .
 			__( 'Date:', 'simple-booking' ) . " {booking_date}\n" .
 			__( 'Time:', 'simple-booking' ) . " {booking_time}–{end_time}\n" .
@@ -145,12 +149,12 @@ class SB_Notifications {
 				'enabled' => $customer,
 				/* translators: {booking_code} stays as is: it is replaced by the booking code. */
 				'subject' => __( 'We received your booking {booking_code}', 'simple-booking' ),
-				'body'    => __( 'Hi {customer_name},', 'simple-booking' ) . "\n\n" . __( 'Thank you for booking with {business_name}. We will email you again once it is confirmed.', 'simple-booking' ) . "\n\n" . $details,
+				'body'    => __( 'Hi {customer_name},', 'simple-booking' ) . "\n\n" . __( 'Thank you for booking with {business_name}. We will email you again once it is confirmed.', 'simple-booking' ) . "\n\n" . $details . $manage,
 			],
 			'customer_confirmed' => [
 				'enabled' => $customer,
 				'subject' => __( 'Your booking is confirmed: {service_name} on {booking_date}', 'simple-booking' ),
-				'body'    => __( 'Hi {customer_name},', 'simple-booking' ) . "\n\n" . __( 'Your appointment is confirmed. See you then!', 'simple-booking' ) . "\n\n" . $details,
+				'body'    => __( 'Hi {customer_name},', 'simple-booking' ) . "\n\n" . __( 'Your appointment is confirmed. See you then!', 'simple-booking' ) . "\n\n" . $details . $manage,
 			],
 			'customer_cancelled' => [
 				'enabled' => $customer,
@@ -160,7 +164,7 @@ class SB_Notifications {
 			'customer_rescheduled' => [
 				'enabled' => $customer,
 				'subject' => __( 'Your booking {booking_code} has a new time', 'simple-booking' ),
-				'body'    => __( 'Hi {customer_name},', 'simple-booking' ) . "\n\n" . __( 'Your appointment has been moved. Here are the new details:', 'simple-booking' ) . "\n\n" . $details,
+				'body'    => __( 'Hi {customer_name},', 'simple-booking' ) . "\n\n" . __( 'Your appointment has been moved. Here are the new details:', 'simple-booking' ) . "\n\n" . $details . $manage,
 			],
 			'customer_completed' => [
 				'enabled' => $customer,
@@ -171,13 +175,19 @@ class SB_Notifications {
 				'enabled' => $customer,
 				'hours'   => self::REMINDER_HOURS_DEFAULT,
 				'subject' => __( 'Reminder: {service_name} on {booking_date} at {booking_time}', 'simple-booking' ),
-				'body'    => __( 'Hi {customer_name},', 'simple-booking' ) . "\n\n" . __( 'This is a reminder of your upcoming appointment with {business_name}.', 'simple-booking' ) . "\n\n" . $details,
+				'body'    => __( 'Hi {customer_name},', 'simple-booking' ) . "\n\n" . __( 'This is a reminder of your upcoming appointment with {business_name}.', 'simple-booking' ) . "\n\n" . $details . $manage,
 			],
 			'staff_new'          => [
 				'enabled' => false,
 				'subject' => __( 'New booking: {service_name} on {booking_date} at {booking_time}', 'simple-booking' ),
 				'body'    => __( 'Hi {staff_name},', 'simple-booking' ) . "\n\n" . __( 'You have a new booking.', 'simple-booking' ) . "\n\n" . $details . "\n\n" .
 					__( 'Customer:', 'simple-booking' ) . " {customer_name}\n{customer_email}\n{customer_phone}\n" . __( 'Notes:', 'simple-booking' ) . " {notes}\n{custom_fields}",
+			],
+			'admin_customer_change' => [
+				'enabled' => ! empty( $settings['admin_notification'] ),
+				'subject' => __( '{customer_name} changed booking {booking_code}', 'simple-booking' ),
+				'body'    => '{change}' . "\n\n" . $details . "\n" . __( 'Status:', 'simple-booking' ) . " {status}\n\n" .
+					__( 'Customer:', 'simple-booking' ) . " {customer_name}\n{customer_email}\n{customer_phone}",
 			],
 			'admin_new'          => [
 				'enabled' => ! empty( $settings['admin_notification'] ),

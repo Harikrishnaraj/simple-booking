@@ -329,3 +329,24 @@
     scroll-behavior: smooth;
   }
 }
+
+/* Manage-booking page (link in customer emails) */
+.sb-booking-wrapper .sb-details-list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 16px;
+  margin: 0 0 16px;
+}
+
+.sb-booking-wrapper .sb-details-list dt {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.sb-booking-wrapper .sb-details-list dd {
+  margin: 0;
+}
+
+.sb-booking-wrapper .sb-manage-reschedule {
+  margin-top: 20px;
+}

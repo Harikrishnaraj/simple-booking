@@ -3,7 +3,7 @@
  * Plugin Name:       Simple Booking
  * Plugin URI:        https://simplebookingplugin.com/
  * Description:       A lightweight, commercial-grade WordPress booking plugin for salons, clinics, consultants, and service providers.
- * Version:           1.6.0
+ * Version:           1.7.0
  * Author:            Simple Booking Team
  * Author URI:        https://simplebookingplugin.com/
  * License:           GPL-2.0+
@@ -22,7 +22,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Define Plugin Constants.
  */
-define( 'SB_VERSION', '1.6.0' );
+define( 'SB_VERSION', '1.7.0' );
 define( 'SB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SB_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -45,6 +45,7 @@ require_once SB_PLUGIN_DIR . 'includes/class-settings.php';
 require_once SB_PLUGIN_DIR . 'includes/class-custom-fields.php';
 require_once SB_PLUGIN_DIR . 'includes/class-notifications.php';
 require_once SB_PLUGIN_DIR . 'includes/class-email.php';
+require_once SB_PLUGIN_DIR . 'includes/class-manage.php';
 require_once SB_PLUGIN_DIR . 'includes/class-reports.php';
 require_once SB_PLUGIN_DIR . 'admin/controllers/class-admin-controller.php';
 require_once SB_PLUGIN_DIR . 'public/controllers/class-public-controller.php';
@@ -170,6 +171,10 @@ final class Simple_Booking {
 		$this->loader->add_action( 'wp_ajax_nopriv_sb_get_available_slots', $public, 'ajax_get_available_slots' );
 		
 		$this->loader->add_action( 'wp_ajax_sb_submit_booking', $public, 'ajax_submit_booking' );
+		foreach ( [ 'sb_manage_slots' => 'ajax_manage_slots', 'sb_manage_cancel' => 'ajax_manage_cancel', 'sb_manage_reschedule' => 'ajax_manage_reschedule' ] as $action => $method ) {
+			$this->loader->add_action( "wp_ajax_$action", $public, $method );
+			$this->loader->add_action( "wp_ajax_nopriv_$action", $public, $method );
+		}
 		$this->loader->add_action( 'wp_ajax_nopriv_sb_submit_booking', $public, 'ajax_submit_booking' );
 	}
 }

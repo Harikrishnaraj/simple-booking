@@ -71,6 +71,34 @@ global $wp_locale;
 				</td>
 			</tr>
 			<tr>
+				<th scope="row"><label for="sb-booking-page"><?php esc_html_e( 'Booking page', 'simple-booking' ); ?></label></th>
+				<td>
+					<?php
+					wp_dropdown_pages( [
+						'name'              => 'settings[booking_page_id]',
+						'id'                => 'sb-booking-page',
+						'selected'          => (int) $settings['booking_page_id'],
+						'show_option_none'  => __( 'Find automatically', 'simple-booking' ),
+						'option_none_value' => 0,
+					] );
+					?>
+					<p class="description"><?php esc_html_e( 'The page with the [simple_booking] form. Links in emails for customers to manage their booking open here.', 'simple-booking' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Customer changes', 'simple-booking' ); ?></th>
+				<td>
+					<input type="hidden" name="settings[customer_changes]" value="0">
+					<label><input type="checkbox" name="settings[customer_changes]" value="1" <?php checked( ! empty( $settings['customer_changes'] ) ); ?>> <?php esc_html_e( 'Let customers cancel or reschedule from the link in their emails', 'simple-booking' ); ?></label>
+					<p>
+						<label for="sb-cutoff"><?php esc_html_e( 'Up to', 'simple-booking' ); ?></label>
+						<input id="sb-cutoff" class="small-text" type="number" min="0" step="1" name="settings[change_cutoff_hours]" value="<?php echo (int) $settings['change_cutoff_hours']; ?>">
+						<?php esc_html_e( 'hours before the appointment', 'simple-booking' ); ?>
+					</p>
+					<p class="description"><?php esc_html_e( 'Customers can always open the link to see their booking. Add {manage_link} to your emails on the Notifications page.', 'simple-booking' ); ?></p>
+				</td>
+			</tr>
+			<tr>
 				<th scope="row"><label for="sb-ip-header"><?php esc_html_e( 'Visitor IP comes from', 'simple-booking' ); ?></label></th>
 				<td>
 					<select id="sb-ip-header" name="settings[ip_header]">

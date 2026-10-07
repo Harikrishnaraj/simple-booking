@@ -108,6 +108,12 @@ class SB_Public_Controller {
 
 	public function render_shortcode(): string {
 		$this->prevent_caching();
+
+		// Opened from the link in a customer's email.
+		if ( isset( $_GET['sb_booking'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification -- the signed token is the check
+			return $this->render_manage();
+		}
+
 		$services = ( new SB_Services() )->get_all();
 		if ( ! $services ) {
 			return '<p>' . esc_html__( 'Online booking is not available yet.', 'simple-booking' ) . '</p>';
@@ -144,6 +150,112 @@ class SB_Public_Controller {
 			'fields' => SB_Custom_Fields::all(),
 		] );
 		return (string) ob_get_clean();
+	}
+
+	private function render_manage(): string {
+		// phpcs:disable WordPress.Security.NonceVerification
+		$id      = absint( $_GET['sb_booking'] ?? 0 );
+		$token   = sanitize_key( wp_unslash( $_GET['sb_token'] ?? '' ) );
+		// phpcs:enable
+		$booking = SB_Manage::verify( $id, $token );
+
+		wp_enqueue_style( 'sb-booking-form' );
+		if ( $booking && SB_Manage::can_change( $booking ) ) {
+			wp_enqueue_script( 'sb-manage', SB_PLUGIN_URL . 'public/assets/js/manage.js', [], SB_VERSION, true );
+			wp_localize_script( 'sb-manage', 'sbManage', [
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				'id'      => $id,
+				'token'   => $token,
+				'days'    => $this->upcoming_days(),
+				'i18n'    => [
+					'error'         => __( 'Something went wrong. Please try again.', 'simple-booking' ),
+					'loading'       => __( 'Loading available times…', 'simple-booking' ),
+					'noSlots'       => __( 'No free times on this day. Please pick another.', 'simple-booking' ),
+					'confirmCancel' => __( 'Cancel this appointment?', 'simple-booking' ),
+				],
+			] );
+		}
+
+		ob_start();
+		sb_view( 'public/views/manage', [ 'booking' => $booking ? $this->booking_details( $booking ) : null ] );
+		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Booking row plus the names the manage view shows.
+	 */
+	private function booking_details( array $booking ): array {
+		$service = ( new SB_Services() )->get_by_id( (int) $booking['service_id'] );
+		$staff   = $booking['staff_id'] ? ( new SB_Staff() )->get_by_id( (int) $booking['staff_id'] ) : null;
+		return $booking + [
+			'service_name' => $service['name'] ?? '',
+			'staff_name'   => $staff['name'] ?? '',
+			'can_change'   => SB_Manage::can_change( $booking ),
+			'deadline'     => SB_Manage::deadline( $booking ),
+		];
+	}
+
+	/**
+	 * The booking a manage request is about, after checking its token and that it can still change.
+	 * Wrong tokens count towards the rate limit, so links can't be guessed by brute force.
+	 */
+	private function manage_guard(): array {
+		$post    = wp_unslash( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification -- the signed token is the check
+		$booking = SB_Manage::verify( absint( $post['id'] ?? 0 ), sanitize_key( $post['token'] ?? '' ) );
+		if ( ! $booking ) {
+			$this->is_rate_limited()
+				? wp_send_json_error( [ 'message' => __( 'Too many attempts. Please wait a few minutes and try again.', 'simple-booking' ) ], 429 )
+				: wp_send_json_error( [ 'message' => __( 'This link is not valid.', 'simple-booking' ) ], 403 );
+		}
+		if ( ! SB_Manage::can_change( $booking ) ) {
+			wp_send_json_error( [ 'message' => __( 'This booking can no longer be changed online. Please contact us.', 'simple-booking' ) ], 409 );
+		}
+		return $booking + [ 'post' => $post ];
+	}
+
+	public function ajax_manage_slots(): void {
+		$booking = $this->manage_guard();
+		$date    = sanitize_text_field( $booking['post']['date'] ?? '' );
+		$slots   = ( new SB_Bookings() )->get_available_slots(
+			(int) $booking['service_id'],
+			$booking['staff_id'] ? (int) $booking['staff_id'] : null,
+			$date,
+			(int) $booking['id']
+		);
+		wp_send_json_success( [ 'slots' => array_values( array_filter( $slots, fn( $t ) => SB_Manage::allowed_start( $date, $t ) ) ) ] );
+	}
+
+	public function ajax_manage_cancel(): void {
+		$booking = $this->manage_guard();
+		$result  = ( new SB_Bookings() )->update_status( (int) $booking['id'], 'cancelled' );
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( [ 'message' => $result->get_error_message() ], 409 );
+		}
+		( new SB_Email() )->customer_changed( (int) $booking['id'], __( 'The customer cancelled this booking.', 'simple-booking' ) );
+		wp_send_json_success( [ 'message' => __( 'Your appointment has been cancelled.', 'simple-booking' ) ] );
+	}
+
+	/**
+	 * Move to another free time with the same staff member (or anyone, if none was assigned).
+	 */
+	public function ajax_manage_reschedule(): void {
+		$booking = $this->manage_guard();
+		if ( ! SB_Manage::allowed_start( sanitize_text_field( $booking['post']['booking_date'] ?? '' ), sanitize_text_field( $booking['post']['booking_time'] ?? '' ) ) ) {
+			wp_send_json_error( [ 'code' => 'slot_unavailable', 'message' => __( 'That time is too soon to book online. Please choose a later time.', 'simple-booking' ) ], 409 );
+		}
+		$old     = mysql2date( get_option( 'date_format' ), $booking['booking_date'] ) . ' ' . substr( $booking['booking_time'], 0, 5 );
+		$moved   = ( new SB_Bookings() )->reschedule(
+			(int) $booking['id'],
+			sanitize_text_field( $booking['post']['booking_date'] ?? '' ),
+			sanitize_text_field( $booking['post']['booking_time'] ?? '' ),
+			$booking['staff_id'] ? (int) $booking['staff_id'] : null
+		);
+		if ( ! $moved ) {
+			wp_send_json_error( [ 'code' => 'slot_unavailable', 'message' => __( 'Sorry, that time was just taken. Please choose another time.', 'simple-booking' ) ], 409 );
+		}
+		/* translators: %s: the old date and time */
+		( new SB_Email() )->customer_changed( (int) $booking['id'], sprintf( __( 'The customer moved this booking from %s to:', 'simple-booking' ), $old ) );
+		wp_send_json_success( [ 'message' => __( 'Your appointment has been moved. We have emailed you the new details.', 'simple-booking' ) ] );
 	}
 
 	/**
