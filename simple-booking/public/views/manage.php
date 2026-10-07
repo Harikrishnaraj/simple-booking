@@ -35,7 +35,20 @@ $statuses = [
 			<?php endif; ?>
 			<?php if ( null !== $booking['total'] && (float) $booking['total'] > 0 ) : ?>
 				<dt><?php esc_html_e( 'Price', 'simple-booking' ); ?></dt>
-				<dd><?php echo esc_html( sb_price( $booking['total'] ) ); ?> <span class="sb-hint"><?php esc_html_e( '(pay at your appointment)', 'simple-booking' ); ?></span></dd>
+				<dd>
+					<?php echo esc_html( sb_price( $booking['total'] ) ); ?>
+					<span class="sb-hint">
+						<?php
+						echo $booking['deposit'] > 0
+							/* translators: %s: deposit amount */
+							? esc_html( sprintf( __( '(deposit of %s due in advance)', 'simple-booking' ), sb_price( $booking['deposit'] ) ) )
+							: esc_html__( '(pay at your appointment)', 'simple-booking' );
+						?>
+					</span>
+					<?php if ( $booking['invoice_url'] ) : ?>
+						<br><a href="<?php echo esc_url( $booking['invoice_url'] ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'View invoice', 'simple-booking' ); ?></a>
+					<?php endif; ?>
+				</dd>
 			<?php endif; ?>
 			<dt><?php esc_html_e( 'Booking code', 'simple-booking' ); ?></dt>
 			<dd><code translate="no"><?php echo esc_html( $booking['booking_code'] ); ?></code></dd>

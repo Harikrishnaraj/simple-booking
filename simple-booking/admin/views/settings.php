@@ -71,6 +71,21 @@ global $wp_locale;
 				</td>
 			</tr>
 			<tr>
+				<th scope="row"><label for="sb-business-address"><?php esc_html_e( 'Business address', 'simple-booking' ); ?></label></th>
+				<td><textarea id="sb-business-address" class="regular-text" rows="3" name="settings[business_address]"><?php echo esc_textarea( $settings['business_address'] ); ?></textarea>
+					<p class="description"><?php esc_html_e( 'Printed on invoices.', 'simple-booking' ); ?></p></td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="sb-tax-id"><?php esc_html_e( 'Tax number', 'simple-booking' ); ?></label></th>
+				<td><input id="sb-tax-id" class="regular-text" type="text" name="settings[tax_id]" maxlength="50" value="<?php echo esc_attr( $settings['tax_id'] ); ?>">
+					<p class="description"><?php esc_html_e( 'E.g. your GSTIN, printed on invoices.', 'simple-booking' ); ?></p></td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="sb-invoice-prefix"><?php esc_html_e( 'Invoice number prefix', 'simple-booking' ); ?></label></th>
+				<td><input id="sb-invoice-prefix" class="small-text" type="text" name="settings[invoice_prefix]" maxlength="10" value="<?php echo esc_attr( $settings['invoice_prefix'] ); ?>">
+					<p class="description"><?php esc_html_e( 'Invoices are numbered in order the first time each is opened, e.g. INV-0001.', 'simple-booking' ); ?></p></td>
+			</tr>
+			<tr>
 				<th scope="row"><label for="sb-booking-page"><?php esc_html_e( 'Booking page', 'simple-booking' ); ?></label></th>
 				<td>
 					<?php

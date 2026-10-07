@@ -20,6 +20,7 @@ class SB_Database {
 		$table_categories = $wpdb->prefix . 'sb_categories';
 		$table_locations  = $wpdb->prefix . 'sb_locations';
 		$table_coupons    = $wpdb->prefix . 'sb_coupons';
+		$table_payments   = $wpdb->prefix . 'sb_payments';
 
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 
@@ -30,6 +31,7 @@ class SB_Database {
 			description text NULL,
 			duration int(11) NOT NULL DEFAULT 30,
 			price decimal(10,2) NOT NULL DEFAULT 0.00,
+			deposit decimal(10,2) NOT NULL DEFAULT 0.00,
 			category_id bigint(20) UNSIGNED NULL,
 			status varchar(20) NOT NULL DEFAULT 'active',
 			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -63,6 +65,21 @@ class SB_Database {
 			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY code (code)
+		) $charset_collate;";
+
+		// Payments recorded by hand; negative amounts are refunds.
+		$sql_payments = "CREATE TABLE $table_payments (
+			id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			booking_id bigint(20) UNSIGNED NOT NULL,
+			amount decimal(10,2) NOT NULL,
+			method varchar(20) NOT NULL,
+			note varchar(191) NULL,
+			paid_at datetime NOT NULL,
+			created_by bigint(20) UNSIGNED NULL,
+			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+			PRIMARY KEY  (id),
+			KEY booking_id (booking_id),
+			KEY paid_at (paid_at)
 		) $charset_collate;";
 
 		// Service categories (services.category_id; NULL = uncategorized)
@@ -118,6 +135,8 @@ class SB_Database {
 			series_id varchar(20) NULL,
 			pricing text NULL,
 			total decimal(10,2) NULL,
+			invoice_number varchar(30) NULL,
+			invoice_date date NULL,
 			reminder_sent datetime NULL,
 			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
 			PRIMARY KEY  (id),
@@ -133,6 +152,7 @@ class SB_Database {
 		dbDelta( $sql_categories );
 		dbDelta( $sql_locations );
 		dbDelta( $sql_coupons );
+		dbDelta( $sql_payments );
 		dbDelta( $sql_staff );
 		dbDelta( $sql_customers );
 		dbDelta( $sql_bookings );

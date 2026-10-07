@@ -87,6 +87,14 @@ $date_fmt  = get_option( 'date_format' );
 			<p class="sb-stat__value"><?php echo esc_html( sb_price( $now['revenue'] ) ); ?></p>
 			<?php echo $change( 'revenue' ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped above ?>
 			<p class="sb-stat__meta"><?php esc_html_e( 'Confirmed and completed bookings', 'simple-booking' ); ?></p>
+			<p class="sb-stat__meta">
+				<a class="sb-link" href="<?php echo esc_url( admin_url( 'admin.php?page=sb-finance&from=' . $from . '&to=' . $to ) ); ?>">
+					<?php
+					/* translators: %s: amount */
+					echo esc_html( sprintf( __( '%s received in payments', 'simple-booking' ), sb_price( $now['received'] ) ) );
+					?>
+				</a>
+			</p>
 		</section>
 	</div>
 

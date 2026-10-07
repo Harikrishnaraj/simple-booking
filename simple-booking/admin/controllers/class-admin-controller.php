@@ -15,6 +15,7 @@ class SB_Admin_Controller {
 		add_submenu_page( 'sb-dashboard', __( 'Dashboard', 'simple-booking' ), __( 'Dashboard', 'simple-booking' ), $cap, 'sb-dashboard', [ $this, 'render_dashboard' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Calendar', 'simple-booking' ), __( 'Calendar', 'simple-booking' ), $cap, 'sb-calendar', [ $this, 'render_calendar' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Bookings', 'simple-booking' ), __( 'Bookings', 'simple-booking' ), $cap, 'sb-bookings', [ $this, 'render_bookings' ] );
+		add_submenu_page( 'sb-dashboard', __( 'Finance', 'simple-booking' ), __( 'Finance', 'simple-booking' ), $cap, 'sb-finance', [ $this, 'render_finance' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Customers', 'simple-booking' ), __( 'Customers', 'simple-booking' ), $cap, 'sb-customers', [ $this, 'render_customers' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Services', 'simple-booking' ), __( 'Services', 'simple-booking' ), $cap, 'sb-services', [ $this, 'render_services' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Locations', 'simple-booking' ), __( 'Locations', 'simple-booking' ), $cap, 'sb-locations', [ $this, 'render_locations' ] );
@@ -45,6 +46,8 @@ class SB_Admin_Controller {
 				'usePhoto'      => __( 'Use this photo', 'simple-booking' ),
 				'saved'         => __( 'Saved.', 'simple-booking' ),
 				'pickDate'      => __( 'Pick a date first', 'simple-booking' ),
+				'delete'        => __( 'Delete', 'simple-booking' ),
+				'confirmDeletePayment' => __( 'Delete this payment record?', 'simple-booking' ),
 				'loadingTimes'  => __( 'Loading free times…', 'simple-booking' ),
 				'noTimes'       => __( 'No free times on this day', 'simple-booking' ),
 				'testSent'      => __( 'Test email sent to %s.', 'simple-booking' ),
@@ -136,8 +139,20 @@ class SB_Admin_Controller {
 
 		$bookings = new SB_Bookings();
 		$total    = $bookings->count( $filters );
+		$list     = $bookings->get_list( $page, self::PER_PAGE, $filters );
+		$payments = [];
+		foreach ( $list as $b ) {
+			$payments[ $b['id'] ] = [];
+		}
+		if ( $payments ) {
+			global $wpdb;
+			foreach ( $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}sb_payments WHERE booking_id IN (" . implode( ',', array_map( 'intval', array_keys( $payments ) ) ) . ') ORDER BY paid_at, id', ARRAY_A ) as $p ) {
+				$payments[ $p['booking_id'] ][] = $p;
+			}
+		}
 		sb_view( 'admin/views/bookings', [
-			'bookings' => $bookings->get_list( $page, self::PER_PAGE, $filters ),
+			'bookings' => $list,
+			'payments' => $payments,
 			'filters'  => $filters,
 			'total'    => $total,
 			'page'     => $page,
@@ -237,6 +252,57 @@ class SB_Admin_Controller {
 		wp_send_json_success( [
 			'message' => $locations->get_by_id( $id ) ? __( 'This location has bookings, so it was deactivated instead of deleted.', 'simple-booking' ) : '',
 		] );
+	}
+
+	public function render_finance(): void {
+		$tab  = 'unpaid' === sanitize_key( $_GET['tab'] ?? '' ) ? 'unpaid' : 'payments'; // phpcs:ignore WordPress.Security.NonceVerification
+		$from = $this->date_param( 'from', wp_date( 'Y-m-01' ) );
+		$to   = $this->date_param( 'to', wp_date( 'Y-m-t' ) );
+		$pay  = new SB_Payments();
+		sb_view( 'admin/views/finance', [
+			'tab'         => $tab,
+			'from'        => $from,
+			'to'          => $to,
+			'payments'    => 'payments' === $tab ? $pay->between( $from, $to ) : [],
+			'outstanding' => 'unpaid' === $tab ? $pay->outstanding() : [],
+			'theme'       => $this->theme(),
+		] );
+	}
+
+	public function ajax_add_payment(): void {
+		$post  = $this->guard();
+		$error = ( new SB_Payments() )->add( absint( $post['id'] ?? 0 ), $post );
+		'' === $error ? wp_send_json_success() : wp_send_json_error( [ 'message' => $error ], 422 );
+	}
+
+	public function ajax_delete_payment(): void {
+		( new SB_Payments() )->delete( absint( $this->guard()['id'] ?? 0 ) );
+		wp_send_json_success();
+	}
+
+	/**
+	 * admin-post: download payments in a date range as CSV.
+	 */
+	public function export_payments(): void {
+		SB_Security::check_admin_permission();
+		check_admin_referer( 'sb_export_payments' );
+		$from    = $this->date_param( 'from', wp_date( 'Y-m-01' ) );
+		$to      = $this->date_param( 'to', wp_date( 'Y-m-t' ) );
+		$methods = SB_Payments::methods();
+
+		nocache_headers();
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="payments-' . $from . '-to-' . $to . '.csv"' );
+		$out = fopen( 'php://output', 'w' );
+		fwrite( $out, "\xEF\xBB\xBF" ); // BOM so Excel reads UTF-8 (₹)
+		fputcsv( $out, [ 'Date', 'Amount', 'Method', 'Booking', 'Appointment', 'Customer', 'Service', 'Note' ] );
+		foreach ( ( new SB_Payments() )->between( $from, $to ) as $p ) {
+			// A leading = + - @ would be run as a formula by spreadsheet apps.
+			$cell = static fn( $v ) => preg_match( '/^[=+\-@\t\r]/', (string) $v ) ? "'" . $v : (string) $v;
+			fputcsv( $out, [ $p['paid_at'], number_format( (float) $p['amount'], 2, '.', '' ), $methods[ $p['method'] ] ?? $p['method'], $p['booking_code'], $p['booking_date'], $cell( $p['customer_name'] ), $cell( $p['service_name'] ), $cell( $p['note'] ) ] );
+		}
+		fclose( $out );
+		exit;
 	}
 
 	public function render_pricing(): void {

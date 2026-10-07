@@ -4,7 +4,7 @@ Tags: booking, appointment, salon, clinic, scheduling, shortcode
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 8.0
-Stable tag: 2.0.0
+Stable tag: 2.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,6 +23,14 @@ Simple Booking allows business owners (salons, clinics, consultants, personal tr
 Simply insert the shortcode `[simple_booking]` into any page, post, or widget area.
 
 == Changelog ==
+= 2.1.0 =
+* Record payments (cash, UPI, card, bank transfer, other; negative for refunds) from the Bookings page. Each booking shows Unpaid / Part paid / Paid.
+* Deposits: set an advance amount per service; shown to customers and available as {deposit}.
+* Printable invoices with sequential numbers (prefix in Settings), your business address and tax number. Admins open them from the Payments dialog; customers from their booking link.
+* Finance page: payments in a date range with totals by method and CSV export, plus an Unpaid list of bookings with money still due.
+* Dashboard shows payments received in the period. New email placeholders {amount_paid} and {balance}.
+* New table `sb_payments`, new columns `services.deposit`, `bookings.invoice_number`, `bookings.invoice_date` (added automatically on update).
+
 = 2.0.0 =
 * New Pricing page with three tabs:
   * Extras: paid add-ons per service that customers tick on the booking form.

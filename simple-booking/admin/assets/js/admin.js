@@ -140,6 +140,7 @@
 			}
 			const title = dialog.querySelector('[data-new]');
 			title.textContent = values ? title.dataset.edit : title.dataset.new;
+			dialog.sbFill = values;
 			dialog.showModal();
 			form.dispatchEvent(new Event('sb:filled'));
 			return;
@@ -391,4 +392,31 @@
 		}
 	});
 	document.addEventListener('sb:filled', (e) => syncRepeat(e.target), true);
+
+	// Payments dialog: list what's been paid (with delete) and link the invoice.
+	document.addEventListener('sb:filled', (e) => {
+		const form = e.target;
+		if (!form.matches('[data-sb-payment-form]')) {
+			return;
+		}
+		const values = form.closest('dialog').sbFill || {};
+		const list = form.querySelector('[data-sb-payment-history]');
+		list.replaceChildren(...(values.history || []).map((p) => {
+			const li = document.createElement('li');
+			const text = document.createElement('span');
+			text.textContent = p.text;
+			const del = document.createElement('button');
+			del.type = 'button';
+			del.className = 'sb-button sb-button--danger sb-button--small';
+			del.dataset.sbDelete = 'sb_delete_payment';
+			del.dataset.id = p.id;
+			del.dataset.sbConfirm = cfg.i18n.confirmDeletePayment;
+			del.textContent = cfg.i18n.delete;
+			li.append(text, del);
+			return li;
+		}));
+		list.hidden = !list.children.length;
+		form.querySelector('[data-sb-invoice-link]').href = values.invoice || '#';
+		form.elements.paid_at.value = form.elements.paid_at.defaultValue;
+	}, true);
 })();

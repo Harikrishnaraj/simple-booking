@@ -177,4 +177,38 @@ $when_fields = static function ( string $prefix ): void {
 		</div>
 	</form>
 </dialog>
+
+<dialog id="sb-payment-dialog" class="sb-dialog" aria-labelledby="sb-payment-dialog-title">
+	<form data-sb-action="sb_add_payment" data-sb-redirect="" data-sb-payment-form>
+		<div class="sb-dialog__head">
+			<h2 id="sb-payment-dialog-title" data-new="<?php esc_attr_e( 'Payments', 'simple-booking' ); ?>" data-edit="<?php esc_attr_e( 'Payments', 'simple-booking' ); ?>"><?php esc_html_e( 'Payments', 'simple-booking' ); ?></h2>
+			<button type="button" class="sb-icon-button" data-sb-close aria-label="<?php esc_attr_e( 'Close', 'simple-booking' ); ?>"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button>
+		</div>
+		<input type="hidden" name="id" value="0">
+		<p class="sb-field"><input class="sb-input sb-input--wide" type="text" name="summary" readonly aria-label="<?php esc_attr_e( 'Booking', 'simple-booking' ); ?>"></p>
+		<ul class="sb-payment-history" data-sb-payment-history></ul>
+		<p><a class="sb-link" href="#" target="_blank" rel="noopener" data-sb-invoice-link><span class="dashicons dashicons-media-text" aria-hidden="true"></span><?php esc_html_e( 'Open invoice', 'simple-booking' ); ?></a></p>
+		<fieldset class="sb-fieldset">
+			<legend class="sb-label"><?php esc_html_e( 'Record a payment', 'simple-booking' ); ?></legend>
+			<div class="sb-field-row">
+				<p class="sb-field"><label for="sb-p-amount"><?php esc_html_e( 'Amount', 'simple-booking' ); ?></label><input id="sb-p-amount" class="sb-input sb-input--wide" type="number" name="amount" step="0.01" required></p>
+				<p class="sb-field"><label for="sb-p-method"><?php esc_html_e( 'Method', 'simple-booking' ); ?></label>
+					<select id="sb-p-method" class="sb-input sb-input--wide" name="method">
+						<?php foreach ( SB_Payments::methods() as $value => $label ) : ?>
+							<option value="<?php echo esc_attr( $value ); ?>"><?php echo esc_html( $label ); ?></option>
+						<?php endforeach; ?>
+					</select></p>
+			</div>
+			<div class="sb-field-row">
+				<p class="sb-field"><label for="sb-p-date"><?php esc_html_e( 'Date', 'simple-booking' ); ?></label><input id="sb-p-date" class="sb-input sb-input--wide" type="date" name="paid_at" value="<?php echo esc_attr( wp_date( 'Y-m-d' ) ); ?>"></p>
+				<p class="sb-field"><label for="sb-p-note"><?php esc_html_e( 'Note (optional)', 'simple-booking' ); ?></label><input id="sb-p-note" class="sb-input sb-input--wide" type="text" name="note" maxlength="191"></p>
+			</div>
+			<p class="sb-hint"><?php esc_html_e( 'Use a negative amount for a refund.', 'simple-booking' ); ?></p>
+		</fieldset>
+		<div class="sb-dialog__foot">
+			<button type="button" class="sb-button sb-button--secondary" data-sb-close><?php esc_html_e( 'Close', 'simple-booking' ); ?></button>
+			<button type="submit" class="sb-button"><?php esc_html_e( 'Record payment', 'simple-booking' ); ?></button>
+		</div>
+	</form>
+</dialog>
 </div>

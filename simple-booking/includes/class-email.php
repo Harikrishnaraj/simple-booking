@@ -141,6 +141,7 @@ class SB_Email {
 	}
 
 	private function placeholder_values( array $d ): array {
+		$paid = isset( $d['id'] ) ? array_sum( array_map( 'floatval', array_column( ( new SB_Payments() )->for_booking( (int) $d['id'] ), 'amount' ) ) ) : 0.0;
 		$statuses = [
 			'pending'   => __( 'Pending', 'simple-booking' ),
 			'confirmed' => __( 'Confirmed', 'simple-booking' ),
@@ -158,6 +159,9 @@ class SB_Email {
 			'{end_time}'       => substr( (string) $d['end_time'], 0, 5 ),
 			'{price}'          => sb_price( $d['total'] ?? $d['price'] ),
 			'{price_details}'  => $this->price_text( $d ),
+			'{deposit}'        => $this->money_or_empty( (float) ( json_decode( (string) ( $d['pricing'] ?? '' ), true )['deposit'] ?? 0 ) ),
+			'{amount_paid}'    => sb_price( $paid ),
+			'{balance}'        => sb_price( max( 0, (float) ( $d['total'] ?? $d['price'] ) - $paid ) ),
 			'{booking_code}'   => (string) $d['booking_code'],
 			'{status}'         => $statuses[ $d['status'] ] ?? (string) $d['status'],
 			'{notes}'          => (string) $d['notes'],
@@ -169,6 +173,10 @@ class SB_Email {
 			'{location_name}'  => (string) ( $d['location_name'] ?? '' ),
 			'{location_address}' => preg_replace( '/\s*\R\s*/', ', ', trim( (string) ( $d['location_address'] ?? '' ) ) ),
 		];
+	}
+
+	private function money_or_empty( float $amount ): string {
+		return $amount > 0 ? sb_price( $amount ) : '';
 	}
 
 	/**
