@@ -161,12 +161,29 @@ class SB_Email {
 			'{status}'         => $statuses[ $d['status'] ] ?? (string) $d['status'],
 			'{notes}'          => (string) $d['notes'],
 			'{custom_fields}'  => SB_Custom_Fields::as_text( $d['custom_fields'] ?? null ),
+			'{recurring_details}' => $this->series_text( (string) ( $d['series_id'] ?? '' ) ),
 			'{manage_link}'    => isset( $d['id'] ) ? SB_Manage::url( $d ) : home_url( '/' ),
 			'{change}'         => (string) ( $d['change'] ?? '' ),
 			'{business_name}'  => (string) SB_Settings::get_settings()['business_name'],
 			'{location_name}'  => (string) ( $d['location_name'] ?? '' ),
 			'{location_address}' => preg_replace( '/\s*\R\s*/', ', ', trim( (string) ( $d['location_address'] ?? '' ) ) ),
 		];
+	}
+
+	/**
+	 * "All sessions:" and one line per upcoming session, or '' for a single booking.
+	 */
+	private function series_text( string $series_id ): string {
+		$sessions = '' === $series_id ? [] : ( new SB_Bookings() )->series_sessions( $series_id );
+		if ( count( $sessions ) < 2 ) {
+			return '';
+		}
+		$lines = array_map(
+			fn( $s ) => '• ' . mysql2date( 'D, ' . get_option( 'date_format' ), $s['booking_date'] ) . ' ' . substr( $s['booking_time'], 0, 5 ),
+			$sessions
+		);
+		/* translators: %d: number of sessions */
+		return sprintf( __( 'All %d sessions:', 'simple-booking' ), count( $sessions ) ) . "\n" . implode( "\n", $lines );
 	}
 
 	private function sample_data(): array {

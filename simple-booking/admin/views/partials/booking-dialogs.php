@@ -89,6 +89,23 @@ $when_fields = static function ( string $prefix ): void {
 
 		<div class="sb-field-row">
 			<p class="sb-field">
+				<label for="sb-b-repeat"><?php esc_html_e( 'Repeat', 'simple-booking' ); ?></label>
+				<select id="sb-b-repeat" class="sb-input sb-input--wide" name="repeat_weeks">
+					<option value="0"><?php esc_html_e( 'Does not repeat', 'simple-booking' ); ?></option>
+					<option value="1"><?php esc_html_e( 'Every week', 'simple-booking' ); ?></option>
+					<option value="2"><?php esc_html_e( 'Every 2 weeks', 'simple-booking' ); ?></option>
+					<option value="4"><?php esc_html_e( 'Every 4 weeks', 'simple-booking' ); ?></option>
+				</select>
+			</p>
+			<p class="sb-field" data-sb-repeat-count hidden>
+				<label for="sb-b-repeat-count"><?php esc_html_e( 'Number of sessions', 'simple-booking' ); ?></label>
+				<input id="sb-b-repeat-count" class="sb-input sb-input--wide" type="number" name="repeat_count" min="2" max="52" value="6">
+			</p>
+		</div>
+		<p class="sb-hint" data-sb-repeat-count hidden><?php esc_html_e( 'Each session is at the same time. Dates that aren\'t free are skipped and listed after booking. The customer gets one email listing all sessions.', 'simple-booking' ); ?></p>
+
+		<div class="sb-field-row">
+			<p class="sb-field">
 				<label for="sb-b-status"><?php esc_html_e( 'Status', 'simple-booking' ); ?></label>
 				<select id="sb-b-status" class="sb-input sb-input--wide" name="status">
 					<option value="confirmed"><?php esc_html_e( 'Confirmed', 'simple-booking' ); ?></option>

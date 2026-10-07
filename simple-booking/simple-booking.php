@@ -3,7 +3,7 @@
  * Plugin Name:       Simple Booking
  * Plugin URI:        https://simplebookingplugin.com/
  * Description:       A lightweight, commercial-grade WordPress booking plugin for salons, clinics, consultants, and service providers.
- * Version:           1.8.0
+ * Version:           1.9.0
  * Author:            Simple Booking Team
  * Author URI:        https://simplebookingplugin.com/
  * License:           GPL-2.0+
@@ -22,7 +22,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Define Plugin Constants.
  */
-define( 'SB_VERSION', '1.8.0' );
+define( 'SB_VERSION', '1.9.0' );
 define( 'SB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SB_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -144,6 +144,7 @@ final class Simple_Booking {
 		$this->loader->add_action( 'wp_ajax_sb_admin_slots', $admin, 'ajax_admin_slots' );
 		$this->loader->add_action( 'wp_ajax_sb_admin_create_booking', $admin, 'ajax_admin_create_booking' );
 		$this->loader->add_action( 'wp_ajax_sb_admin_reschedule', $admin, 'ajax_admin_reschedule' );
+		$this->loader->add_action( 'wp_ajax_sb_cancel_series', $admin, 'ajax_cancel_series' );
 		$this->loader->add_action( 'wp_ajax_sb_test_template', $admin, 'ajax_test_template' );
 	}
 

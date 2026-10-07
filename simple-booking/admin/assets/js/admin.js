@@ -32,7 +32,10 @@
 		const button = form.querySelector('[type="submit"]');
 		button.disabled = true;
 		try {
-			await post(form.dataset.sbAction, new FormData(form));
+			const res = await post(form.dataset.sbAction, new FormData(form));
+			if (res.message) {
+				window.alert(res.message);
+			}
 			window.location.href = form.dataset.sbRedirect || window.location.href;
 		} catch (err) {
 			window.alert(err.message);
@@ -375,4 +378,17 @@
 			button.disabled = false;
 		}
 	});
+
+	// Booking dialog: the session count only matters when the booking repeats.
+	function syncRepeat(form) {
+		if (form.elements.repeat_weeks) {
+			form.querySelectorAll('[data-sb-repeat-count]').forEach((el) => { el.hidden = form.elements.repeat_weeks.value === '0'; });
+		}
+	}
+	document.addEventListener('change', (e) => {
+		if (e.target.name === 'repeat_weeks') {
+			syncRepeat(e.target.form);
+		}
+	});
+	document.addEventListener('sb:filled', (e) => syncRepeat(e.target), true);
 })();

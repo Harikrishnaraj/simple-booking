@@ -168,6 +168,19 @@ $loc = $b->create_booking( [ 'service_id' => 5, 'location_id' => 2, 'booking_tim
 assert( $loc && 9 === $wpdb->rows[ $loc - 1 ]['staff_id'] && 2 === $wpdb->rows[ $loc - 1 ]['location_id'] );
 unset( $wpdb->staff[7]['location_id'], $wpdb->staff[9]['location_id'], $wpdb->staff[9]['schedule'] );
 
+// Recurring: every 2 weeks x4; a blocked week is skipped and reported; blocked first session = nothing
+$wpdb->rows = [];
+$wk = fn( $n ) => ( new DateTimeImmutable( $monday ) )->modify( "+$n weeks" )->format( 'Y-m-d' );
+$b->create_booking( [ 'booking_date' => $wk( 4 ), 'booking_time' => '10:00' ] + $req ); // blocks the 3rd session
+$mails = [];
+$series = $b->create_series( [ 'booking_date' => $monday, 'booking_time' => '10:00' ] + $req, 2, 4 );
+assert( 3 === count( $series['ids'] ) && [ $wk( 4 ) ] === $series['missed'] );
+assert( [ $monday, $wk( 2 ), $wk( 6 ) ] === array_map( fn( $id ) => $wpdb->rows[ $id - 1 ]['booking_date'], $series['ids'] ) );
+$sid = $wpdb->rows[ $series['ids'][0] - 1 ]['series_id'];
+assert( $sid && $sid === $wpdb->rows[ $series['ids'][2] - 1 ]['series_id'] && null === $wpdb->rows[0]['series_id'] );
+assert( [ 'booking_created' ] === $mails, 'one set of emails for the series' );
+assert( [ 'ids' => [], 'missed' => [] ] === $b->create_series( [ 'booking_date' => $wk( 4 ), 'booking_time' => '10:00' ] + $req, 1, 3 ), 'first session taken' );
+
 // Dashboard comparison period: same length, ending the day before
 assert( SB_Reports::previous_range( '2026-10-01', '2026-10-31' ) === [ '2026-08-31', '2026-09-30' ] );
 assert( SB_Reports::previous_range( '2026-03-01', '2026-03-01' ) === [ '2026-02-28', '2026-02-28' ] );
