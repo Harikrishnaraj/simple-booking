@@ -7,6 +7,7 @@
  * @var int               $staff_id   0 = everyone
  * @var array             $staff
  * @var array             $bookings   "Y-m-d" => bookings
+ * @var array             $events     "Y-m-d" => active events
  * @var string[]          $work_days  English day names
  * @var string            $page_url
  * @var string            $theme
@@ -81,6 +82,12 @@ $month_key = $first->format( 'Y-m' );
 								<?php echo $key === $today ? 'aria-current="date"' : ''; ?>>
 								<?php echo esc_html( $day->format( 'j' ) ); ?>
 							</a>
+							<?php foreach ( $events[ $key ] ?? [] as $ev ) : ?>
+								<a class="sb-event sb-event--event" href="<?php echo esc_url( admin_url( 'admin.php?page=sb-events' ) ); ?>" title="<?php echo esc_attr( substr( $ev['start_time'], 0, 5 ) . '–' . substr( $ev['end_time'], 0, 5 ) . ' · ' . $ev['name'] ); ?>">
+									<span class="sb-event__time"><?php echo esc_html( substr( $ev['start_time'], 0, 5 ) ); ?></span>
+									<span class="sb-event__text"><?php echo esc_html( $ev['name'] ); ?></span>
+								</a>
+							<?php endforeach; ?>
 							<?php foreach ( array_slice( $items, 0, $visible ) as $b ) : ?>
 								<a class="sb-event sb-event--<?php echo esc_attr( $b['status'] ); ?>" href="<?php echo esc_url( $day_url ); ?>"
 									title="<?php echo esc_attr( implode( ' · ', array_filter( [ substr( $b['booking_time'], 0, 5 ) . '–' . substr( $b['end_time'], 0, 5 ), $b['service_name'], $b['customer_name'], $b['staff_name'] ] ) ) ); ?>">
@@ -104,6 +111,7 @@ $month_key = $first->format( 'Y-m' );
 			<li><span class="sb-event sb-event--confirmed" aria-hidden="true"></span><?php esc_html_e( 'Confirmed', 'simple-booking' ); ?></li>
 			<li><span class="sb-event sb-event--completed" aria-hidden="true"></span><?php esc_html_e( 'Completed', 'simple-booking' ); ?></li>
 			<li><span class="sb-event sb-event--cancelled" aria-hidden="true"></span><?php esc_html_e( 'Cancelled', 'simple-booking' ); ?></li>
+			<li><span class="sb-event sb-event--event" aria-hidden="true"></span><?php esc_html_e( 'Event', 'simple-booking' ); ?></li>
 			<li><span class="sb-legend__closed" aria-hidden="true"></span><?php esc_html_e( 'Closed', 'simple-booking' ); ?></li>
 		</ul>
 	</section>

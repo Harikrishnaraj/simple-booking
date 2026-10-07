@@ -25,9 +25,12 @@ class SB_Notifications {
 			'customer_cancelled' => [ 'audience' => 'customer', 'label' => __( 'Cancelled', 'simple-booking' ), 'when' => __( 'Sent when you change a booking to Cancelled.', 'simple-booking' ) ],
 			'customer_rescheduled' => [ 'audience' => 'customer', 'label' => __( 'Rescheduled', 'simple-booking' ), 'when' => __( 'Sent when you move a booking to another time, unless you untick "Email the customer".', 'simple-booking' ) ],
 			'customer_completed' => [ 'audience' => 'customer', 'label' => __( 'Completed (follow-up)', 'simple-booking' ), 'when' => __( 'Sent when you change a booking to Completed.', 'simple-booking' ) ],
+			'event_registered'   => [ 'audience' => 'customer', 'label' => __( 'Event registration', 'simple-booking' ), 'when' => __( 'Sent when someone registers for an event.', 'simple-booking' ) ],
+			'event_cancelled'    => [ 'audience' => 'customer', 'label' => __( 'Event cancelled', 'simple-booking' ), 'when' => __( 'Sent to everyone registered when you cancel an event, or to one person when you cancel their registration.', 'simple-booking' ) ],
 			'customer_reminder'  => [ 'audience' => 'customer', 'label' => __( 'Reminder', 'simple-booking' ), 'when' => __( 'Sent once before a pending or confirmed appointment.', 'simple-booking' ) ],
 			'staff_new'          => [ 'audience' => 'staff', 'label' => __( 'New booking (staff member)', 'simple-booking' ), 'when' => __( 'Sent to the staff member a new booking is assigned to.', 'simple-booking' ) ],
 			'admin_customer_change' => [ 'audience' => 'staff', 'label' => __( 'Customer cancelled or moved', 'simple-booking' ), 'when' => __( 'Sent to the notification email in Settings when a customer cancels or reschedules from their link.', 'simple-booking' ) ],
+			'admin_event_registered' => [ 'audience' => 'staff', 'label' => __( 'Event registration (admin)', 'simple-booking' ), 'when' => __( 'Sent to the notification email in Settings when someone registers for an event.', 'simple-booking' ) ],
 			'admin_new'          => [ 'audience' => 'staff', 'label' => __( 'New booking (admin)', 'simple-booking' ), 'when' => __( 'Sent to the notification email in Settings when a customer books.', 'simple-booking' ) ],
 		];
 	}
@@ -58,6 +61,8 @@ class SB_Notifications {
 			'{business_name}'  => __( 'Business name', 'simple-booking' ),
 			'{location_name}'  => __( 'Location', 'simple-booking' ),
 			'{location_address}' => __( 'Location address', 'simple-booking' ),
+			'{event_name}'     => __( 'Event name (event emails)', 'simple-booking' ),
+			'{spots}'          => __( 'Places registered (event emails)', 'simple-booking' ),
 			'{manage_link}'    => __( 'Link for the customer to view, cancel or reschedule', 'simple-booking' ),
 			'{change}'         => __( 'What the customer changed (admin email)', 'simple-booking' ),
 		];
@@ -190,6 +195,25 @@ class SB_Notifications {
 				'subject' => __( 'New booking: {service_name} on {booking_date} at {booking_time}', 'simple-booking' ),
 				'body'    => __( 'Hi {staff_name},', 'simple-booking' ) . "\n\n" . __( 'You have a new booking.', 'simple-booking' ) . "\n\n" . $details . "\n\n" .
 					__( 'Customer:', 'simple-booking' ) . " {customer_name}\n{customer_email}\n{customer_phone}\n" . __( 'Notes:', 'simple-booking' ) . " {notes}\n{custom_fields}",
+			],
+			'event_registered'   => [
+				'enabled' => $customer,
+				'subject' => __( 'You\'re registered: {event_name} on {booking_date}', 'simple-booking' ),
+				'body'    => __( 'Hi {customer_name},', 'simple-booking' ) . "\n\n" . __( 'Thank you for registering. See you there!', 'simple-booking' ) . "\n\n{event_name}\n" .
+					__( 'Date:', 'simple-booking' ) . " {booking_date}\n" . __( 'Time:', 'simple-booking' ) . " {booking_time}–{end_time}\n" .
+					__( 'Where:', 'simple-booking' ) . " {location_name} {location_address}\n" . __( 'Places:', 'simple-booking' ) . " {spots}\n" .
+					__( 'Price:', 'simple-booking' ) . " {price}\n" . __( 'Registration code:', 'simple-booking' ) . ' {booking_code}',
+			],
+			'event_cancelled'    => [
+				'enabled' => $customer,
+				'subject' => __( 'Cancelled: {event_name} on {booking_date}', 'simple-booking' ),
+				'body'    => __( 'Hi {customer_name},', 'simple-booking' ) . "\n\n" . __( 'Your registration for {event_name} on {booking_date} at {booking_time} has been cancelled. Please contact {business_name} if you have questions.', 'simple-booking' ),
+			],
+			'admin_event_registered' => [
+				'enabled' => ! empty( $settings['admin_notification'] ),
+				'subject' => __( 'New registration: {event_name} ({spots})', 'simple-booking' ),
+				'body'    => '{customer_name} ' . __( 'registered for', 'simple-booking' ) . " {event_name} ({booking_date} {booking_time}).\n\n" .
+					__( 'Places:', 'simple-booking' ) . " {spots}\n" . __( 'Price:', 'simple-booking' ) . " {price}\n{customer_email}\n{customer_phone}",
 			],
 			'admin_customer_change' => [
 				'enabled' => ! empty( $settings['admin_notification'] ),

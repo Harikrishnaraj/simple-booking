@@ -668,6 +668,23 @@ body.sb-admin-screen #wpfooter {
 	font-size: 20px;
 }
 
+.sb-meter--small {
+	width: 80px;
+	height: 4px;
+	margin-top: 4px;
+}
+
+.sb-table tr.is-past td {
+	opacity: 0.6;
+}
+
+.sb-event--event {
+	background: var(--sb-completed-bg);
+	color: var(--sb-completed-fg);
+	border-color: var(--sb-accent);
+	border-left-style: double;
+}
+
 .sb-series {
 	font-size: 12px;
 	white-space: nowrap;

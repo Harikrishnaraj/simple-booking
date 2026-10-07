@@ -4,7 +4,7 @@ Tags: booking, appointment, salon, clinic, scheduling, shortcode
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 8.0
-Stable tag: 2.1.0
+Stable tag: 2.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,6 +23,14 @@ Simple Booking allows business owners (salons, clinics, consultants, personal tr
 Simply insert the shortcode `[simple_booking]` into any page, post, or widget area.
 
 == Changelog ==
+= 2.2.0 =
+* Events: group sessions with a date, times, number of places, price per place, optional location and host (Simple Booking → Events).
+* New [simple_booking_events] shortcode lists upcoming events with places left and a registration form (1–20 places; never overbooked).
+* An event's host isn't bookable for appointments while it runs. Events show on the Calendar.
+* Attendee list per event; cancel one registration or the whole event (attendees are emailed).
+* New emails: Event registration, Event cancelled, and Event registration (admin).
+* New tables `sb_events` and `sb_event_registrations` (created automatically on update).
+
 = 2.1.0 =
 * Record payments (cash, UPI, card, bank transfer, other; negative for refunds) from the Bookings page. Each booking shows Unpaid / Part paid / Paid.
 * Deposits: set an advance amount per service; shown to customers and available as {deposit}.

@@ -12,6 +12,7 @@ class SB_Public_Controller {
 
 	public function register_shortcodes(): void {
 		add_shortcode( 'simple_booking', [ $this, 'render_shortcode' ] );
+		add_shortcode( 'simple_booking_events', [ $this, 'render_events' ] );
 	}
 
 	public function enqueue_styles_and_scripts(): void {
@@ -101,7 +102,7 @@ class SB_Public_Controller {
 	 */
 	public function maybe_prevent_caching(): void {
 		$post = get_post();
-		if ( is_singular() && $post && has_shortcode( $post->post_content, 'simple_booking' ) ) {
+		if ( is_singular() && $post && ( has_shortcode( $post->post_content, 'simple_booking' ) || has_shortcode( $post->post_content, 'simple_booking_events' ) ) ) {
 			$this->prevent_caching();
 		}
 	}
@@ -300,6 +301,69 @@ class SB_Public_Controller {
 			'settings' => SB_Settings::get_settings(),
 		] );
 		exit;
+	}
+
+	/**
+	 * [simple_booking_events]: upcoming events with places left and a registration form.
+	 */
+	public function render_events(): string {
+		$this->prevent_caching();
+		$this->register_assets();
+		wp_enqueue_style( 'sb-booking-form' );
+		wp_enqueue_script( 'sb-events', SB_PLUGIN_URL . 'public/assets/js/events.js', [], SB_VERSION, true );
+		wp_localize_script( 'sb-events', 'sbEvents', [
+			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+			'nonce'   => wp_create_nonce( 'sb_public_nonce' ),
+			'i18n'    => [
+				'error'   => __( 'Something went wrong. Please try again.', 'simple-booking' ),
+				'sending' => __( 'Sending…', 'simple-booking' ),
+			],
+		] );
+		ob_start();
+		sb_view( 'public/views/events', [ 'events' => ( new SB_Events() )->get_all( true ) ] );
+		return (string) ob_get_clean();
+	}
+
+	public function ajax_event_register(): void {
+		SB_Security::verify_nonce( 'sb_public_nonce' );
+		$post = wp_unslash( $_POST );
+		if ( ! empty( $post['website'] ) ) { // honeypot
+			wp_send_json_error( [ 'message' => __( 'Your registration could not be sent.', 'simple-booking' ) ], 400 );
+		}
+		if ( $this->is_rate_limited() ) {
+			wp_send_json_error( [ 'message' => __( 'Too many attempts. Please wait a few minutes and try again.', 'simple-booking' ) ], 429 );
+		}
+		$name  = sanitize_text_field( $post['name'] ?? '' );
+		$email = sanitize_email( $post['email'] ?? '' );
+		$phone = sanitize_text_field( $post['phone'] ?? '' );
+		$spots = min( 20, max( 1, absint( $post['spots'] ?? 1 ) ) );
+		if ( '' === $name || mb_strlen( $name ) > 191 || ! is_email( $email ) || mb_strlen( $phone ) > 50 ) {
+			wp_send_json_error( [ 'message' => __( 'Please enter your name and a valid email address.', 'simple-booking' ) ], 422 );
+		}
+
+		$events = new SB_Events();
+		$event  = $events->get_by_id( absint( $post['event_id'] ?? 0 ) );
+		// Check places before saving the customer; register() checks again under the lock.
+		$left = $event ? (int) $event['capacity'] - (int) $event['taken'] : 0;
+		if ( ! $event || 'active' !== $event['status'] || $left < $spots ) {
+			wp_send_json_error( [
+				'message' => $left > 0
+					/* translators: %d: places left */
+					? sprintf( _n( 'Only %d place is left.', 'Only %d places are left.', $left, 'simple-booking' ), $left )
+					: __( 'Sorry, this event is full.', 'simple-booking' ),
+			], 409 );
+		}
+		$customer_id = ( new SB_Customers() )->find_or_create( $name, $email, $phone );
+		$result      = $customer_id ? $events->register( (int) $event['id'], $customer_id, $spots ) : __( 'Your registration could not be saved. Please try again.', 'simple-booking' );
+		if ( ! is_int( $result ) ) {
+			wp_send_json_error( [ 'message' => $result ], 409 );
+		}
+		$registration = $events->registration( $result );
+		( new SB_Email() )->event_registration( $event, $registration, 'event_registered' );
+		wp_send_json_success( [
+			/* translators: 1: event name, 2: registration code */
+			'message' => sprintf( __( 'You\'re registered for %1$s. Your code is %2$s; we\'ve emailed you the details.', 'simple-booking' ), $event['name'], $registration['code'] ),
+		] );
 	}
 
 	/**

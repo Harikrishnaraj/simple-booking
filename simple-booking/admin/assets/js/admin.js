@@ -419,4 +419,36 @@
 		form.querySelector('[data-sb-invoice-link]').href = values.invoice || '#';
 		form.elements.paid_at.value = form.elements.paid_at.defaultValue;
 	}, true);
+
+	// Event attendees dialog: list registrations, cancel active ones.
+	document.addEventListener('sb:filled', (e) => {
+		const form = e.target;
+		if (!form.matches('[data-sb-attendees-form]')) {
+			return;
+		}
+		const attendees = (form.closest('dialog').sbFill || {}).attendees || [];
+		form.querySelector('[data-sb-attendee-list]').replaceChildren(...attendees.map((a) => {
+			const li = document.createElement('li');
+			const text = document.createElement('span');
+			text.textContent = a.text;
+			li.append(text);
+			if (a.active) {
+				const cancel = document.createElement('button');
+				cancel.type = 'button';
+				cancel.className = 'sb-button sb-button--danger sb-button--small';
+				cancel.dataset.sbDelete = 'sb_cancel_registration';
+				cancel.dataset.id = a.id;
+				cancel.dataset.sbConfirm = cfg.i18n.confirmCancelRegistration;
+				cancel.textContent = cfg.i18n.cancel;
+				li.append(cancel);
+			} else {
+				const badge = document.createElement('span');
+				badge.className = 'sb-badge sb-badge--cancelled';
+				badge.textContent = cfg.i18n.cancelled;
+				li.append(badge);
+			}
+			return li;
+		}));
+		form.querySelector('[data-sb-attendee-empty]').hidden = attendees.length > 0;
+	}, true);
 })();
