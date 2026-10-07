@@ -28,6 +28,7 @@ class SB_Email { function __call( $n, $a ) { $GLOBALS['mails'][] = $n; return tr
 function esc_html( $v ) { return htmlspecialchars( (string) $v, ENT_QUOTES ); }
 function wp_strip_all_tags( $v ) { return strip_tags( (string) $v ); }
 function wpautop( $v ) { return $v; }
+function sanitize_key( $v ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $v ) ); }
 
 class FakeWpdb {
 	public $prefix = 'wp_'; public $insert_id = 0; public $rows = []; public $lock = 1; public $customers = [];
@@ -69,6 +70,7 @@ require $base . 'class-validator.php';
 require $base . 'class-customers.php';
 require $base . 'class-reports.php';
 require $base . 'class-notifications.php';
+require $base . 'class-custom-fields.php';
 
 $wpdb     = new FakeWpdb();
 $services = [ 1 => [ 'id' => 1, 'duration' => 60, 'status' => 'active' ], 2 => [ 'id' => 2, 'duration' => 30, 'status' => 'inactive' ] ];
@@ -166,5 +168,26 @@ assert( str_contains( $email['html'], 'Hi Ann &lt;script&gt;,' ) );
 assert( ! str_contains( $email['html'], 'With:' ), 'empty staff line dropped' );
 assert( str_contains( $email['html'], 'Code: SB-1 ' ), 'line kept when one placeholder has a value' );
 assert( str_contains( $email['html'], 'No placeholder line' ) && str_contains( $email['html'], '{unknown}' ) );
+
+// Custom fields: per-service, required, dropdown choices, dates, checkbox, label kept with the answer
+SB_Custom_Fields::save( [ 'label' => 'Date of birth', 'type' => 'date', 'required' => 1 ] );
+SB_Custom_Fields::save( [ 'label' => 'First visit?', 'type' => 'checkbox' ] );
+SB_Custom_Fields::save( [ 'label' => 'Skin type', 'type' => 'select', 'options' => "Dry\nOily\nOily", 'services' => [ 2 ] ] );
+assert( '' !== SB_Custom_Fields::save( [ 'label' => 'Bad', 'type' => 'select', 'options' => 'One' ] ), 'dropdown needs 2 choices' );
+assert( '' !== SB_Custom_Fields::save( [ 'label' => 'Bad', 'type' => 'evil' ] ) );
+[ $dob, $first, $skin ] = array_column( SB_Custom_Fields::all(), 'id' );
+assert( [ 'Dry', 'Oily' ] === SB_Custom_Fields::all()[2]['options'], 'duplicate choices removed' );
+assert( 2 === count( SB_Custom_Fields::for_service( 1 ) ) && 3 === count( SB_Custom_Fields::for_service( 2 ) ) );
+assert( is_wp_error( SB_Custom_Fields::answers( [ 'custom' => [] ], 1 ) ), 'required missing' );
+assert( is_wp_error( SB_Custom_Fields::answers( [ 'custom' => [ $dob => '2020-02-31' ] ], 1 ) ), 'invalid date counts as missing' );
+assert( [] === SB_Custom_Fields::answers( [ 'custom' => [] ], 1, false ), 'admin may skip' );
+$ans = SB_Custom_Fields::answers( [ 'custom' => [ $dob => '1990-05-01', $first => '1', $skin => 'Hacked' ] ], 2 );
+assert( [ 'Date of birth', 'First visit?' ] === array_column( $ans, 'label' ) && 'Yes' === $ans[1]['value'], 'unknown dropdown value dropped' );
+$ans = SB_Custom_Fields::answers( [ 'custom' => [ $dob => '1990-05-01', $skin => 'Oily' ] ], 2 );
+assert( "Date of birth: 1990-05-01\nSkin type: Oily" === SB_Custom_Fields::as_text( json_encode( $ans ) ) );
+SB_Custom_Fields::move( $skin, -1 );
+assert( $skin === SB_Custom_Fields::all()[1]['id'] );
+SB_Custom_Fields::delete( $first );
+assert( 2 === count( SB_Custom_Fields::all() ) );
 
 echo "all checks passed\n";

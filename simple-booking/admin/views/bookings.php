@@ -103,7 +103,13 @@ $filtered  = (bool) array_filter( $filters );
 										<br><a class="sb-link" href="<?php echo esc_url( 'tel:' . $b['customer_phone'] ); ?>"><?php echo esc_html( $b['customer_phone'] ); ?></a>
 									<?php endif; ?>
 								</td>
-								<td class="sb-note"><?php echo nl2br( esc_html( $b['notes'] ) ); ?></td>
+								<td class="sb-note">
+									<?php echo nl2br( esc_html( $b['notes'] ) ); ?>
+									<?php $answers = SB_Custom_Fields::as_text( $b['custom_fields'] ?? null ); ?>
+									<?php if ( '' !== $answers ) : ?>
+										<div class="sb-answers"><?php echo nl2br( esc_html( $answers ) ); ?></div>
+									<?php endif; ?>
+								</td>
 								<td>
 									<select class="sb-input sb-status sb-status--<?php echo esc_attr( $b['status'] ); ?>" data-sb-status data-id="<?php echo (int) $b['id']; ?>" aria-label="<?php echo esc_attr( sprintf( __( 'Status for booking %s', 'simple-booking' ), $b['booking_code'] ) ); ?>">
 										<?php foreach ( $statuses as $value => $label ) : ?>

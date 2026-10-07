@@ -121,8 +121,17 @@
 			form.elements.id.value = values ? values.id : 0;
 			if (values) {
 				Object.keys(values).forEach((name) => {
-					if (form.elements[name]) {
-						form.elements[name].value = values[name] ?? '';
+					const list = form.elements[name + '[]'];
+					const el = form.elements[name];
+					if (list && Array.isArray(values[name])) {
+						// Checkbox list, e.g. services[]
+						(list.length === undefined ? [list] : Array.from(list)).forEach((box) => {
+							box.checked = values[name].map(String).includes(box.value);
+						});
+					} else if (el && el.type === 'checkbox') {
+						el.checked = !!values[name];
+					} else if (el) {
+						el.value = values[name] ?? '';
 					}
 				});
 			}
@@ -318,6 +327,52 @@
 			} else {
 				row.querySelectorAll('input').forEach((i) => { i.value = ''; });
 			}
+		}
+	});
+
+	// Custom fields: show only the questions for the chosen service; hidden ones are disabled so
+	// they're neither validated nor sent.
+	function applyFieldVisibility(form) {
+		const service = form.elements.service_id;
+		form.querySelectorAll('[data-sb-field]').forEach((field) => {
+			const ids = field.dataset.services ? field.dataset.services.split(',') : [];
+			const show = !ids.length || (service && ids.includes(service.value));
+			field.hidden = !show;
+			field.querySelectorAll('input, select, textarea').forEach((input) => { input.disabled = !show; });
+		});
+	}
+	document.addEventListener('change', (e) => {
+		if (e.target.name === 'service_id' && e.target.form) {
+			applyFieldVisibility(e.target.form);
+		}
+		// Field editor: choices only for dropdowns.
+		const fieldForm = e.target.closest('[data-sb-field-form]');
+		if (fieldForm && e.target.name === 'type') {
+			fieldForm.querySelector('[data-sb-options]').hidden = e.target.value !== 'select';
+		}
+	});
+	document.addEventListener('sb:filled', (e) => {
+		applyFieldVisibility(e.target);
+		if (e.target.matches('[data-sb-field-form]')) {
+			e.target.querySelector('[data-sb-options]').hidden = e.target.elements.type.value !== 'select';
+		}
+	}, true);
+
+	document.addEventListener('click', async (e) => {
+		const button = e.target.closest('[data-sb-move-field]');
+		if (!button) {
+			return;
+		}
+		button.disabled = true;
+		const data = new FormData();
+		data.append('id', button.dataset.sbMoveField);
+		data.append('direction', button.dataset.direction);
+		try {
+			await post('sb_move_field', data);
+			window.location.reload();
+		} catch (err) {
+			window.alert(err.message);
+			button.disabled = false;
 		}
 	});
 })();

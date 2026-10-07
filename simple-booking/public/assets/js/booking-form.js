@@ -205,6 +205,19 @@
 			show(n);
 		});
 
+		// Custom fields: only the questions for the chosen service; hidden ones are disabled so
+		// the browser doesn't require them and they aren't sent.
+		function showFields() {
+			form.querySelectorAll('[data-sb-field]').forEach((field) => {
+				const ids = field.dataset.services ? field.dataset.services.split(',') : [];
+				const show = !ids.length || ids.includes(service.value);
+				field.hidden = !show;
+				field.querySelectorAll('input, select, textarea').forEach((input) => { input.disabled = !show; });
+			});
+		}
+		service.addEventListener('change', showFields);
+		showFields();
+
 		service.addEventListener('change', filterStaff);
 		if (staff) {
 			staff.addEventListener('change', showStaffPhoto);

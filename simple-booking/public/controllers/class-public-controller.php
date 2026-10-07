@@ -138,7 +138,11 @@ class SB_Public_Controller {
 		] );
 
 		ob_start();
-		sb_view( 'public/views/booking-form', [ 'groups' => $this->group_by_category( $services ), 'staff' => $staff ] );
+		sb_view( 'public/views/booking-form', [
+			'groups' => $this->group_by_category( $services ),
+			'staff'  => $staff,
+			'fields' => SB_Custom_Fields::all(),
+		] );
 		return (string) ob_get_clean();
 	}
 
@@ -173,6 +177,12 @@ class SB_Public_Controller {
 		if ( is_wp_error( $data ) ) {
 			wp_send_json_error( [ 'message' => $data->get_error_message() ], 422 );
 		}
+
+		$answers = SB_Custom_Fields::answers( $post, $data['service_id'] );
+		if ( is_wp_error( $answers ) ) {
+			wp_send_json_error( [ 'message' => $answers->get_error_message() ], 422 );
+		}
+		$data['custom_fields'] = $answers;
 
 		$bookings = new SB_Bookings();
 		$taken    = static fn() => wp_send_json_error( [

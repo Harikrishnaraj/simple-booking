@@ -149,6 +149,7 @@ class SB_Email {
 			'{booking_code}'   => (string) $d['booking_code'],
 			'{status}'         => $statuses[ $d['status'] ] ?? (string) $d['status'],
 			'{notes}'          => (string) $d['notes'],
+			'{custom_fields}'  => SB_Custom_Fields::as_text( $d['custom_fields'] ?? null ),
 			'{business_name}'  => (string) SB_Settings::get_settings()['business_name'],
 		];
 	}

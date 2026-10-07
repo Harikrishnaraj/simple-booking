@@ -594,6 +594,32 @@ body.sb-admin-screen #wpfooter {
 	}
 }
 
+.sb-answers {
+	margin-top: 4px;
+	font-size: 12px;
+}
+
+.sb-note .sb-answers:first-child {
+	margin-top: 0;
+}
+
+.sb-check-label {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-bottom: 4px;
+}
+
+.sb-optional {
+	font-weight: 400;
+	color: var(--sb-muted);
+}
+
+.sb-toolbar__text {
+	flex: 1 1 400px;
+	margin: 0;
+}
+
 /* ---------- Staff schedule ---------- */
 
 .sb-schedule {

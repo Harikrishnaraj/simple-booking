@@ -60,6 +60,8 @@ class SB_Bookings {
 				'end_time'     => $end_time,
 				'status'       => $status,
 				'notes'        => sanitize_textarea_field( $data['notes'] ?? '' ),
+				// Validated answers from SB_Custom_Fields::answers().
+				'custom_fields' => ! empty( $data['custom_fields'] ) ? wp_json_encode( $data['custom_fields'] ) : null,
 				// Already inside the reminder window: the booking email is reminder enough.
 				'reminder_sent' => SB_Email::inside_reminder_window( $date, "$time:00" ) ? current_time( 'mysql', true ) : null,
 			];
@@ -67,7 +69,7 @@ class SB_Bookings {
 			// booking_code is UNIQUE; retry with a fresh code on the rare collision.
 			for ( $attempt = 0, $inserted = false; ! $inserted && $attempt < 3; $attempt++ ) {
 				$row['booking_code'] = $this->generate_booking_code();
-				$inserted = $wpdb->insert( $this->table_name, $row, [ '%s', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s' ] );
+				$inserted = $wpdb->insert( $this->table_name, $row, [ '%s', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ] );
 			}
 
 			return $inserted ? (int) $wpdb->insert_id : false;
