@@ -1,10 +1,10 @@
-# Simple Booking
+# Bellbook
 
-WordPress appointment booking plugin. Add `[simple_booking]` to any page; manage bookings, services, staff and settings under **Bookings** in wp-admin.
+WordPress appointment booking plugin for businesses that get paid in person (formerly "Simple Booking"). Add `[bellbook]` to any page; manage bookings, services, staff and settings under **Bellbook** in wp-admin.
 
-- `simple-booking/` – the plugin (this folder is what gets installed)
+- `bellbook/` – the plugin (this folder is what gets installed)
 - `tests/check_bookings.php` – slot/booking logic checks with WordPress stubbed out
-- `build-zip.ps1` – builds `simple-booking-<version>.zip` for upload
+- `build-zip.ps1` – builds `bellbook-<version>.zip` for upload
 
 ## Test
 
