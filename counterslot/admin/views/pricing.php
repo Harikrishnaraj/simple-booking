@@ -1,8 +1,8 @@
 <?php
 /**
  * @var string $tab      extras | coupons | tax
- * @var array  $extras   SB_Pricing::extras()
- * @var array  $coupons  SB_Pricing::coupons()
+ * @var array  $extras   CSlot_Pricing::extras()
+ * @var array  $coupons  CSlot_Pricing::coupons()
  * @var array  $services All services
  * @var array  $settings
  * @var string $theme
@@ -10,6 +10,7 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
 $page_url      = admin_url( 'admin.php?page=sb-pricing' );
 $service_names = array_column( $services, 'name', 'id' );
 $names_for     = static fn( array $ids ) => $ids ? implode( ', ', array_filter( array_map( fn( $id ) => $service_names[ $id ] ?? '', $ids ) ) ) : __( 'All services', 'counterslot' );
@@ -31,7 +32,7 @@ $service_boxes = static function () use ( $services ): void {
 };
 ?>
 <div class="wrap sb-app">
-	<?php sb_view( 'admin/views/partials/header', [ 'title' => __( 'Pricing', 'counterslot' ), 'theme' => $theme ] ); ?>
+	<?php cslot_view( 'admin/views/partials/header', [ 'title' => __( 'Pricing', 'counterslot' ), 'theme' => $theme ] ); ?>
 
 	<nav class="sb-tabs" aria-label="<?php esc_attr_e( 'Pricing sections', 'counterslot' ); ?>">
 		<?php foreach ( $tabs as $key => $label ) : ?>
@@ -58,11 +59,11 @@ $service_boxes = static function () use ( $services ): void {
 						<?php foreach ( $extras as $e ) : ?>
 							<tr>
 								<td><strong><?php echo esc_html( $e['name'] ); ?></strong></td>
-								<td class="sb-num"><?php echo esc_html( sb_price( $e['price'] ) ); ?></td>
+								<td class="sb-num"><?php echo esc_html( cslot_price( $e['price'] ) ); ?></td>
 								<td><?php echo esc_html( $names_for( $e['services'] ) ); ?></td>
 								<td class="sb-actions">
 									<button type="button" class="sb-button sb-button--ghost sb-button--small" data-sb-open="sb-extra-dialog" data-sb-fill="<?php echo esc_attr( wp_json_encode( $e ) ); ?>"><?php esc_html_e( 'Edit', 'counterslot' ); ?></button>
-									<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-delete="sb_delete_extra" data-id="<?php echo esc_attr( $e['id'] ); ?>" data-sb-confirm="<?php esc_attr_e( 'Delete this extra? Past bookings keep what they paid for.', 'counterslot' ); ?>"><?php esc_html_e( 'Delete', 'counterslot' ); ?></button>
+									<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-delete="cslot_delete_extra" data-id="<?php echo esc_attr( $e['id'] ); ?>" data-sb-confirm="<?php esc_attr_e( 'Delete this extra? Past bookings keep what they paid for.', 'counterslot' ); ?>"><?php esc_html_e( 'Delete', 'counterslot' ); ?></button>
 								</td>
 							</tr>
 						<?php endforeach; ?>
@@ -74,7 +75,7 @@ $service_boxes = static function () use ( $services ): void {
 		<?php endif; ?>
 
 		<dialog id="sb-extra-dialog" class="sb-dialog" aria-labelledby="sb-extra-dialog-title">
-			<form data-sb-action="sb_save_extra" data-sb-redirect="">
+			<form data-sb-action="cslot_save_extra" data-sb-redirect="">
 				<div class="sb-dialog__head">
 					<h2 id="sb-extra-dialog-title" data-new="<?php esc_attr_e( 'Add extra', 'counterslot' ); ?>" data-edit="<?php esc_attr_e( 'Edit extra', 'counterslot' ); ?>"><?php esc_html_e( 'Add extra', 'counterslot' ); ?></h2>
 					<button type="button" class="sb-icon-button" data-sb-close aria-label="<?php esc_attr_e( 'Close', 'counterslot' ); ?>"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button>
@@ -112,7 +113,7 @@ $service_boxes = static function () use ( $services ): void {
 							<?php $c_services = array_map( 'intval', (array) json_decode( (string) $c['services'], true ) ); ?>
 							<tr>
 								<td><code translate="no"><?php echo esc_html( $c['code'] ); ?></code></td>
-								<td><?php echo esc_html( 'fixed' === $c['type'] ? sb_price( $c['value'] ) : (float) $c['value'] . '%' ); ?></td>
+								<td><?php echo esc_html( 'fixed' === $c['type'] ? cslot_price( $c['value'] ) : (float) $c['value'] . '%' ); ?></td>
 								<td>
 									<?php
 									$fmt = static fn( $d ) => $d ? mysql2date( get_option( 'date_format' ), $d ) : '…';
@@ -121,11 +122,11 @@ $service_boxes = static function () use ( $services ): void {
 								</td>
 								<td><?php echo esc_html( (int) $c['used'] . ( $c['max_uses'] ? ' / ' . (int) $c['max_uses'] : '' ) ); ?></td>
 								<td><?php echo esc_html( $names_for( $c_services ) ); ?></td>
-								<td><?php sb_view( 'admin/views/partials/active-badge', [ 'active' => 'active' === $c['status'] ] ); ?></td>
+								<td><?php cslot_view( 'admin/views/partials/active-badge', [ 'active' => 'active' === $c['status'] ] ); ?></td>
 								<td class="sb-actions">
 									<button type="button" class="sb-button sb-button--ghost sb-button--small" data-sb-open="sb-coupon-dialog"
 										data-sb-fill="<?php echo esc_attr( wp_json_encode( [ 'id' => (int) $c['id'], 'code' => $c['code'], 'type' => $c['type'], 'value' => (float) $c['value'], 'valid_from' => (string) $c['valid_from'], 'valid_to' => (string) $c['valid_to'], 'max_uses' => (int) $c['max_uses'], 'status' => $c['status'], 'services' => $c_services ] ) ); ?>"><?php esc_html_e( 'Edit', 'counterslot' ); ?></button>
-									<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-delete="sb_delete_coupon" data-id="<?php echo (int) $c['id']; ?>" data-sb-confirm="<?php esc_attr_e( 'Delete this coupon? Bookings that used it keep their discount.', 'counterslot' ); ?>"><?php esc_html_e( 'Delete', 'counterslot' ); ?></button>
+									<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-delete="cslot_delete_coupon" data-id="<?php echo (int) $c['id']; ?>" data-sb-confirm="<?php esc_attr_e( 'Delete this coupon? Bookings that used it keep their discount.', 'counterslot' ); ?>"><?php esc_html_e( 'Delete', 'counterslot' ); ?></button>
 								</td>
 							</tr>
 						<?php endforeach; ?>
@@ -137,7 +138,7 @@ $service_boxes = static function () use ( $services ): void {
 		<?php endif; ?>
 
 		<dialog id="sb-coupon-dialog" class="sb-dialog" aria-labelledby="sb-coupon-dialog-title">
-			<form data-sb-action="sb_save_coupon" data-sb-redirect="">
+			<form data-sb-action="cslot_save_coupon" data-sb-redirect="">
 				<div class="sb-dialog__head">
 					<h2 id="sb-coupon-dialog-title" data-new="<?php esc_attr_e( 'Add coupon', 'counterslot' ); ?>" data-edit="<?php esc_attr_e( 'Edit coupon', 'counterslot' ); ?>"><?php esc_html_e( 'Add coupon', 'counterslot' ); ?></h2>
 					<button type="button" class="sb-icon-button" data-sb-close aria-label="<?php esc_attr_e( 'Close', 'counterslot' ); ?>"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button>
@@ -174,7 +175,7 @@ $service_boxes = static function () use ( $services ): void {
 		</dialog>
 
 	<?php else : ?>
-		<form data-sb-action="sb_save_settings" class="sb-narrow">
+		<form data-sb-action="cslot_save_settings" class="sb-narrow">
 			<p class="sb-field">
 				<label for="sb-tax-name"><?php esc_html_e( 'Tax name', 'counterslot' ); ?></label>
 				<input id="sb-tax-name" class="sb-input" type="text" name="settings[tax_name]" maxlength="50" placeholder="<?php esc_attr_e( 'e.g. GST', 'counterslot' ); ?>" value="<?php echo esc_attr( $settings['tax_name'] ); ?>">

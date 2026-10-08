@@ -3,7 +3,7 @@
  * First-run setup wizard: five steps on one form. admin.js shows one step at a time,
  * fills in the chosen industry's defaults and submits everything at the end.
  *
- * @var array  $presets    SB_Setup::presets()
+ * @var array  $presets    CSlot_Setup::presets()
  * @var array  $settings   current settings
  * @var array  $user       [ 'name' => , 'email' => ] of the current admin
  * @var string $page_url   existing booking page, or ''
@@ -14,6 +14,7 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
 global $wp_locale;
 
 $industry = isset( $presets[ $settings['industry'] ] ) ? $settings['industry'] : '';
@@ -30,7 +31,7 @@ $currency = '$' === $settings['currency_symbol'] && ( 'Asia/Kolkata' === wp_time
 	: $settings['currency_symbol'];
 ?>
 <div class="wrap sb-app sb-setup">
-	<?php sb_view( 'admin/views/partials/header', [ 'title' => __( 'Set up CounterSlot', 'counterslot' ), 'theme' => $theme ] ); ?>
+	<?php cslot_view( 'admin/views/partials/header', [ 'title' => __( 'Set up CounterSlot', 'counterslot' ), 'theme' => $theme ] ); ?>
 
 	<ol class="sb-steps" aria-label="<?php esc_attr_e( 'Setup steps', 'counterslot' ); ?>">
 		<?php foreach ( $steps as $n => $label ) : ?>
@@ -62,12 +63,12 @@ $currency = '$' === $settings['currency_symbol'] && ( 'Asia/Kolkata' === wp_time
 			</p>
 		</fieldset>
 
-		<fieldset class="sb-step" data-sb-step="2">
+		<fieldset class="sb-step" data-sb-step="2" hidden>
 			<legend class="sb-step__title"><?php esc_html_e( 'When can customers book?', 'counterslot' ); ?></legend>
 			<fieldset class="sb-field">
 				<legend class="sb-label"><?php esc_html_e( 'Open on', 'counterslot' ); ?></legend>
 				<div class="sb-days">
-					<?php foreach ( SB_Settings::WEEK_DAYS as $day ) : ?>
+					<?php foreach ( CSlot_Settings::WEEK_DAYS as $day ) : ?>
 						<label class="sb-check-label"><input type="checkbox" name="work_days[]" value="<?php echo esc_attr( $day ); ?>" data-sb-day <?php checked( in_array( $day, (array) $settings['work_days'], true ) ); ?>>
 							<?php echo esc_html( $wp_locale->get_weekday_abbrev( $wp_locale->get_weekday( (int) gmdate( 'w', strtotime( $day ) ) ) ) ); ?></label>
 					<?php endforeach; ?>
@@ -105,7 +106,7 @@ $currency = '$' === $settings['currency_symbol'] && ( 'Asia/Kolkata' === wp_time
 			</div>
 		</fieldset>
 
-		<fieldset class="sb-step" data-sb-step="3">
+		<fieldset class="sb-step" data-sb-step="3" hidden>
 			<legend class="sb-step__title"><?php esc_html_e( 'Who takes the appointments?', 'counterslot' ); ?></legend>
 			<p class="sb-field">
 				<label for="sb-setup-label"><?php esc_html_e( 'What customers call them', 'counterslot' ); ?></label>
@@ -125,7 +126,7 @@ $currency = '$' === $settings['currency_symbol'] && ( 'Asia/Kolkata' === wp_time
 			<p class="sb-hint"><?php esc_html_e( 'If you work alone, that\'s you. Add more people, photos and their own hours on the Staff page later. Leave the name empty to skip.', 'counterslot' ); ?></p>
 		</fieldset>
 
-		<fieldset class="sb-step" data-sb-step="4">
+		<fieldset class="sb-step" data-sb-step="4" hidden>
 			<legend class="sb-step__title"><?php esc_html_e( 'What can customers book?', 'counterslot' ); ?></legend>
 			<p class="sb-muted"><?php esc_html_e( 'Untick what you don\'t offer, change names and durations, and add a price if you like. Leave the price empty if you prefer not to show one.', 'counterslot' ); ?></p>
 			<?php foreach ( $presets as $key => $p ) : ?>
@@ -170,7 +171,7 @@ $currency = '$' === $settings['currency_symbol'] && ( 'Asia/Kolkata' === wp_time
 			<p class="sb-hint"><?php esc_html_e( 'Group classes with limited places are set up on the Events page instead.', 'counterslot' ); ?></p>
 		</fieldset>
 
-		<fieldset class="sb-step" data-sb-step="5">
+		<fieldset class="sb-step" data-sb-step="5" hidden>
 			<legend class="sb-step__title"><?php esc_html_e( 'Where will customers book?', 'counterslot' ); ?></legend>
 			<?php if ( $page_url ) : ?>
 				<p>
@@ -194,7 +195,7 @@ $currency = '$' === $settings['currency_symbol'] && ( 'Asia/Kolkata' === wp_time
 		<div class="sb-form-actions sb-setup__nav">
 			<button type="button" class="sb-button sb-button--secondary" data-sb-wizard-back hidden><?php esc_html_e( 'Back', 'counterslot' ); ?></button>
 			<button type="button" class="sb-button" data-sb-wizard-next><?php esc_html_e( 'Next', 'counterslot' ); ?></button>
-			<button type="submit" class="sb-button" data-sb-wizard-finish><?php esc_html_e( 'Finish setup', 'counterslot' ); ?></button>
+			<button type="submit" class="sb-button" data-sb-wizard-finish hidden><?php esc_html_e( 'Finish setup', 'counterslot' ); ?></button>
 			<?php if ( ! $rerun ) : ?>
 				<button type="button" class="sb-button sb-button--ghost sb-setup__skip" data-sb-wizard-skip><?php esc_html_e( 'Skip setup', 'counterslot' ); ?></button>
 			<?php endif; ?>

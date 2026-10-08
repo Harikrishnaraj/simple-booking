@@ -1,6 +1,6 @@
 <?php
 /**
- * @var array  $events    SB_Events::get_all() with 'taken'
+ * @var array  $events    CSlot_Events::get_all() with 'taken'
  * @var array  $attendees event id => registrations
  * @var array  $locations
  * @var array  $staff
@@ -9,11 +9,12 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
 $date_fmt = get_option( 'date_format' );
 $today    = wp_date( 'Y-m-d' );
 ?>
 <div class="wrap sb-app">
-	<?php sb_view( 'admin/views/partials/header', [ 'title' => __( 'Events', 'counterslot' ), 'theme' => $theme ] ); ?>
+	<?php cslot_view( 'admin/views/partials/header', [ 'title' => __( 'Events', 'counterslot' ), 'theme' => $theme ] ); ?>
 
 	<section class="sb-card">
 		<div class="sb-toolbar sb-toolbar--split">
@@ -53,25 +54,25 @@ $today    = wp_date( 'Y-m-d' );
 								<td><?php echo esc_html( mysql2date( $date_fmt, $e['event_date'] ) ); ?><br><span class="sb-muted"><?php echo esc_html( substr( $e['start_time'], 0, 5 ) . '–' . substr( $e['end_time'], 0, 5 ) ); ?></span></td>
 								<td>
 									<?php echo esc_html( (int) $e['taken'] . ' / ' . (int) $e['capacity'] ); ?>
-									<div class="sb-meter sb-meter--small" role="img" aria-label="<?php echo esc_attr( sprintf( __( '%1$d of %2$d places taken', 'counterslot' ), (int) $e['taken'], (int) $e['capacity'] ) ); ?>"><span style="width: <?php echo (int) min( 100, round( (int) $e['taken'] / max( 1, (int) $e['capacity'] ) * 100 ) ); ?>%"></span></div>
+									<div class="sb-meter sb-meter--small" role="img" aria-label="<?php echo esc_attr( sprintf( /* translators: 1: places taken, 2: total places */ __( '%1$d of %2$d places taken', 'counterslot' ), (int) $e['taken'], (int) $e['capacity'] ) ); ?>"><span style="width: <?php echo (int) min( 100, round( (int) $e['taken'] / max( 1, (int) $e['capacity'] ) * 100 ) ); ?>%"></span></div>
 								</td>
-								<td class="sb-num"><?php echo (float) $e['price'] > 0 ? esc_html( sb_price( $e['price'] ) ) : esc_html__( 'Free', 'counterslot' ); ?></td>
+								<td class="sb-num"><?php echo (float) $e['price'] > 0 ? esc_html( cslot_price( $e['price'] ) ) : esc_html__( 'Free', 'counterslot' ); ?></td>
 								<td>
 									<?php if ( 'cancelled' === $e['status'] ) : ?>
 										<span class="sb-badge sb-badge--cancelled"><?php esc_html_e( 'Cancelled', 'counterslot' ); ?></span>
 									<?php else : ?>
-										<?php sb_view( 'admin/views/partials/active-badge', [ 'active' => 'active' === $e['status'] ] ); ?>
+										<?php cslot_view( 'admin/views/partials/active-badge', [ 'active' => 'active' === $e['status'] ] ); ?>
 									<?php endif; ?>
 								</td>
 								<td class="sb-actions">
 									<button type="button" class="sb-button sb-button--ghost sb-button--small" data-sb-open="sb-attendees-dialog"
-										data-sb-fill="<?php echo esc_attr( wp_json_encode( [ 'id' => (int) $e['id'], 'summary' => $e['name'] . ' · ' . mysql2date( $date_fmt, $e['event_date'] ), 'attendees' => array_map( fn( $r ) => [ 'id' => (int) $r['id'], 'text' => $r['customer_name'] . ' · ' . $r['customer_email'] . ( $r['customer_phone'] ? ' · ' . $r['customer_phone'] : '' ) . ' · ' . sprintf( _n( '%d place', '%d places', (int) $r['spots'], 'counterslot' ), (int) $r['spots'] ) . ' · ' . $r['code'], 'active' => 'registered' === $r['status'] ], $attendees[ $e['id'] ] ?? [] ) ] ) ); ?>">
-										<?php echo esc_html( sprintf( __( 'Attendees (%d)', 'counterslot' ), count( array_filter( $attendees[ $e['id'] ] ?? [], fn( $r ) => 'registered' === $r['status'] ) ) ) ); ?>
+										data-sb-fill="<?php echo esc_attr( wp_json_encode( [ 'id' => (int) $e['id'], 'summary' => $e['name'] . ' · ' . mysql2date( $date_fmt, $e['event_date'] ), 'attendees' => array_map( fn( $r ) => [ 'id' => (int) $r['id'], 'text' => $r['customer_name'] . ' · ' . $r['customer_email'] . ( $r['customer_phone'] ? ' · ' . $r['customer_phone'] : '' ) . ' · ' . sprintf( /* translators: number of places */ _n( '%d place', '%d places', (int) $r['spots'], 'counterslot' ), (int) $r['spots'] ) . ' · ' . $r['code'], 'active' => 'registered' === $r['status'] ], $attendees[ $e['id'] ] ?? [] ) ] ) ); ?>">
+										<?php echo esc_html( sprintf( /* translators: number of attendees */ __( 'Attendees (%d)', 'counterslot' ), count( array_filter( $attendees[ $e['id'] ] ?? [], fn( $r ) => 'registered' === $r['status'] ) ) ) ); ?>
 									</button>
 									<?php if ( 'cancelled' !== $e['status'] ) : ?>
 										<button type="button" class="sb-button sb-button--ghost sb-button--small" data-sb-open="sb-event-dialog"
 											data-sb-fill="<?php echo esc_attr( wp_json_encode( [ 'id' => (int) $e['id'], 'name' => $e['name'], 'description' => $e['description'], 'event_date' => $e['event_date'], 'start_time' => substr( $e['start_time'], 0, 5 ), 'end_time' => substr( $e['end_time'], 0, 5 ), 'capacity' => (int) $e['capacity'], 'price' => (float) $e['price'], 'location_id' => (string) ( $e['location_id'] ?? '' ), 'staff_id' => (string) ( $e['staff_id'] ?? '' ), 'status' => $e['status'] ] ) ); ?>"><?php esc_html_e( 'Edit', 'counterslot' ); ?></button>
-										<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-delete="sb_cancel_event" data-id="<?php echo (int) $e['id']; ?>"
+										<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-delete="cslot_cancel_event" data-id="<?php echo (int) $e['id']; ?>"
 											data-sb-confirm="<?php esc_attr_e( 'Cancel this event? Everyone registered is emailed that it is cancelled.', 'counterslot' ); ?>"><?php esc_html_e( 'Cancel event', 'counterslot' ); ?></button>
 									<?php endif; ?>
 								</td>
@@ -86,7 +87,7 @@ $today    = wp_date( 'Y-m-d' );
 	</section>
 
 	<dialog id="sb-event-dialog" class="sb-dialog sb-dialog--wide" aria-labelledby="sb-event-dialog-title">
-		<form data-sb-action="sb_save_event" data-sb-redirect="">
+		<form data-sb-action="cslot_save_event" data-sb-redirect="">
 			<div class="sb-dialog__head">
 				<h2 id="sb-event-dialog-title" data-new="<?php esc_attr_e( 'Add event', 'counterslot' ); ?>" data-edit="<?php esc_attr_e( 'Edit event', 'counterslot' ); ?>"><?php esc_html_e( 'Add event', 'counterslot' ); ?></h2>
 				<button type="button" class="sb-icon-button" data-sb-close aria-label="<?php esc_attr_e( 'Close', 'counterslot' ); ?>"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button>

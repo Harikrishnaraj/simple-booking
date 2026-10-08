@@ -4,7 +4,7 @@
  * Each field lists its services in data-services; JavaScript hides and disables fields
  * that don't apply to the chosen service (disabled fields aren't validated or sent).
  *
- * @var array  $fields       SB_Custom_Fields::all()
+ * @var array  $fields       CSlot_Custom_Fields::all()
  * @var string $id_prefix    unique per form
  * @var string $group_class  wrapper class
  * @var string $input_class  class for inputs
@@ -13,6 +13,7 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
 foreach ( $fields as $field ) :
 	$id       = $id_prefix . '-' . $field['id'];
 	$name     = 'custom[' . $field['id'] . ']';

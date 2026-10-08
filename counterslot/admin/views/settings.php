@@ -6,18 +6,19 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
 global $wp_locale;
 ?>
 <div class="wrap sb-app">
-	<?php sb_view( 'admin/views/partials/header', [ 'title' => __( 'Settings', 'counterslot' ), 'theme' => $theme ] ); ?>
+	<?php cslot_view( 'admin/views/partials/header', [ 'title' => __( 'Settings', 'counterslot' ), 'theme' => $theme ] ); ?>
 
-	<form class="sb-card" data-sb-action="sb_save_settings">
+	<form class="sb-card" data-sb-action="cslot_save_settings">
 		<table class="form-table" role="presentation">
 			<tr>
 				<th scope="row"><label for="sb-business-name"><?php esc_html_e( 'Business name', 'counterslot' ); ?></label></th>
 				<td>
 					<input id="sb-business-name" class="regular-text" name="settings[business_name]" type="text" value="<?php echo esc_attr( $settings['business_name'] ); ?>">
-					<p class="description"><a href="<?php echo esc_url( SB_Setup::url() ); ?>"><?php esc_html_e( 'Run the setup wizard again', 'counterslot' ); ?></a></p>
+					<p class="description"><a href="<?php echo esc_url( CSlot_Setup::url() ); ?>"><?php esc_html_e( 'Run the setup wizard again', 'counterslot' ); ?></a></p>
 				</td>
 			</tr>
 			<tr>
@@ -35,7 +36,7 @@ global $wp_locale;
 					–
 					<label for="sb-hours-end" class="screen-reader-text"><?php esc_html_e( 'Closing time', 'counterslot' ); ?></label>
 					<input id="sb-hours-end" name="settings[business_hours_end]" type="time" required value="<?php echo esc_attr( $settings['business_hours_end'] ); ?>">
-					<p class="description"><?php echo esc_html( sprintf( __( 'Times are in the site timezone (%s).', 'counterslot' ), wp_timezone_string() ) ); ?></p>
+					<p class="description"><?php echo esc_html( sprintf( /* translators: timezone name, e.g. Asia/Kolkata */ __( 'Times are in the site timezone (%s).', 'counterslot' ), wp_timezone_string() ) ); ?></p>
 				</td>
 			</tr>
 			<tr>
@@ -44,7 +45,7 @@ global $wp_locale;
 					<fieldset>
 						<legend class="screen-reader-text"><?php esc_html_e( 'Working days', 'counterslot' ); ?></legend>
 						<input type="hidden" name="settings[work_days][]" value="">
-						<?php foreach ( SB_Settings::WEEK_DAYS as $day ) : ?>
+						<?php foreach ( CSlot_Settings::WEEK_DAYS as $day ) : ?>
 							<label>
 								<input type="checkbox" name="settings[work_days][]" value="<?php echo esc_attr( $day ); ?>" <?php checked( in_array( $day, (array) $settings['work_days'], true ) ); ?>>
 								<?php echo esc_html( $wp_locale->get_weekday( (int) gmdate( 'w', strtotime( $day ) ) ) ); ?>
@@ -103,7 +104,7 @@ global $wp_locale;
 						'name'              => 'settings[booking_page_id]',
 						'id'                => 'sb-booking-page',
 						'selected'          => (int) $settings['booking_page_id'],
-						'show_option_none'  => __( 'Find automatically', 'counterslot' ),
+						'show_option_none'  => esc_html__( 'Find automatically', 'counterslot' ),
 						'option_none_value' => 0,
 					] );
 					?>
@@ -127,7 +128,7 @@ global $wp_locale;
 				<th scope="row"><label for="sb-ip-header"><?php esc_html_e( 'Visitor IP comes from', 'counterslot' ); ?></label></th>
 				<td>
 					<select id="sb-ip-header" name="settings[ip_header]">
-						<?php foreach ( SB_Settings::ip_headers() as $value => $label ) : ?>
+						<?php foreach ( CSlot_Settings::ip_headers() as $value => $label ) : ?>
 							<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $settings['ip_header'], $value ); ?>><?php echo esc_html( $label ); ?></option>
 						<?php endforeach; ?>
 					</select>

@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class SB_Security {
+class CSlot_Security {
 
 	/**
 	 * Verify admin capabilities.
@@ -17,8 +17,8 @@ class SB_Security {
 	/**
 	 * Verify Nonce.
 	 */
-	public static function verify_nonce( string $nonce_action = 'sb_admin_nonce' ): void {
-		$nonce = isset( $_REQUEST['_wpnonce'] ) ? sanitize_text_field( $_REQUEST['_wpnonce'] ) : '';
+	public static function verify_nonce( string $nonce_action = 'cslot_admin_nonce' ): void {
+		$nonce = isset( $_REQUEST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ) : '';
 		if ( ! wp_verify_nonce( $nonce, $nonce_action ) ) {
 			wp_send_json_error( [ 'message' => __( 'Security verification failed.', 'counterslot' ) ], 403 );
 		}

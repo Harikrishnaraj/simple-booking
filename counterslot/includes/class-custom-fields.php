@@ -8,9 +8,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * each booking stores its answers with the label as it was, so renaming or deleting a
  * field later doesn't change past bookings.
  */
-class SB_Custom_Fields {
+class CSlot_Custom_Fields {
 
-	private const OPTION_KEY = 'sb_custom_fields';
+	private const OPTION_KEY = 'cslot_custom_fields';
 	private const MAX_LENGTH = 2000;
 
 	public static function types(): array {

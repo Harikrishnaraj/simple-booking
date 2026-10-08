@@ -2,11 +2,12 @@
 /**
  * [counterslot_events]: upcoming events, each with places left and a registration form.
  *
- * @var array $events SB_Events::get_all( true )
+ * @var array $events CSlot_Events::get_all( true )
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
 $date_fmt = get_option( 'date_format' );
 ?>
 <div class="sb-events" data-sb-events>
@@ -28,15 +29,15 @@ $date_fmt = get_option( 'date_format' );
 				<p class="sb-event-card__meta">
 					<?php echo esc_html( mysql2date( 'l, ' . $date_fmt, $e['event_date'] ) . ' · ' . substr( $e['start_time'], 0, 5 ) . '–' . substr( $e['end_time'], 0, 5 ) ); ?>
 					<?php if ( $e['location_name'] ) : ?><br><?php echo esc_html( $e['location_name'] . ( $e['location_address'] ? ', ' . strtok( $e['location_address'], "\n" ) : '' ) ); ?><?php endif; ?>
-					<?php if ( $e['staff_name'] ) : ?><br><?php echo esc_html( sprintf( __( 'With %s', 'counterslot' ), $e['staff_name'] ) ); ?><?php endif; ?>
+					<?php if ( $e['staff_name'] ) : ?><br><?php echo esc_html( sprintf( /* translators: staff member name */ __( 'With %s', 'counterslot' ), $e['staff_name'] ) ); ?><?php endif; ?>
 				</p>
 				<?php if ( $e['description'] ) : ?>
 					<p><?php echo nl2br( esc_html( $e['description'] ) ); ?></p>
 				<?php endif; ?>
 				<p class="sb-event-card__price">
-					<strong><?php echo (float) $e['price'] > 0 ? esc_html( sb_price( $e['price'] ) ) : esc_html__( 'Free', 'counterslot' ); ?></strong>
+					<strong><?php echo (float) $e['price'] > 0 ? esc_html( cslot_price( $e['price'] ) ) : esc_html__( 'Free', 'counterslot' ); ?></strong>
 					·
-					<?php echo $left ? esc_html( sprintf( _n( '%d place left', '%d places left', $left, 'counterslot' ), $left ) ) : esc_html__( 'Full', 'counterslot' ); ?>
+					<?php echo $left ? esc_html( sprintf( /* translators: number of places */ _n( '%d place left', '%d places left', $left, 'counterslot' ), $left ) ) : esc_html__( 'Full', 'counterslot' ); ?>
 				</p>
 
 				<?php if ( $left ) : ?>

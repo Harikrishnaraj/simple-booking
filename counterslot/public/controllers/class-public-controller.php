@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class SB_Public_Controller {
+class CSlot_Public_Controller {
 
 	private const DAYS_AHEAD = 14;
 	// Per-IP limit via transients. Behind a proxy/CDN, Settings → "Visitor IP comes from" picks the real-IP header.
@@ -33,7 +33,7 @@ class SB_Public_Controller {
 		// Load the stylesheet in <head> on pages that use the shortcode, so the form doesn't flash unstyled.
 		$post = get_post();
 		if ( is_singular() && $post && self::has_form( $post->post_content ) ) {
-			wp_enqueue_style( 'sb-booking-form' );
+			wp_enqueue_style( 'cslot-booking-form' );
 		}
 	}
 
@@ -42,9 +42,9 @@ class SB_Public_Controller {
 	 * and wp_localize_script() silently drops its data for a handle that isn't registered yet.
 	 */
 	private function register_assets(): void {
-		if ( ! wp_script_is( 'sb-booking-form', 'registered' ) ) {
-			wp_register_style( 'sb-booking-form', SB_PLUGIN_URL . 'public/assets/css/booking-form.css', [], SB_VERSION );
-			wp_register_script( 'sb-booking-form', SB_PLUGIN_URL . 'public/assets/js/booking-form.js', [], SB_VERSION, true );
+		if ( ! wp_script_is( 'cslot-booking-form', 'registered' ) ) {
+			wp_register_style( 'cslot-booking-form', CSLOT_PLUGIN_URL . 'public/assets/css/booking-form.css', [], CSLOT_VERSION );
+			wp_register_script( 'cslot-booking-form', CSLOT_PLUGIN_URL . 'public/assets/js/booking-form.js', [], CSLOT_VERSION, true );
 		}
 	}
 
@@ -55,7 +55,7 @@ class SB_Public_Controller {
 	 * @return array<string, array[]>
 	 */
 	private function group_by_category( array $services ): array {
-		$names  = array_column( ( new SB_Categories() )->get_all(), 'name', 'id' );
+		$names  = array_column( ( new CSlot_Categories() )->get_all(), 'name', 'id' );
 		$groups = [];
 		foreach ( $names as $name ) {
 			$groups[ $name ] = [];
@@ -84,7 +84,7 @@ class SB_Public_Controller {
 	 * first, client-most address of X-Forwarded-For is used.
 	 */
 	public static function visitor_ip(): string {
-		$header = SB_Settings::get_settings()['ip_header'];
+		$header = CSlot_Settings::get_settings()['ip_header'];
 		$value  = sanitize_text_field( wp_unslash( $_SERVER[ $header ] ?? '' ) );
 		$ip     = trim( explode( ',', $value )[0] );
 		if ( ! filter_var( $ip, FILTER_VALIDATE_IP ) ) {
@@ -100,9 +100,9 @@ class SB_Public_Controller {
 	 */
 	public function prevent_caching(): void {
 		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
-			define( 'DONOTCACHEPAGE', true );
+			define( 'DONOTCACHEPAGE', true ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- standard constant read by caching plugins
 		}
-		do_action( 'litespeed_control_set_nocache', 'CounterSlot form' );
+		do_action( 'litespeed_control_set_nocache', 'CounterSlot form' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- LiteSpeed Cache's own action
 		if ( ! headers_sent() ) {
 			nocache_headers();
 		}
@@ -127,12 +127,12 @@ class SB_Public_Controller {
 			return $this->render_manage();
 		}
 
-		$services = ( new SB_Services() )->get_all();
+		$services = ( new CSlot_Services() )->get_all();
 		if ( ! $services ) {
 			return '<p>' . esc_html__( 'Online booking is not available yet.', 'counterslot' ) . '</p>';
 		}
 
-		$staff_mgr = new SB_Staff();
+		$staff_mgr = new CSlot_Staff();
 		$staff     = array_map(
 			fn( $member ) => $member + [
 				'service_ids' => $staff_mgr->service_ids( $member ),
@@ -142,11 +142,11 @@ class SB_Public_Controller {
 		);
 
 		$this->register_assets();
-		wp_enqueue_style( 'sb-booking-form' );
-		wp_enqueue_script( 'sb-booking-form' );
-		wp_localize_script( 'sb-booking-form', 'sbBooking', [
+		wp_enqueue_style( 'cslot-booking-form' );
+		wp_enqueue_script( 'cslot-booking-form' );
+		wp_localize_script( 'cslot-booking-form', 'cslotBooking', [
 			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-			'nonce'   => wp_create_nonce( 'sb_public_nonce' ),
+			'nonce'   => wp_create_nonce( 'cslot_public_nonce' ),
 			'days'    => $this->upcoming_days(),
 			'i18n'    => [
 				'error'   => __( 'Something went wrong. Please try again.', 'counterslot' ),
@@ -156,16 +156,16 @@ class SB_Public_Controller {
 			],
 		] );
 
-		$locations = ( new SB_Locations() )->get_all();
+		$locations = ( new CSlot_Locations() )->get_all();
 
 		ob_start();
-		sb_view( 'public/views/booking-form', [
+		cslot_view( 'public/views/booking-form', [
 			'groups' => $this->group_by_category( $services ),
 			'staff'     => $staff,
-			'fields'    => SB_Custom_Fields::all(),
-			'extras'    => SB_Pricing::extras(),
+			'fields'    => CSlot_Custom_Fields::all(),
+			'extras'    => CSlot_Pricing::extras(),
 			// Price summary and coupon box only when something costs money.
-			'priced'    => (bool) array_filter( $services, fn( $s ) => (float) $s['price'] > 0 ) || SB_Pricing::extras(),
+			'priced'    => (bool) array_filter( $services, fn( $s ) => (float) $s['price'] > 0 ) || CSlot_Pricing::extras(),
 			// The location question only appears when there is a choice.
 			'locations' => count( $locations ) > 1 ? $locations : [],
 		] );
@@ -177,12 +177,12 @@ class SB_Public_Controller {
 		$id      = absint( $_GET['sb_booking'] ?? 0 );
 		$token   = sanitize_key( wp_unslash( $_GET['sb_token'] ?? '' ) );
 		// phpcs:enable
-		$booking = SB_Manage::verify( $id, $token );
+		$booking = CSlot_Manage::verify( $id, $token );
 
-		wp_enqueue_style( 'sb-booking-form' );
-		if ( $booking && SB_Manage::can_change( $booking ) ) {
-			wp_enqueue_script( 'sb-manage', SB_PLUGIN_URL . 'public/assets/js/manage.js', [], SB_VERSION, true );
-			wp_localize_script( 'sb-manage', 'sbManage', [
+		wp_enqueue_style( 'cslot-booking-form' );
+		if ( $booking && CSlot_Manage::can_change( $booking ) ) {
+			wp_enqueue_script( 'cslot-manage', CSLOT_PLUGIN_URL . 'public/assets/js/manage.js', [], CSLOT_VERSION, true );
+			wp_localize_script( 'cslot-manage', 'cslotManage', [
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'id'      => $id,
 				'token'   => $token,
@@ -197,7 +197,7 @@ class SB_Public_Controller {
 		}
 
 		ob_start();
-		sb_view( 'public/views/manage', [ 'booking' => $booking ? $this->booking_details( $booking ) : null ] );
+		cslot_view( 'public/views/manage', [ 'booking' => $booking ? $this->booking_details( $booking ) : null ] );
 		return (string) ob_get_clean();
 	}
 
@@ -205,17 +205,17 @@ class SB_Public_Controller {
 	 * Booking row plus the names the manage view shows.
 	 */
 	private function booking_details( array $booking ): array {
-		$service = ( new SB_Services() )->get_by_id( (int) $booking['service_id'] );
-		$staff    = $booking['staff_id'] ? ( new SB_Staff() )->get_by_id( (int) $booking['staff_id'] ) : null;
-		$location = ( new SB_Locations() )->get_by_id( (int) ( $booking['location_id'] ?? 0 ) );
+		$service = ( new CSlot_Services() )->get_by_id( (int) $booking['service_id'] );
+		$staff    = $booking['staff_id'] ? ( new CSlot_Staff() )->get_by_id( (int) $booking['staff_id'] ) : null;
+		$location = ( new CSlot_Locations() )->get_by_id( (int) ( $booking['location_id'] ?? 0 ) );
 		return $booking + [
 			'service_name' => $service['name'] ?? '',
 			'staff_name'   => $staff['name'] ?? '',
 			'location'     => $location ? trim( $location['name'] . "\n" . $location['address'] ) : '',
-			'can_change'   => SB_Manage::can_change( $booking ),
+			'can_change'   => CSlot_Manage::can_change( $booking ),
 			'deposit'      => (float) ( json_decode( (string) ( $booking['pricing'] ?? '' ), true )['deposit'] ?? 0 ),
-			'invoice_url'  => empty( $booking['pricing'] ) ? '' : add_query_arg( [ 'action' => 'sb_invoice', 'id' => (int) $booking['id'], 'token' => SB_Manage::token( $booking ) ], admin_url( 'admin-post.php' ) ),
-			'deadline'     => SB_Manage::deadline( $booking ),
+			'invoice_url'  => empty( $booking['pricing'] ) ? '' : add_query_arg( [ 'action' => 'cslot_invoice', 'id' => (int) $booking['id'], 'token' => CSlot_Manage::token( $booking ) ], admin_url( 'admin-post.php' ) ),
+			'deadline'     => CSlot_Manage::deadline( $booking ),
 		];
 	}
 
@@ -225,13 +225,13 @@ class SB_Public_Controller {
 	 */
 	private function manage_guard(): array {
 		$post    = wp_unslash( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification -- the signed token is the check
-		$booking = SB_Manage::verify( absint( $post['id'] ?? 0 ), sanitize_key( $post['token'] ?? '' ) );
+		$booking = CSlot_Manage::verify( absint( $post['id'] ?? 0 ), sanitize_key( $post['token'] ?? '' ) );
 		if ( ! $booking ) {
 			$this->is_rate_limited()
 				? wp_send_json_error( [ 'message' => __( 'Too many attempts. Please wait a few minutes and try again.', 'counterslot' ) ], 429 )
 				: wp_send_json_error( [ 'message' => __( 'This link is not valid.', 'counterslot' ) ], 403 );
 		}
-		if ( ! SB_Manage::can_change( $booking ) ) {
+		if ( ! CSlot_Manage::can_change( $booking ) ) {
 			wp_send_json_error( [ 'message' => __( 'This booking can no longer be changed online. Please contact us.', 'counterslot' ) ], 409 );
 		}
 		return $booking + [ 'post' => $post ];
@@ -240,22 +240,22 @@ class SB_Public_Controller {
 	public function ajax_manage_slots(): void {
 		$booking = $this->manage_guard();
 		$date    = sanitize_text_field( $booking['post']['date'] ?? '' );
-		$slots   = ( new SB_Bookings() )->get_available_slots(
+		$slots   = ( new CSlot_Bookings() )->get_available_slots(
 			(int) $booking['service_id'],
 			$booking['staff_id'] ? (int) $booking['staff_id'] : null,
 			$date,
 			(int) $booking['id']
 		);
-		wp_send_json_success( [ 'slots' => array_values( array_filter( $slots, fn( $t ) => SB_Manage::allowed_start( $date, $t ) ) ) ] );
+		wp_send_json_success( [ 'slots' => array_values( array_filter( $slots, fn( $t ) => CSlot_Manage::allowed_start( $date, $t ) ) ) ] );
 	}
 
 	public function ajax_manage_cancel(): void {
 		$booking = $this->manage_guard();
-		$result  = ( new SB_Bookings() )->update_status( (int) $booking['id'], 'cancelled' );
+		$result  = ( new CSlot_Bookings() )->update_status( (int) $booking['id'], 'cancelled' );
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error( [ 'message' => $result->get_error_message() ], 409 );
 		}
-		( new SB_Email() )->customer_changed( (int) $booking['id'], __( 'The customer cancelled this booking.', 'counterslot' ) );
+		( new CSlot_Email() )->customer_changed( (int) $booking['id'], __( 'The customer cancelled this booking.', 'counterslot' ) );
 		wp_send_json_success( [ 'message' => __( 'Your appointment has been cancelled.', 'counterslot' ) ] );
 	}
 
@@ -264,11 +264,11 @@ class SB_Public_Controller {
 	 */
 	public function ajax_manage_reschedule(): void {
 		$booking = $this->manage_guard();
-		if ( ! SB_Manage::allowed_start( sanitize_text_field( $booking['post']['booking_date'] ?? '' ), sanitize_text_field( $booking['post']['booking_time'] ?? '' ) ) ) {
+		if ( ! CSlot_Manage::allowed_start( sanitize_text_field( $booking['post']['booking_date'] ?? '' ), sanitize_text_field( $booking['post']['booking_time'] ?? '' ) ) ) {
 			wp_send_json_error( [ 'code' => 'slot_unavailable', 'message' => __( 'That time is too soon to book online. Please choose a later time.', 'counterslot' ) ], 409 );
 		}
 		$old     = mysql2date( get_option( 'date_format' ), $booking['booking_date'] ) . ' ' . substr( $booking['booking_time'], 0, 5 );
-		$moved   = ( new SB_Bookings() )->reschedule(
+		$moved   = ( new CSlot_Bookings() )->reschedule(
 			(int) $booking['id'],
 			sanitize_text_field( $booking['post']['booking_date'] ?? '' ),
 			sanitize_text_field( $booking['post']['booking_time'] ?? '' ),
@@ -278,12 +278,12 @@ class SB_Public_Controller {
 			wp_send_json_error( [ 'code' => 'slot_unavailable', 'message' => __( 'Sorry, that time was just taken. Please choose another time.', 'counterslot' ) ], 409 );
 		}
 		/* translators: %s: the old date and time */
-		( new SB_Email() )->customer_changed( (int) $booking['id'], sprintf( __( 'The customer moved this booking from %s to:', 'counterslot' ), $old ) );
+		( new CSlot_Email() )->customer_changed( (int) $booking['id'], sprintf( __( 'The customer moved this booking from %s to:', 'counterslot' ), $old ) );
 		wp_send_json_success( [ 'message' => __( 'Your appointment has been moved. We have emailed you the new details.', 'counterslot' ) ] );
 	}
 
 	/**
-	 * Printable invoice (admin-post.php?action=sb_invoice&id=…). Admins get here with a nonce;
+	 * Printable invoice (admin-post.php?action=cslot_invoice&id=…). Admins get here with a nonce;
 	 * customers with their booking's signed token (link on their manage page).
 	 */
 	public function render_invoice(): void {
@@ -292,10 +292,10 @@ class SB_Public_Controller {
 		$token = sanitize_key( wp_unslash( $_GET['token'] ?? '' ) );
 		// phpcs:enable
 		$booking = null;
-		if ( current_user_can( 'manage_options' ) && wp_verify_nonce( sanitize_key( $_GET['_wpnonce'] ?? '' ), 'sb_invoice_' . $id ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-			$booking = ( new SB_Bookings() )->get_by_id( $id );
+		if ( current_user_can( 'manage_options' ) && wp_verify_nonce( sanitize_key( $_GET['_wpnonce'] ?? '' ), 'cslot_invoice_' . $id ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+			$booking = ( new CSlot_Bookings() )->get_by_id( $id );
 		} elseif ( $token ) {
-			$booking = SB_Manage::verify( $id, $token );
+			$booking = CSlot_Manage::verify( $id, $token );
 		}
 		if ( ! $booking || empty( $booking['pricing'] ) ) {
 			wp_die( esc_html__( 'This invoice is not available.', 'counterslot' ), '', [ 'response' => 403 ] );
@@ -303,14 +303,14 @@ class SB_Public_Controller {
 
 		nocache_headers();
 		$details  = $this->booking_details( $booking );
-		$customer = ( new SB_Customers() )->get_by_id( (int) $booking['customer_id'] );
-		sb_view( 'public/views/invoice', [
+		$customer = ( new CSlot_Customers() )->get_by_id( (int) $booking['customer_id'] );
+		cslot_view( 'public/views/invoice', [
 			'booking'  => $details,
-			'invoice'  => SB_Payments::invoice( $booking ),
+			'invoice'  => CSlot_Payments::invoice( $booking ),
 			'customer' => $customer,
 			'pricing'  => json_decode( (string) $booking['pricing'], true ),
-			'payments' => ( new SB_Payments() )->for_booking( $id ),
-			'settings' => SB_Settings::get_settings(),
+			'payments' => ( new CSlot_Payments() )->for_booking( $id ),
+			'settings' => CSlot_Settings::get_settings(),
 		] );
 		exit;
 	}
@@ -321,24 +321,24 @@ class SB_Public_Controller {
 	public function render_events(): string {
 		$this->prevent_caching();
 		$this->register_assets();
-		wp_enqueue_style( 'sb-booking-form' );
-		wp_enqueue_script( 'sb-events', SB_PLUGIN_URL . 'public/assets/js/events.js', [], SB_VERSION, true );
-		wp_localize_script( 'sb-events', 'sbEvents', [
+		wp_enqueue_style( 'cslot-booking-form' );
+		wp_enqueue_script( 'cslot-events', CSLOT_PLUGIN_URL . 'public/assets/js/events.js', [], CSLOT_VERSION, true );
+		wp_localize_script( 'cslot-events', 'cslotEvents', [
 			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-			'nonce'   => wp_create_nonce( 'sb_public_nonce' ),
+			'nonce'   => wp_create_nonce( 'cslot_public_nonce' ),
 			'i18n'    => [
 				'error'   => __( 'Something went wrong. Please try again.', 'counterslot' ),
 				'sending' => __( 'Sending…', 'counterslot' ),
 			],
 		] );
 		ob_start();
-		sb_view( 'public/views/events', [ 'events' => ( new SB_Events() )->get_all( true ) ] );
+		cslot_view( 'public/views/events', [ 'events' => ( new CSlot_Events() )->get_all( true ) ] );
 		return (string) ob_get_clean();
 	}
 
 	public function ajax_event_register(): void {
-		SB_Security::verify_nonce( 'sb_public_nonce' );
-		$post = wp_unslash( $_POST );
+		CSlot_Security::verify_nonce( 'cslot_public_nonce' );
+		$post = wp_unslash( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce checked above; fields are sanitized where used
 		if ( ! empty( $post['website'] ) ) { // honeypot
 			wp_send_json_error( [ 'message' => __( 'Your registration could not be sent.', 'counterslot' ) ], 400 );
 		}
@@ -353,7 +353,7 @@ class SB_Public_Controller {
 			wp_send_json_error( [ 'message' => __( 'Please enter your name and a valid email address.', 'counterslot' ) ], 422 );
 		}
 
-		$events = new SB_Events();
+		$events = new CSlot_Events();
 		$event  = $events->get_by_id( absint( $post['event_id'] ?? 0 ) );
 		// Check places before saving the customer; register() checks again under the lock.
 		$left = $event ? (int) $event['capacity'] - (int) $event['taken'] : 0;
@@ -365,13 +365,13 @@ class SB_Public_Controller {
 					: __( 'Sorry, this event is full.', 'counterslot' ),
 			], 409 );
 		}
-		$customer_id = ( new SB_Customers() )->find_or_create( $name, $email, $phone );
+		$customer_id = ( new CSlot_Customers() )->find_or_create( $name, $email, $phone );
 		$result      = $customer_id ? $events->register( (int) $event['id'], $customer_id, $spots ) : __( 'Your registration could not be saved. Please try again.', 'counterslot' );
 		if ( ! is_int( $result ) ) {
 			wp_send_json_error( [ 'message' => $result ], 409 );
 		}
 		$registration = $events->registration( $result );
-		( new SB_Email() )->event_registration( $event, $registration, 'event_registered' );
+		( new CSlot_Email() )->event_registration( $event, $registration, 'event_registered' );
 		wp_send_json_success( [
 			/* translators: 1: event name, 2: registration code */
 			'message' => sprintf( __( 'You\'re registered for %1$s. Your code is %2$s; we\'ve emailed you the details.', 'counterslot' ), $event['name'], $registration['code'] ),
@@ -383,7 +383,7 @@ class SB_Public_Controller {
 	 */
 	public function ajax_quote(): void {
 		// phpcs:disable WordPress.Security.NonceVerification
-		$q = SB_Pricing::quote(
+		$q = CSlot_Pricing::quote(
 			absint( $_POST['service_id'] ?? 0 ),
 			array_map( 'sanitize_key', (array) wp_unslash( $_POST['extras'] ?? [] ) ),
 			sanitize_text_field( wp_unslash( $_POST['coupon'] ?? '' ) ),
@@ -395,7 +395,7 @@ class SB_Public_Controller {
 			wp_send_json_error( [ 'message' => __( 'Too many attempts. Please wait a few minutes and try again.', 'counterslot' ) ], 429 );
 		}
 		wp_send_json_success( [
-			'lines'       => array_map( fn( $l ) => [ $l[0], sb_price( $l[1] ) ], SB_Pricing::lines( $q ) ),
+			'lines'       => array_map( fn( $l ) => [ $l[0], cslot_price( $l[1] ) ], CSlot_Pricing::lines( $q ) ),
 			'couponError' => $q['coupon_error'],
 			'total'       => $q['total'],
 		] );
@@ -413,13 +413,13 @@ class SB_Public_Controller {
 		// phpcs:enable
 
 		wp_send_json_success( [
-			'slots' => ( new SB_Bookings() )->get_available_slots( $service_id, $staff_id, $date, null, $location ),
+			'slots' => ( new CSlot_Bookings() )->get_available_slots( $service_id, $staff_id, $date, null, $location ),
 		] );
 	}
 
 	public function ajax_submit_booking(): void {
-		SB_Security::verify_nonce( 'sb_public_nonce' );
-		$post = wp_unslash( $_POST );
+		CSlot_Security::verify_nonce( 'cslot_public_nonce' );
+		$post = wp_unslash( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce checked above; fields are sanitized where used
 
 		// Honeypot: real visitors never see or fill this field.
 		if ( ! empty( $post['website'] ) ) {
@@ -429,25 +429,25 @@ class SB_Public_Controller {
 			wp_send_json_error( [ 'message' => __( 'Too many booking attempts. Please wait a few minutes and try again.', 'counterslot' ) ], 429 );
 		}
 
-		$data = SB_Validator::booking_request( $post );
+		$data = CSlot_Validator::booking_request( $post );
 		if ( is_wp_error( $data ) ) {
 			wp_send_json_error( [ 'message' => $data->get_error_message() ], 422 );
 		}
 
-		$answers = SB_Custom_Fields::answers( $post, $data['service_id'] );
+		$answers = CSlot_Custom_Fields::answers( $post, $data['service_id'] );
 		if ( is_wp_error( $answers ) ) {
 			wp_send_json_error( [ 'message' => $answers->get_error_message() ], 422 );
 		}
 		$data['custom_fields'] = $answers;
 
 		// Price is always worked out here; the form's summary is only a preview.
-		$quote = SB_Pricing::quote( $data['service_id'], (array) ( $post['extras'] ?? [] ), sanitize_text_field( $post['coupon'] ?? '' ), $data['booking_date'] );
+		$quote = CSlot_Pricing::quote( $data['service_id'], (array) ( $post['extras'] ?? [] ), sanitize_text_field( $post['coupon'] ?? '' ), $data['booking_date'] );
 		if ( $quote['coupon_error'] ) {
 			wp_send_json_error( [ 'message' => $quote['coupon_error'] ], 422 );
 		}
-		$data['pricing'] = SB_Pricing::to_store( $quote );
+		$data['pricing'] = CSlot_Pricing::to_store( $quote );
 
-		$bookings = new SB_Bookings();
+		$bookings = new CSlot_Bookings();
 		$taken    = static fn() => wp_send_json_error( [
 			'code'    => 'slot_unavailable',
 			'message' => __( 'Sorry, that time was just taken. Please choose another time.', 'counterslot' ),
@@ -459,19 +459,19 @@ class SB_Public_Controller {
 			$taken();
 		}
 
-		$customer_id = ( new SB_Customers() )->find_or_create( $data['name'], $data['email'], $data['phone'] );
+		$customer_id = ( new CSlot_Customers() )->find_or_create( $data['name'], $data['email'], $data['phone'] );
 		if ( ! $customer_id ) {
 			wp_send_json_error( [ 'message' => __( 'Your booking could not be saved. Please try again.', 'counterslot' ) ], 500 );
 		}
 
 		// Count the coupon use first (atomically), and give it back if the booking fails.
-		if ( $quote['coupon'] && ! SB_Pricing::redeem( (int) $quote['coupon']['id'] ) ) {
+		if ( $quote['coupon'] && ! CSlot_Pricing::redeem( (int) $quote['coupon']['id'] ) ) {
 			wp_send_json_error( [ 'message' => __( 'This coupon has been used up.', 'counterslot' ) ], 422 );
 		}
 		$booking_id = $bookings->create_booking( [ 'customer_id' => $customer_id ] + $data );
 		if ( ! $booking_id ) {
 			if ( $quote['coupon'] ) {
-				SB_Pricing::unredeem( (int) $quote['coupon']['id'] );
+				CSlot_Pricing::unredeem( (int) $quote['coupon']['id'] );
 			}
 			$taken();
 		}
@@ -489,7 +489,7 @@ class SB_Public_Controller {
 	 * Next DAYS_AHEAD days in the site timezone, flagged open/closed from the working days.
 	 */
 	private function upcoming_days(): array {
-		$staff_mgr = new SB_Staff();
+		$staff_mgr = new CSlot_Staff();
 		$staff     = $staff_mgr->get_all();
 		$day       = new DateTimeImmutable( 'today', wp_timezone() );
 		$days      = [];
@@ -498,7 +498,7 @@ class SB_Public_Controller {
 		// and per-staff detail is left to the times list.
 		$open = static fn( DateTimeImmutable $d ) => $staff
 			? (bool) array_filter( $staff, fn( $m ) => null !== $staff_mgr->hours_on( $m, $d->format( 'Y-m-d' ) ) )
-			: null !== SB_Staff::business_hours_on( $d->format( 'l' ) );
+			: null !== CSlot_Staff::business_hours_on( $d->format( 'l' ) );
 
 		for ( $i = 0; $i < self::DAYS_AHEAD; $i++, $day = $day->modify( '+1 day' ) ) {
 			$ts     = $day->getTimestamp();
@@ -516,7 +516,7 @@ class SB_Public_Controller {
 
 	private function is_rate_limited(): bool {
 		$ip   = self::visitor_ip();
-		$key  = 'sb_rl_' . md5( $ip );
+		$key  = 'cslot_rl_' . md5( $ip );
 		$hits = (int) get_transient( $key );
 		if ( $hits >= self::RATE_LIMIT ) {
 			return true;

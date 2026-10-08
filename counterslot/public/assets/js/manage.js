@@ -2,7 +2,7 @@
 (function () {
 	'use strict';
 
-	const cfg = window.sbManage;
+	const cfg = window.cslotManage;
 	const root = document.querySelector('[data-sb-manage]');
 	if (!cfg || !root) {
 		return;
@@ -96,7 +96,7 @@
 		const mine = ++request;
 		note(cfg.i18n.loading);
 		try {
-			const res = await post('sb_manage_slots', { date: chosenDate });
+			const res = await post('cslot_manage_slots', { date: chosenDate });
 			if (mine !== request) {
 				return;
 			}
@@ -146,7 +146,7 @@
 		}
 		e.currentTarget.disabled = true;
 		try {
-			done((await post('sb_manage_cancel')).message);
+			done((await post('cslot_manage_cancel')).message);
 		} catch (err) {
 			setMessage(err.message, 'error');
 			e.currentTarget.disabled = false;
@@ -157,7 +157,7 @@
 		e.preventDefault();
 		submit.disabled = true;
 		try {
-			done((await post('sb_manage_reschedule', { booking_date: chosenDate, booking_time: chosenTime })).message);
+			done((await post('cslot_manage_reschedule', { booking_date: chosenDate, booking_time: chosenTime })).message);
 		} catch (err) {
 			setMessage(err.message, 'error');
 			if (err.code === 'slot_unavailable') {

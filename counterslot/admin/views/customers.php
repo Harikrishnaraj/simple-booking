@@ -9,10 +9,11 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
 $page_url = admin_url( 'admin.php?page=sb-customers' );
 ?>
 <div class="wrap sb-app">
-	<?php sb_view( 'admin/views/partials/header', [ 'title' => __( 'Customers', 'counterslot' ), 'theme' => $theme ] ); ?>
+	<?php cslot_view( 'admin/views/partials/header', [ 'title' => __( 'Customers', 'counterslot' ), 'theme' => $theme ] ); ?>
 
 	<section class="sb-card">
 		<div class="sb-toolbar sb-toolbar--split">
@@ -48,7 +49,7 @@ $page_url = admin_url( 'admin.php?page=sb-customers' );
 								<td class="sb-muted"><?php echo (int) $c['id']; ?></td>
 								<td>
 									<span class="sb-person">
-										<?php echo sb_avatar( $c['name'] ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in sb_avatar() ?>
+										<?php echo cslot_avatar( $c['name'] ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in cslot_avatar() ?>
 										<strong><?php echo esc_html( $c['name'] ); ?></strong>
 									</span>
 								</td>
@@ -61,7 +62,7 @@ $page_url = admin_url( 'admin.php?page=sb-customers' );
 									<a class="sb-button sb-button--ghost sb-button--small" href="<?php echo esc_url( admin_url( 'admin.php?page=sb-bookings&s=' . rawurlencode( $c['email'] ) ) ); ?>"><?php esc_html_e( 'Bookings', 'counterslot' ); ?></a>
 									<button type="button" class="sb-button sb-button--ghost sb-button--small" data-sb-open="sb-customer-dialog"
 										data-sb-fill="<?php echo esc_attr( wp_json_encode( array_intersect_key( $c, array_flip( [ 'id', 'name', 'email', 'phone', 'note' ] ) ) ) ); ?>"
-										aria-label="<?php echo esc_attr( sprintf( __( 'Edit %s', 'counterslot' ), $c['name'] ) ); ?>">
+										aria-label="<?php echo esc_attr( sprintf( /* translators: customer name */ __( 'Edit %s', 'counterslot' ), $c['name'] ) ); ?>">
 										<?php esc_html_e( 'Edit', 'counterslot' ); ?>
 									</button>
 								</td>
@@ -70,7 +71,7 @@ $page_url = admin_url( 'admin.php?page=sb-customers' );
 					</tbody>
 				</table>
 			</div>
-			<?php sb_view( 'admin/views/partials/pagination', [ 'page' => $page, 'pages' => $pages ] ); ?>
+			<?php cslot_view( 'admin/views/partials/pagination', [ 'page' => $page, 'pages' => $pages ] ); ?>
 		<?php elseif ( '' !== $search ) : ?>
 			<p class="sb-empty"><?php esc_html_e( 'No customers match your search.', 'counterslot' ); ?> <a class="sb-link" href="<?php echo esc_url( $page_url ); ?>"><?php esc_html_e( 'Clear search', 'counterslot' ); ?></a></p>
 		<?php else : ?>
@@ -79,7 +80,7 @@ $page_url = admin_url( 'admin.php?page=sb-customers' );
 	</section>
 
 	<dialog id="sb-customer-dialog" class="sb-dialog" aria-labelledby="sb-customer-dialog-title">
-		<form data-sb-action="sb_save_customer" data-sb-redirect="<?php echo esc_url( $page_url ); ?>">
+		<form data-sb-action="cslot_save_customer" data-sb-redirect="<?php echo esc_url( $page_url ); ?>">
 			<div class="sb-dialog__head">
 				<h2 id="sb-customer-dialog-title" data-new="<?php esc_attr_e( 'Add customer', 'counterslot' ); ?>" data-edit="<?php esc_attr_e( 'Edit customer', 'counterslot' ); ?>"><?php esc_html_e( 'Add customer', 'counterslot' ); ?></h2>
 				<button type="button" class="sb-icon-button" data-sb-close aria-label="<?php esc_attr_e( 'Close', 'counterslot' ); ?>"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button>

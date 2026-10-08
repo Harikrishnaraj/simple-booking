@@ -5,11 +5,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Email templates: which emails exist, their saved text and on/off state, and filling in placeholders.
- * Sending lives in SB_Email.
+ * Sending lives in CSlot_Email.
  */
-class SB_Notifications {
+class CSlot_Notifications {
 
-	private const OPTION_KEY = 'sb_email_templates';
+	private const OPTION_KEY = 'cslot_email_templates';
 
 	public const REMINDER_HOURS_DEFAULT = 24;
 
@@ -146,7 +146,7 @@ class SB_Notifications {
 	 * Built-in text. The old 1.0 switches decide which emails start switched on.
 	 */
 	private static function defaults(): array {
-		$settings = SB_Settings::get_settings();
+		$settings = CSlot_Settings::get_settings();
 		$customer = ! empty( $settings['customer_notification'] );
 
 		$manage  = "\n\n" . __( 'View, cancel or reschedule:', 'counterslot' ) . ' {manage_link}';

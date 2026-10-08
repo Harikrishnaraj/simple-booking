@@ -3,15 +3,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names come from $wpdb->prefix; every value goes through $wpdb->prepare().
+
 /**
  * What a booking costs: service price + chosen extras − coupon discount, with tax.
  * Extras are a small option list; coupons are a table so their use count can be
  * updated atomically. Each booking stores its own breakdown, so later price changes
  * don't alter past bookings.
  */
-class SB_Pricing {
+class CSlot_Pricing {
 
-	private const EXTRAS_KEY = 'sb_extras';
+	private const EXTRAS_KEY = 'cslot_extras';
 
 	/* ---------- Extras ---------- */
 
@@ -59,17 +61,17 @@ class SB_Pricing {
 
 	private static function coupons_table(): string {
 		global $wpdb;
-		return $wpdb->prefix . 'sb_coupons';
+		return $wpdb->prefix . 'cslot_coupons';
 	}
 
 	public static function coupons(): array {
 		global $wpdb;
-		return $wpdb->get_results( 'SELECT * FROM ' . self::coupons_table() . ' ORDER BY code ASC', ARRAY_A );
+		return $wpdb->get_results( 'SELECT * FROM ' . self::coupons_table() . ' ORDER BY code ASC', ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name only, no values
 	}
 
 	public static function coupon_by_code( string $code ): ?array {
 		global $wpdb;
-		$row = '' === $code ? null : $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . self::coupons_table() . ' WHERE code = %s', self::normalise_code( $code ) ), ARRAY_A );
+		$row = '' === $code ? null : $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . self::coupons_table() . ' WHERE code = %s', self::normalise_code( $code ) ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name only
 		return $row ?: null;
 	}
 
@@ -148,13 +150,13 @@ class SB_Pricing {
 	public static function redeem( int $coupon_id ): bool {
 		global $wpdb;
 		return 1 === (int) $wpdb->query(
-			$wpdb->prepare( 'UPDATE ' . self::coupons_table() . ' SET used = used + 1 WHERE id = %d AND (max_uses = 0 OR used < max_uses)', $coupon_id )
+			$wpdb->prepare( 'UPDATE ' . self::coupons_table() . ' SET used = used + 1 WHERE id = %d AND (max_uses = 0 OR used < max_uses)', $coupon_id ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name only
 		);
 	}
 
 	public static function unredeem( int $coupon_id ): void {
 		global $wpdb;
-		$wpdb->query( $wpdb->prepare( 'UPDATE ' . self::coupons_table() . ' SET used = used - 1 WHERE id = %d AND used > 0', $coupon_id ) );
+		$wpdb->query( $wpdb->prepare( 'UPDATE ' . self::coupons_table() . ' SET used = used - 1 WHERE id = %d AND used > 0', $coupon_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name only
 	}
 
 	/* ---------- Quote ---------- */
@@ -166,7 +168,7 @@ class SB_Pricing {
 	 *               coupon: ?array, coupon_error: string, tax: float, total: float, tax_included: bool}
 	 */
 	public static function quote( int $service_id, array $extra_ids, string $coupon_code, string $date ): array {
-		$service  = ( new SB_Services() )->get_by_id( $service_id );
+		$service  = ( new CSlot_Services() )->get_by_id( $service_id );
 		$price    = (float) ( $service['price'] ?? 0 );
 		$wanted   = array_map( 'strval', $extra_ids );
 		$extras   = array_values( array_filter( self::extras_for_service( $service_id ), fn( $e ) => in_array( $e['id'], $wanted, true ) ) );
@@ -187,7 +189,7 @@ class SB_Pricing {
 			}
 		}
 
-		$settings = SB_Settings::get_settings();
+		$settings = CSlot_Settings::get_settings();
 		$rate     = max( 0, (float) $settings['tax_rate'] ) / 100;
 		$included = ! empty( $settings['prices_include_tax'] );
 		$net      = $subtotal - $discount;

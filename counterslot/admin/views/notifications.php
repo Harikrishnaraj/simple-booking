@@ -1,6 +1,6 @@
 <?php
 /**
- * @var array          $types     SB_Notifications::types()
+ * @var array          $types     CSlot_Notifications::types()
  * @var array          $templates key => saved template
  * @var string         $current   key of the template being edited
  * @var int|false      $next_run  next reminder cron run (timestamp)
@@ -10,6 +10,7 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
 $groups = [
 	'customer' => __( 'To customer', 'counterslot' ),
 	'staff'    => __( 'To staff & admin', 'counterslot' ),
@@ -18,7 +19,7 @@ $t        = $templates[ $current ];
 $edit_url = add_query_arg( 'email', $current, $page_url );
 ?>
 <div class="wrap sb-app">
-	<?php sb_view( 'admin/views/partials/header', [ 'title' => __( 'Notifications', 'counterslot' ), 'theme' => $theme ] ); ?>
+	<?php cslot_view( 'admin/views/partials/header', [ 'title' => __( 'Notifications', 'counterslot' ), 'theme' => $theme ] ); ?>
 
 	<div class="sb-split">
 		<nav class="sb-card sb-split__form" aria-label="<?php esc_attr_e( 'Emails', 'counterslot' ); ?>">
@@ -44,7 +45,7 @@ $edit_url = add_query_arg( 'email', $current, $page_url );
 		</nav>
 
 		<section class="sb-card sb-split__list">
-			<form data-sb-action="sb_save_template" data-sb-redirect="<?php echo esc_url( $edit_url ); ?>" data-sb-template>
+			<form data-sb-action="cslot_save_template" data-sb-redirect="<?php echo esc_url( $edit_url ); ?>" data-sb-template>
 				<input type="hidden" name="key" value="<?php echo esc_attr( $current ); ?>">
 
 				<div class="sb-card__head">
@@ -67,7 +68,7 @@ $edit_url = add_query_arg( 'email', $current, $page_url );
 							<?php
 							esc_html_e( 'Reminders are checked every hour by WordPress\'s scheduler, which runs when someone visits the site. Bookings made inside this window get no reminder.', 'counterslot' );
 							if ( $next_run ) {
-								echo ' ' . esc_html( sprintf( __( 'Next check: %s.', 'counterslot' ), wp_date( get_option( 'time_format' ), $next_run ) ) );
+								echo ' ' . esc_html( sprintf( /* translators: time of day */ __( 'Next check: %s.', 'counterslot' ), wp_date( get_option( 'time_format' ), $next_run ) ) );
 							}
 							?>
 						</span>
@@ -78,7 +79,7 @@ $edit_url = add_query_arg( 'email', $current, $page_url );
 						echo wp_kses_post( sprintf(
 							/* translators: 1: email address, 2: link to the Settings page */
 							__( 'Goes to %1$s. Change it in <a href="%2$s">Settings</a>.', 'counterslot' ),
-							'<strong>' . esc_html( SB_Settings::get_settings()['admin_email'] ) . '</strong>',
+							'<strong>' . esc_html( CSlot_Settings::get_settings()['admin_email'] ) . '</strong>',
 							esc_url( admin_url( 'admin.php?page=sb-settings' ) )
 						) );
 						?>
@@ -100,7 +101,7 @@ $edit_url = add_query_arg( 'email', $current, $page_url );
 					<legend class="sb-label"><?php esc_html_e( 'Placeholders', 'counterslot' ); ?></legend>
 					<p class="sb-hint"><?php esc_html_e( 'Click to insert at the cursor in the subject or message.', 'counterslot' ); ?></p>
 					<div class="sb-chips">
-						<?php foreach ( SB_Notifications::placeholders() as $code => $label ) : ?>
+						<?php foreach ( CSlot_Notifications::placeholders() as $code => $label ) : ?>
 							<button type="button" class="sb-chip" data-sb-insert="<?php echo esc_attr( $code ); ?>" title="<?php echo esc_attr( $label ); ?>"><code translate="no"><?php echo esc_html( $code ); ?></code></button>
 						<?php endforeach; ?>
 					</div>

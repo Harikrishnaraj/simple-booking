@@ -12,6 +12,7 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
 $category_names = array_column( $categories, 'name', 'id' );
 $filter_url     = static fn( $value ) => $value ? add_query_arg( 'category', $value, $page_url ) : $page_url;
 $list_title     = ! $category ? __( 'All services', 'counterslot' ) : ( 'none' === $category ? __( 'Uncategorized', 'counterslot' ) : ( $category_names[ $category ] ?? '' ) );
@@ -19,7 +20,7 @@ $list_title     = ! $category ? __( 'All services', 'counterslot' ) : ( 'none' =
 $form_category = (int) ( $editing['category_id'] ?? ( is_int( $category ) ? $category : 0 ) );
 ?>
 <div class="wrap sb-app">
-	<?php sb_view( 'admin/views/partials/header', [ 'title' => __( 'Services', 'counterslot' ), 'theme' => $theme ] ); ?>
+	<?php cslot_view( 'admin/views/partials/header', [ 'title' => __( 'Services', 'counterslot' ), 'theme' => $theme ] ); ?>
 
 	<div class="sb-split">
 		<div class="sb-split__form">
@@ -45,11 +46,11 @@ $form_category = (int) ( $editing['category_id'] ?? ( is_int( $category ) ? $cat
 							<span class="sb-categories__actions">
 								<button type="button" class="sb-icon-button sb-icon-button--small" data-sb-open="sb-category-dialog"
 									data-sb-fill="<?php echo esc_attr( wp_json_encode( [ 'id' => (int) $cat['id'], 'name' => $cat['name'] ] ) ); ?>"
-									aria-label="<?php echo esc_attr( sprintf( __( 'Rename %s', 'counterslot' ), $cat['name'] ) ); ?>"><span class="dashicons dashicons-edit" aria-hidden="true"></span></button>
-								<button type="button" class="sb-icon-button sb-icon-button--small sb-icon-button--danger" data-sb-delete="sb_delete_category" data-id="<?php echo (int) $cat['id']; ?>"
+									aria-label="<?php echo esc_attr( sprintf( /* translators: category name */ __( 'Rename %s', 'counterslot' ), $cat['name'] ) ); ?>"><span class="dashicons dashicons-edit" aria-hidden="true"></span></button>
+								<button type="button" class="sb-icon-button sb-icon-button--small sb-icon-button--danger" data-sb-delete="cslot_delete_category" data-id="<?php echo (int) $cat['id']; ?>"
 									data-sb-confirm="<?php esc_attr_e( 'Delete this category? Its services are kept and become uncategorized.', 'counterslot' ); ?>"
 									data-sb-redirect="<?php echo esc_url( $current ? $page_url : '' ); ?>"
-									aria-label="<?php echo esc_attr( sprintf( __( 'Delete %s', 'counterslot' ), $cat['name'] ) ); ?>"><span class="dashicons dashicons-trash" aria-hidden="true"></span></button>
+									aria-label="<?php echo esc_attr( sprintf( /* translators: category name */ __( 'Delete %s', 'counterslot' ), $cat['name'] ) ); ?>"><span class="dashicons dashicons-trash" aria-hidden="true"></span></button>
 							</span>
 						</li>
 					<?php endforeach; ?>
@@ -69,7 +70,7 @@ $form_category = (int) ( $editing['category_id'] ?? ( is_int( $category ) ? $cat
 			<section class="sb-card">
 				<div>
 					<h2 class="sb-card__title"><?php echo $editing ? esc_html__( 'Edit Service', 'counterslot' ) : esc_html__( 'Add Service', 'counterslot' ); ?></h2>
-					<form data-sb-action="sb_save_service" data-sb-redirect="<?php echo esc_url( $page_url ); ?>">
+					<form data-sb-action="cslot_save_service" data-sb-redirect="<?php echo esc_url( $page_url ); ?>">
 						<input type="hidden" name="id" value="<?php echo (int) ( $editing['id'] ?? 0 ); ?>">
 						<div class="form-field form-required">
 							<label for="sb-service-name"><?php esc_html_e( 'Name', 'counterslot' ); ?></label>
@@ -139,12 +140,12 @@ $form_category = (int) ( $editing['category_id'] ?? ( is_int( $category ) ? $cat
 							<tr>
 								<td><strong><?php echo esc_html( $s['name'] ); ?></strong></td>
 								<td><?php echo isset( $category_names[ $s['category_id'] ?? 0 ] ) ? esc_html( $category_names[ $s['category_id'] ] ) : '<span class="sb-muted">—</span>'; ?></td>
-								<td><?php echo esc_html( sprintf( _n( '%d minute', '%d minutes', (int) $s['duration'], 'counterslot' ), (int) $s['duration'] ) ); ?></td>
-								<td><?php echo esc_html( sb_price( $s['price'] ) ); ?></td>
-								<td><?php sb_view( 'admin/views/partials/active-badge', [ 'active' => 'active' === $s['status'] ] ); ?></td>
+								<td><?php echo esc_html( sprintf( /* translators: number of minutes */ _n( '%d minute', '%d minutes', (int) $s['duration'], 'counterslot' ), (int) $s['duration'] ) ); ?></td>
+								<td><?php echo esc_html( cslot_price( $s['price'] ) ); ?></td>
+								<td><?php cslot_view( 'admin/views/partials/active-badge', [ 'active' => 'active' === $s['status'] ] ); ?></td>
 								<td class="sb-actions">
 									<a class="sb-button sb-button--ghost sb-button--small" href="<?php echo esc_url( add_query_arg( 'edit', (int) $s['id'], $page_url ) ); ?>"><?php esc_html_e( 'Edit', 'counterslot' ); ?></a>
-									<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-delete="sb_delete_service" data-id="<?php echo (int) $s['id']; ?>"><?php esc_html_e( 'Delete', 'counterslot' ); ?></button>
+									<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-delete="cslot_delete_service" data-id="<?php echo (int) $s['id']; ?>"><?php esc_html_e( 'Delete', 'counterslot' ); ?></button>
 								</td>
 							</tr>
 						<?php endforeach; ?>
@@ -155,7 +156,7 @@ $form_category = (int) ( $editing['category_id'] ?? ( is_int( $category ) ? $cat
 	</div>
 
 	<dialog id="sb-category-dialog" class="sb-dialog" aria-labelledby="sb-category-dialog-title">
-		<form data-sb-action="sb_save_category" data-sb-redirect="<?php echo esc_url( $filter_url( $category ) ); ?>">
+		<form data-sb-action="cslot_save_category" data-sb-redirect="<?php echo esc_url( $filter_url( $category ) ); ?>">
 			<div class="sb-dialog__head">
 				<h2 id="sb-category-dialog-title" data-new="<?php esc_attr_e( 'Add category', 'counterslot' ); ?>" data-edit="<?php esc_attr_e( 'Rename category', 'counterslot' ); ?>"><?php esc_html_e( 'Add category', 'counterslot' ); ?></h2>
 				<button type="button" class="sb-icon-button" data-sb-close aria-label="<?php esc_attr_e( 'Close', 'counterslot' ); ?>"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button>

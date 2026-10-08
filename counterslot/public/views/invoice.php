@@ -12,11 +12,12 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
 $paid     = array_sum( array_map( 'floatval', array_column( $payments, 'amount' ) ) );
 $balance  = round( (float) $pricing['total'] - $paid, 2 );
-$methods  = SB_Payments::methods();
+$methods  = CSlot_Payments::methods();
 $date_fmt = get_option( 'date_format' );
-$lines    = SB_Pricing::lines( $pricing );
+$lines    = CSlot_Pricing::lines( $pricing );
 ?>
 <!doctype html>
 <html <?php language_attributes(); ?>>
@@ -24,7 +25,7 @@ $lines    = SB_Pricing::lines( $pricing );
 	<meta charset="<?php bloginfo( 'charset' ); ?>">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="robots" content="noindex">
-	<title><?php echo esc_html( sprintf( __( 'Invoice %s', 'counterslot' ), $invoice['number'] ) ); ?></title>
+	<title><?php echo esc_html( sprintf( /* translators: invoice number */ __( 'Invoice %s', 'counterslot' ), $invoice['number'] ) ); ?></title>
 	<style>
 		body { margin: 0; background: #f3f4f6; color: #111827; font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
 		.sheet { max-width: 760px; margin: 24px auto; padding: 40px; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
@@ -83,7 +84,7 @@ $lines    = SB_Pricing::lines( $pricing );
 				<?php foreach ( $lines as $i => [ $label, $amount ] ) : ?>
 					<tr class="<?php echo count( $lines ) - 1 === $i ? 'total' : ''; ?>">
 						<td><?php echo esc_html( 0 === $i ? $booking['service_name'] : $label ); ?></td>
-						<td class="num"><?php echo esc_html( sb_price( $amount ) ); ?></td>
+						<td class="num"><?php echo esc_html( cslot_price( $amount ) ); ?></td>
 					</tr>
 				<?php endforeach; ?>
 			</tbody>
@@ -96,7 +97,7 @@ $lines    = SB_Pricing::lines( $pricing );
 					<?php foreach ( $payments as $p ) : ?>
 						<tr>
 							<td><?php echo esc_html( mysql2date( $date_fmt, $p['paid_at'] ) . ' · ' . ( $methods[ $p['method'] ] ?? $p['method'] ) . ( (float) $p['amount'] < 0 ? ' · ' . __( 'Refund', 'counterslot' ) : '' ) ); ?></td>
-							<td class="num"><?php echo esc_html( sb_price( $p['amount'] ) ); ?></td>
+							<td class="num"><?php echo esc_html( cslot_price( $p['amount'] ) ); ?></td>
 						</tr>
 					<?php endforeach; ?>
 				</tbody>
@@ -105,7 +106,7 @@ $lines    = SB_Pricing::lines( $pricing );
 
 		<div class="balance">
 			<span><?php echo $balance > 0 ? esc_html__( 'Balance due', 'counterslot' ) : esc_html__( 'Paid in full', 'counterslot' ); ?></span>
-			<span><?php echo esc_html( sb_price( max( 0, $balance ) ) ); ?></span>
+			<span><?php echo esc_html( cslot_price( max( 0, $balance ) ) ); ?></span>
 		</div>
 	</main>
 </body>

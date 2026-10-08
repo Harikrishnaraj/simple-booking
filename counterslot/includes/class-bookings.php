@@ -3,17 +3,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class SB_Bookings {
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names come from $wpdb->prefix; every value goes through $wpdb->prepare().
+
+class CSlot_Bookings {
 
 	private string $table_name;
 
 	public function __construct() {
 		global $wpdb;
-		$this->table_name = $wpdb->prefix . 'sb_bookings';
+		$this->table_name = $wpdb->prefix . 'cslot_bookings';
 	}
 
 	public function generate_booking_code(): string {
-		return 'SB-' . strtoupper( wp_generate_password( 6, false ) );
+		return 'CS-' . strtoupper( wp_generate_password( 6, false ) );
 	}
 
 	/**
@@ -33,7 +35,7 @@ class SB_Bookings {
 		$date        = sanitize_text_field( $data['booking_date'] ?? '' );
 		$time        = substr( sanitize_text_field( $data['booking_time'] ?? '' ), 0, 5 );
 
-		$service = ( new SB_Services() )->get_by_id( $service_id );
+		$service = ( new CSlot_Services() )->get_by_id( $service_id );
 		if ( ! $service || ! $customer_id ) {
 			return false;
 		}
@@ -63,14 +65,14 @@ class SB_Bookings {
 				'end_time'     => $end_time,
 				'status'       => $status,
 				'notes'        => sanitize_textarea_field( $data['notes'] ?? '' ),
-				// Validated answers from SB_Custom_Fields::answers().
+				// Validated answers from CSlot_Custom_Fields::answers().
 				'custom_fields' => ! empty( $data['custom_fields'] ) ? wp_json_encode( $data['custom_fields'] ) : null,
 				'series_id'     => ! empty( $data['series_id'] ) ? substr( sanitize_key( $data['series_id'] ), 0, 20 ) : null,
-				// SB_Pricing::to_store() breakdown; total kept separately for reports.
+				// CSlot_Pricing::to_store() breakdown; total kept separately for reports.
 				'pricing'       => ! empty( $data['pricing'] ) ? wp_json_encode( $data['pricing'] ) : null,
 				'total'         => isset( $data['pricing']['total'] ) ? (float) $data['pricing']['total'] : null,
 				// Already inside the reminder window: the booking email is reminder enough.
-				'reminder_sent' => SB_Email::inside_reminder_window( $date, "$time:00" ) ? current_time( 'mysql', true ) : null,
+				'reminder_sent' => CSlot_Email::inside_reminder_window( $date, "$time:00" ) ? current_time( 'mysql', true ) : null,
 			];
 
 			// booking_code is UNIQUE; retry with a fresh code on the rare collision.
@@ -84,7 +86,7 @@ class SB_Bookings {
 
 		if ( $booking_id && empty( $data['quiet'] ) ) {
 			// Emails go out after the lock is released.
-			( new SB_Email() )->booking_created( $booking_id, ! empty( $data['by_admin'] ), $data['notify_customer'] ?? true );
+			( new CSlot_Email() )->booking_created( $booking_id, ! empty( $data['by_admin'] ), $data['notify_customer'] ?? true );
 		}
 		return $booking_id;
 	}
@@ -116,7 +118,7 @@ class SB_Bookings {
 			}
 		}
 
-		( new SB_Email() )->booking_created( $out['ids'][0], ! empty( $data['by_admin'] ), $data['notify_customer'] ?? true );
+		( new CSlot_Email() )->booking_created( $out['ids'][0], ! empty( $data['by_admin'] ), $data['notify_customer'] ?? true );
 		return $out;
 	}
 
@@ -163,7 +165,7 @@ class SB_Bookings {
 			return false;
 		}
 		$time    = substr( $time, 0, 5 );
-		$service = ( new SB_Services() )->get_by_id( (int) $booking['service_id'] );
+		$service = ( new CSlot_Services() )->get_by_id( (int) $booking['service_id'] );
 
 		$moved = $this->with_date_lock( $date, function () use ( $wpdb, $id, $booking, $service, $staff_id, $date, $time ) {
 			$free = $this->free_slots( (int) $booking['service_id'], $staff_id, $date, $id );
@@ -179,7 +181,7 @@ class SB_Bookings {
 					'end_time'      => wp_date( 'H:i:s', $start->getTimestamp() + absint( $service['duration'] ) * MINUTE_IN_SECONDS ),
 					'staff_id'      => $free[ $time ],
 					'location_id'   => $this->location_for( $free[ $time ], $booking['location_id'] ? (int) $booking['location_id'] : null ),
-					'reminder_sent' => SB_Email::inside_reminder_window( $date, "$time:00" ) ? current_time( 'mysql', true ) : null,
+					'reminder_sent' => CSlot_Email::inside_reminder_window( $date, "$time:00" ) ? current_time( 'mysql', true ) : null,
 				],
 				[ 'id' => $id ],
 				[ '%s', '%s', '%s', '%d', '%d', '%s' ],
@@ -188,13 +190,13 @@ class SB_Bookings {
 		} );
 
 		if ( $moved && $notify_customer ) {
-			( new SB_Email() )->rescheduled( $id );
+			( new CSlot_Email() )->rescheduled( $id );
 		}
 		return (bool) $moved;
 	}
 
 	private function location_for( ?int $staff_id, ?int $fallback ): ?int {
-		$member = $staff_id ? ( new SB_Staff() )->get_by_id( $staff_id ) : null;
+		$member = $staff_id ? ( new CSlot_Staff() )->get_by_id( $staff_id ) : null;
 		return $member && ! empty( $member['location_id'] ) ? (int) $member['location_id'] : $fallback;
 	}
 
@@ -211,7 +213,7 @@ class SB_Bookings {
 	 */
 	private function with_date_lock( string $date, callable $fn ): mixed {
 		global $wpdb;
-		$lock = 'sb_book_' . md5( $wpdb->prefix . $date );
+		$lock = 'cslot_book_' . md5( $wpdb->prefix . $date );
 		if ( 1 !== (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $lock ) ) ) {
 			return false;
 		}
@@ -247,12 +249,12 @@ class SB_Bookings {
 	 * @return array<string, int|null> "H:i" => staff id (or null).
 	 */
 	private function free_slots( int $service_id, ?int $staff_id, string $date, ?int $exclude_id = null, ?int $location_id = null ): array {
-		$service = ( new SB_Services() )->get_by_id( $service_id );
+		$service = ( new CSlot_Services() )->get_by_id( $service_id );
 		if ( ! $service || 'active' !== $service['status'] || absint( $service['duration'] ) < 1 ) {
 			return [];
 		}
 
-		$staff_mgr = new SB_Staff();
+		$staff_mgr = new CSlot_Staff();
 		if ( $staff_id ) {
 			if ( ! $staff_mgr->can_perform( $staff_id, $service_id ) ) {
 				return [];
@@ -278,7 +280,7 @@ class SB_Bookings {
 		$hours = [];
 		foreach ( $candidates as $candidate ) {
 			$member = $candidate ? $staff_mgr->get_by_id( $candidate ) : null;
-			$range  = $member ? $staff_mgr->hours_on( $member, $date ) : SB_Staff::business_hours_on( $day->format( 'l' ) );
+			$range  = $member ? $staff_mgr->hours_on( $member, $date ) : CSlot_Staff::business_hours_on( $day->format( 'l' ) );
 			$open   = $range ? DateTimeImmutable::createFromFormat( '!Y-m-d H:i', "$date {$range[0]}", $tz ) : null;
 			$close  = $range ? DateTimeImmutable::createFromFormat( '!Y-m-d H:i', "$date {$range[1]}", $tz ) : null;
 			if ( $open && $close ) {
@@ -292,7 +294,7 @@ class SB_Bookings {
 
 		$start_ts = min( array_column( $hours, 0 ) );
 		$end_ts   = max( array_column( $hours, 1 ) );
-		$interval = max( 5, absint( SB_Settings::get_settings()['slot_duration'] ) ) * MINUTE_IN_SECONDS; // never 0: would loop forever
+		$interval = max( 5, absint( CSlot_Settings::get_settings()['slot_duration'] ) ) * MINUTE_IN_SECONDS; // never 0: would loop forever
 		$duration = absint( $service['duration'] ) * MINUTE_IN_SECONDS;
 		$now      = time();
 
@@ -338,7 +340,7 @@ class SB_Bookings {
 			ARRAY_A
 		);
 		$rows = $exclude_id ? array_values( array_filter( $rows, fn( $r ) => (int) $r['id'] !== $exclude_id ) ) : $rows;
-		foreach ( class_exists( 'SB_Events' ) ? ( new SB_Events() )->on( $date, $date ) : [] as $event ) {
+		foreach ( class_exists( 'CSlot_Events' ) ? ( new CSlot_Events() )->on( $date, $date ) : [] as $event ) {
 			if ( $event['staff_id'] ) {
 				$rows[] = [ 'id' => 0, 'booking_time' => $event['start_time'], 'end_time' => $event['end_time'], 'staff_id' => (string) $event['staff_id'] ];
 			}
@@ -389,7 +391,7 @@ class SB_Bookings {
 			return new WP_Error( 'failed', __( 'Could not update the booking status.', 'counterslot' ) );
 		}
 		if ( $updated ) {
-			( new SB_Email() )->status_changed( $id, $status );
+			( new CSlot_Email() )->status_changed( $id, $status );
 		}
 		return true;
 	}
@@ -413,10 +415,10 @@ class SB_Bookings {
 				"SELECT b.*, s.name AS service_name, st.name AS staff_name, l.name AS location_name,
 					c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone
 				 FROM {$this->table_name} b
-				 LEFT JOIN {$wpdb->prefix}sb_locations l ON l.id = b.location_id
-				 LEFT JOIN {$wpdb->prefix}sb_services s ON s.id = b.service_id
-				 LEFT JOIN {$wpdb->prefix}sb_staff st ON st.id = b.staff_id
-				 LEFT JOIN {$wpdb->prefix}sb_customers c ON c.id = b.customer_id
+				 LEFT JOIN {$wpdb->prefix}cslot_locations l ON l.id = b.location_id
+				 LEFT JOIN {$wpdb->prefix}cslot_services s ON s.id = b.service_id
+				 LEFT JOIN {$wpdb->prefix}cslot_staff st ON st.id = b.staff_id
+				 LEFT JOIN {$wpdb->prefix}cslot_customers c ON c.id = b.customer_id
 				 WHERE {$this->filter_sql( $filters )}
 				 ORDER BY b.booking_date DESC, b.booking_time DESC
 				 LIMIT %d OFFSET %d",
@@ -431,7 +433,7 @@ class SB_Bookings {
 		global $wpdb;
 		return (int) $wpdb->get_var(
 			"SELECT COUNT(*) FROM {$this->table_name} b
-			 LEFT JOIN {$wpdb->prefix}sb_customers c ON c.id = b.customer_id
+			 LEFT JOIN {$wpdb->prefix}cslot_customers c ON c.id = b.customer_id
 			 WHERE {$this->filter_sql( $filters )}"
 		);
 	}

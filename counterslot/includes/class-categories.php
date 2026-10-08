@@ -3,16 +3,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names come from $wpdb->prefix; every value goes through $wpdb->prepare().
+
 /**
  * Service categories. A service has at most one; NULL means uncategorized.
  */
-class SB_Categories {
+class CSlot_Categories {
 
 	private string $table_name;
 
 	public function __construct() {
 		global $wpdb;
-		$this->table_name = $wpdb->prefix . 'sb_categories';
+		$this->table_name = $wpdb->prefix . 'cslot_categories';
 	}
 
 	/**
@@ -23,7 +25,7 @@ class SB_Categories {
 		return $wpdb->get_results(
 			"SELECT c.*, COUNT(s.id) AS service_count
 			 FROM {$this->table_name} c
-			 LEFT JOIN {$wpdb->prefix}sb_services s ON s.category_id = c.id
+			 LEFT JOIN {$wpdb->prefix}cslot_services s ON s.category_id = c.id
 			 GROUP BY c.id
 			 ORDER BY c.name ASC",
 			ARRAY_A
@@ -55,7 +57,7 @@ class SB_Categories {
 	 */
 	public function delete( int $id ): bool {
 		global $wpdb;
-		$wpdb->update( "{$wpdb->prefix}sb_services", [ 'category_id' => null ], [ 'category_id' => $id ], null, [ '%d' ] );
+		$wpdb->update( "{$wpdb->prefix}cslot_services", [ 'category_id' => null ], [ 'category_id' => $id ], null, [ '%d' ] );
 		return (bool) $wpdb->delete( $this->table_name, [ 'id' => $id ], [ '%d' ] );
 	}
 }

@@ -10,38 +10,39 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 
 global $wpdb;
 
-wp_clear_scheduled_hook( 'sb_send_reminders' );
+wp_clear_scheduled_hook( 'cslot_send_reminders' );
 
 // Keep all data unless the admin explicitly opted in to scrubbing it.
-$settings = get_option( 'sb_settings', [] );
-if ( empty( $settings['delete_data_on_uninstall'] ) ) {
+$cslot_settings = get_option( 'cslot_settings', [] );
+if ( empty( $cslot_settings['delete_data_on_uninstall'] ) ) {
 	return;
 }
 
 // Delete plugin options
-delete_option( 'sb_db_version' );
-delete_option( 'sb_settings' );
-delete_option( 'sb_email_templates' );
-delete_option( 'sb_custom_fields' );
-delete_option( 'sb_extras' );
-delete_option( 'sb_invoice_counter' );
-delete_option( 'sb_setup_status' );
+delete_option( 'cslot_db_version' );
+delete_option( 'cslot_settings' );
+delete_option( 'cslot_email_templates' );
+delete_option( 'cslot_custom_fields' );
+delete_option( 'cslot_extras' );
+delete_option( 'cslot_invoice_counter' );
+delete_option( 'cslot_setup_status' );
+delete_metadata( 'user', 0, 'cslot_admin_theme', '', true );
 
 // Drop tables if configured to scrub data
-$tables = [
-	$wpdb->prefix . 'sb_bookings',
-	$wpdb->prefix . 'sb_staff',
-	$wpdb->prefix . 'sb_services',
-	$wpdb->prefix . 'sb_customers',
-	$wpdb->prefix . 'sb_categories',
-	$wpdb->prefix . 'sb_locations',
-	$wpdb->prefix . 'sb_coupons',
-	$wpdb->prefix . 'sb_payments',
-	$wpdb->prefix . 'sb_events',
-	$wpdb->prefix . 'sb_event_registrations',
-	$wpdb->prefix . 'sb_settings', // no longer created; dropped for installs from 1.0.0
+$cslot_tables = [
+	$wpdb->prefix . 'cslot_bookings',
+	$wpdb->prefix . 'cslot_staff',
+	$wpdb->prefix . 'cslot_services',
+	$wpdb->prefix . 'cslot_customers',
+	$wpdb->prefix . 'cslot_categories',
+	$wpdb->prefix . 'cslot_locations',
+	$wpdb->prefix . 'cslot_coupons',
+	$wpdb->prefix . 'cslot_payments',
+	$wpdb->prefix . 'cslot_events',
+	$wpdb->prefix . 'cslot_event_registrations',
+	$wpdb->prefix . 'sb_settings', // table from Simple Booking 1.0.0, no longer created
 ];
 
-foreach ( $tables as $table ) {
-	$wpdb->query( "DROP TABLE IF EXISTS {$table}" );
+foreach ( $cslot_tables as $cslot_table ) {
+	$wpdb->query( "DROP TABLE IF EXISTS {$cslot_table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange -- names built from $wpdb->prefix above
 }

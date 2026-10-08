@@ -3,7 +3,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class SB_Staff {
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names come from $wpdb->prefix; every value goes through $wpdb->prepare().
+
+class CSlot_Staff {
 
 	private const FORMATS = [ '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%d' ];
 
@@ -11,7 +13,7 @@ class SB_Staff {
 
 	public function __construct() {
 		global $wpdb;
-		$this->table_name = $wpdb->prefix . 'sb_staff';
+		$this->table_name = $wpdb->prefix . 'cslot_staff';
 	}
 
 	public function get_all( string $status = 'active' ): array {
@@ -59,7 +61,7 @@ class SB_Staff {
 	public function delete( int $id ): bool {
 		global $wpdb;
 		$has_bookings = $wpdb->get_var(
-			$wpdb->prepare( "SELECT 1 FROM {$wpdb->prefix}sb_bookings WHERE staff_id = %d LIMIT 1", $id )
+			$wpdb->prepare( "SELECT 1 FROM {$wpdb->prefix}cslot_bookings WHERE staff_id = %d LIMIT 1", $id )
 		);
 		if ( $has_bookings ) {
 			return false !== $wpdb->update( $this->table_name, [ 'status' => 'inactive' ], [ 'id' => $id ], [ '%s' ], [ '%d' ] );
@@ -124,7 +126,7 @@ class SB_Staff {
 	 * The business's own hours on a weekday (English name), or null when closed.
 	 */
 	public static function business_hours_on( string $weekday ): ?array {
-		$settings = SB_Settings::get_settings();
+		$settings = CSlot_Settings::get_settings();
 		return in_array( $weekday, (array) $settings['work_days'], true )
 			? [ $settings['business_hours_start'], $settings['business_hours_end'] ]
 			: null;
@@ -164,7 +166,7 @@ class SB_Staff {
 		}
 		$time = '/^([01]\d|2[0-3]):[0-5]\d$/';
 		$out  = [];
-		foreach ( SB_Settings::WEEK_DAYS as $day ) {
+		foreach ( CSlot_Settings::WEEK_DAYS as $day ) {
 			$row   = (array) ( $data['schedule'][ $day ] ?? [] );
 			$start = (string) ( $row['start'] ?? '' );
 			$end   = (string) ( $row['end'] ?? '' );

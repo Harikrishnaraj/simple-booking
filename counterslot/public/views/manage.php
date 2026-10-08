@@ -7,6 +7,7 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
 $statuses = [
 	'pending'   => __( 'Pending confirmation', 'counterslot' ),
 	'confirmed' => __( 'Confirmed', 'counterslot' ),
@@ -36,12 +37,12 @@ $statuses = [
 			<?php if ( null !== $booking['total'] && (float) $booking['total'] > 0 ) : ?>
 				<dt><?php esc_html_e( 'Price', 'counterslot' ); ?></dt>
 				<dd>
-					<?php echo esc_html( sb_price( $booking['total'] ) ); ?>
+					<?php echo esc_html( cslot_price( $booking['total'] ) ); ?>
 					<span class="sb-hint">
 						<?php
 						echo $booking['deposit'] > 0
 							/* translators: %s: deposit amount */
-							? esc_html( sprintf( __( '(deposit of %s due in advance)', 'counterslot' ), sb_price( $booking['deposit'] ) ) )
+							? esc_html( sprintf( __( '(deposit of %s due in advance)', 'counterslot' ), cslot_price( $booking['deposit'] ) ) )
 							: esc_html__( '(pay at your appointment)', 'counterslot' );
 						?>
 					</span>

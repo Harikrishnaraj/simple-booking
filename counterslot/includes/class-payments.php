@@ -3,17 +3,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names come from $wpdb->prefix; every value goes through $wpdb->prepare().
+
 /**
  * Payments recorded by hand (pay at the clinic): cash, UPI, card, bank transfer.
  * A negative amount is a refund. A booking's balance is its total minus what's been paid.
  */
-class SB_Payments {
+class CSlot_Payments {
 
 	private string $table_name;
 
 	public function __construct() {
 		global $wpdb;
-		$this->table_name = $wpdb->prefix . 'sb_payments';
+		$this->table_name = $wpdb->prefix . 'cslot_payments';
 	}
 
 	public static function methods(): array {
@@ -41,7 +43,7 @@ class SB_Payments {
 			return [];
 		}
 		$rows = $wpdb->get_results(
-			"SELECT booking_id, SUM(amount) AS paid FROM {$this->table_name} WHERE booking_id IN (" . implode( ',', $ids ) . ') GROUP BY booking_id',
+			"SELECT booking_id, SUM(amount) AS paid FROM {$this->table_name} WHERE booking_id IN (" . implode( ',', $ids ) . ') GROUP BY booking_id', // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $ids are absint()ed above
 			ARRAY_A
 		);
 		return array_map( 'floatval', array_column( $rows, 'paid', 'booking_id' ) );
@@ -56,7 +58,7 @@ class SB_Payments {
 		$method = sanitize_key( $in['method'] ?? '' );
 		$date   = sanitize_text_field( $in['paid_at'] ?? '' );
 		$day    = DateTimeImmutable::createFromFormat( '!Y-m-d', $date );
-		if ( ! ( new SB_Bookings() )->get_by_id( $booking_id ) ) {
+		if ( ! ( new CSlot_Bookings() )->get_by_id( $booking_id ) ) {
 			return __( 'Booking not found.', 'counterslot' );
 		}
 		if ( ! $amount || abs( $amount ) > 10000000 ) {
@@ -95,9 +97,9 @@ class SB_Payments {
 			$wpdb->prepare(
 				"SELECT pay.*, b.booking_code, b.booking_date, c.name AS customer_name, s.name AS service_name
 				 FROM {$this->table_name} pay
-				 LEFT JOIN {$p}sb_bookings b ON b.id = pay.booking_id
-				 LEFT JOIN {$p}sb_customers c ON c.id = b.customer_id
-				 LEFT JOIN {$p}sb_services s ON s.id = b.service_id
+				 LEFT JOIN {$p}cslot_bookings b ON b.id = pay.booking_id
+				 LEFT JOIN {$p}cslot_customers c ON c.id = b.customer_id
+				 LEFT JOIN {$p}cslot_services s ON s.id = b.service_id
 				 WHERE pay.paid_at BETWEEN %s AND %s
 				 ORDER BY pay.paid_at DESC, pay.id DESC",
 				$from . ' 00:00:00',
@@ -116,10 +118,10 @@ class SB_Payments {
 		return $wpdb->get_results(
 			"SELECT b.id, b.booking_code, b.booking_date, b.booking_time, b.status, b.total, c.name AS customer_name, s.name AS service_name,
 				COALESCE(pay.paid, 0) AS paid
-			 FROM {$p}sb_bookings b
+			 FROM {$p}cslot_bookings b
 			 LEFT JOIN (SELECT booking_id, SUM(amount) AS paid FROM {$this->table_name} GROUP BY booking_id) pay ON pay.booking_id = b.id
-			 LEFT JOIN {$p}sb_customers c ON c.id = b.customer_id
-			 LEFT JOIN {$p}sb_services s ON s.id = b.service_id
+			 LEFT JOIN {$p}cslot_customers c ON c.id = b.customer_id
+			 LEFT JOIN {$p}cslot_services s ON s.id = b.service_id
 			 WHERE b.status IN ('pending', 'confirmed', 'completed') AND b.total > 0 AND COALESCE(pay.paid, 0) < b.total
 			 ORDER BY b.booking_date ASC, b.booking_time ASC
 			 LIMIT 500",
@@ -165,19 +167,19 @@ class SB_Payments {
 		if ( ! empty( $booking['invoice_number'] ) ) {
 			if ( empty( $booking['invoice_date'] ) ) {
 				$booking['invoice_date'] = wp_date( 'Y-m-d' );
-				$wpdb->update( "{$wpdb->prefix}sb_bookings", [ 'invoice_date' => $booking['invoice_date'] ], [ 'id' => (int) $booking['id'] ], [ '%s' ], [ '%d' ] );
+				$wpdb->update( "{$wpdb->prefix}cslot_bookings", [ 'invoice_date' => $booking['invoice_date'] ], [ 'id' => (int) $booking['id'] ], [ '%s' ], [ '%d' ] );
 			}
 			return [ 'number' => $booking['invoice_number'], 'date' => $booking['invoice_date'] ];
 		}
 		// Atomic counter: concurrent invoices can't get the same number.
-		$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = option_value + 1 WHERE option_name = %s", 'sb_invoice_counter' ) );
+		$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = option_value + 1 WHERE option_name = %s", 'cslot_invoice_counter' ) );
 		if ( ! $wpdb->rows_affected ) {
-			add_option( 'sb_invoice_counter', 1, '', false );
+			add_option( 'cslot_invoice_counter', 1, '', false );
 		}
-		wp_cache_delete( 'sb_invoice_counter', 'options' );
-		$number = SB_Settings::get_settings()['invoice_prefix'] . str_pad( (string) get_option( 'sb_invoice_counter' ), 4, '0', STR_PAD_LEFT );
+		wp_cache_delete( 'cslot_invoice_counter', 'options' );
+		$number = CSlot_Settings::get_settings()['invoice_prefix'] . str_pad( (string) get_option( 'cslot_invoice_counter' ), 4, '0', STR_PAD_LEFT );
 		$date   = wp_date( 'Y-m-d' );
-		$wpdb->update( "{$wpdb->prefix}sb_bookings", [ 'invoice_number' => $number, 'invoice_date' => $date ], [ 'id' => (int) $booking['id'] ], [ '%s', '%s' ], [ '%d' ] );
+		$wpdb->update( "{$wpdb->prefix}cslot_bookings", [ 'invoice_number' => $number, 'invoice_date' => $date ], [ 'id' => (int) $booking['id'] ], [ '%s', '%s' ], [ '%d' ] );
 		return [ 'number' => $number, 'date' => $date ];
 	}
 }

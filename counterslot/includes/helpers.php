@@ -7,21 +7,21 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Render a view file relative to the plugin root, e.g. 'admin/views/services'.
  * Only ever called with hard-coded view names.
  */
-function sb_view( string $view, array $vars = [] ): void {
+function cslot_view( string $view, array $vars = [] ): void {
 	extract( $vars, EXTR_SKIP ); // phpcs:ignore WordPress.PHP.DontExtract
-	include SB_PLUGIN_DIR . $view . '.php';
+	include CSLOT_PLUGIN_DIR . $view . '.php';
 }
 
-function sb_price( $amount ): string {
+function cslot_price( $amount ): string {
 	$amount = (float) $amount;
 	// Minus sign before the currency symbol: −₹7.00, not ₹-7.00.
-	return ( $amount < 0 ? '−' : '' ) . SB_Settings::get_settings()['currency_symbol'] . number_format_i18n( abs( $amount ), 2 );
+	return ( $amount < 0 ? '−' : '' ) . CSlot_Settings::get_settings()['currency_symbol'] . number_format_i18n( abs( $amount ), 2 );
 }
 
 /**
  * Round avatar: the photo when there is one, otherwise the first letter of the name.
  */
-function sb_avatar( string $name, string $photo_url = '' ): string {
+function cslot_avatar( string $name, string $photo_url = '' ): string {
 	if ( $photo_url ) {
 		return '<img class="sb-avatar" src="' . esc_url( $photo_url ) . '" alt="" width="30" height="30" loading="lazy">';
 	}
@@ -31,9 +31,9 @@ function sb_avatar( string $name, string $photo_url = '' ): string {
 /**
  * One line about a staff member's hours for the staff list, e.g. "Mon, Wed 10:00–14:00 · Off 3 Nov".
  */
-function sb_schedule_summary( array $member ): string {
+function cslot_schedule_summary( array $member ): string {
 	global $wp_locale;
-	$staff_mgr = new SB_Staff();
+	$staff_mgr = new CSlot_Staff();
 	$parts     = [];
 
 	$schedule = $staff_mgr->schedule( $member );

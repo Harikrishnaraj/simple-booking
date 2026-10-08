@@ -3,13 +3,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class SB_Customers {
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names come from $wpdb->prefix; every value goes through $wpdb->prepare().
+
+class CSlot_Customers {
 
 	private string $table_name;
 
 	public function __construct() {
 		global $wpdb;
-		$this->table_name = $wpdb->prefix . 'sb_customers';
+		$this->table_name = $wpdb->prefix . 'cslot_customers';
 	}
 
 	/**
@@ -45,7 +47,7 @@ class SB_Customers {
 			$wpdb->prepare(
 				"SELECT c.*, COUNT(b.id) AS total_bookings, MAX(b.booking_date) AS last_booking
 				 FROM {$this->table_name} c
-				 LEFT JOIN {$wpdb->prefix}sb_bookings b ON b.customer_id = c.id AND b.status <> 'cancelled'
+				 LEFT JOIN {$wpdb->prefix}cslot_bookings b ON b.customer_id = c.id AND b.status <> 'cancelled'
 				 WHERE {$this->search_sql( $search )}
 				 GROUP BY c.id
 				 ORDER BY c.id DESC

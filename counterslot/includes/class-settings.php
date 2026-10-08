@@ -3,9 +3,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class SB_Settings {
+class CSlot_Settings {
 
-	private const OPTION_KEY = 'sb_settings';
+	private const OPTION_KEY = 'cslot_settings';
 
 	// Stored in English; displayed with the site's locale.
 	public const WEEK_DAYS = [ 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday' ];
@@ -92,7 +92,7 @@ class SB_Settings {
 		}
 		if ( isset( $new_settings['industry'] ) ) {
 			$industry                 = sanitize_key( (string) $new_settings['industry'] );
-			$new_settings['industry'] = isset( SB_Setup::presets()[ $industry ] ) ? $industry : '';
+			$new_settings['industry'] = isset( CSlot_Setup::presets()[ $industry ] ) ? $industry : '';
 		}
 		if ( isset( $new_settings['staff_label'] ) ) {
 			$new_settings['staff_label'] = mb_substr( sanitize_text_field( (string) $new_settings['staff_label'] ), 0, 40 );

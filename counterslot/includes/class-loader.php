@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Collects actions and registers them with WordPress in one go.
  */
-class SB_Loader {
+class CSlot_Loader {
 
 	private array $actions = [];
 

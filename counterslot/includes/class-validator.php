@@ -3,11 +3,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class SB_Validator {
+class CSlot_Validator {
 
 	/**
 	 * Validate the public booking form. Checks shape only; whether the date/time
-	 * is actually bookable is decided by SB_Bookings::get_available_slots().
+	 * is actually bookable is decided by CSlot_Bookings::get_available_slots().
 	 *
 	 * @param array $in Unslashed request data.
 	 */

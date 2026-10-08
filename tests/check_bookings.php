@@ -1,5 +1,5 @@
 <?php
-// Stubbed-WordPress check for SB_Bookings slot logic + create_booking guards.
+// Stubbed-WordPress check for CSlot_Bookings slot logic + create_booking guards.
 define( 'ABSPATH', __DIR__ );
 define( 'MINUTE_IN_SECONDS', 60 );
 define( 'ARRAY_A', 'ARRAY_A' );
@@ -23,8 +23,8 @@ class WP_Error { function __construct( public $code, public $msg ) {} function g
 function is_wp_error( $v ) { return $v instanceof WP_Error; }
 function rest_sanitize_boolean( $v ) { return in_array( strtolower( (string) $v ), [ '1', 'true', 'yes', 'on' ], true ) || true === $v; }
 
-class SB_Services { function get_by_id( $id ) { return $GLOBALS['services'][ $id ] ?? null; } }
-class SB_Email { function __call( $n, $a ) { $GLOBALS['mails'][] = $n; return true; } static function inside_reminder_window() { return false; } }
+class CSlot_Services { function get_by_id( $id ) { return $GLOBALS['services'][ $id ] ?? null; } }
+class CSlot_Email { function __call( $n, $a ) { $GLOBALS['mails'][] = $n; return true; } static function inside_reminder_window() { return false; } }
 function esc_html( $v ) { return htmlspecialchars( (string) $v, ENT_QUOTES ); }
 function wp_strip_all_tags( $v ) { return strip_tags( (string) $v ); }
 function wpautop( $v ) { return $v; }
@@ -39,20 +39,20 @@ class FakeWpdb {
 	function get_var( $p ) {
 		[ $q, $a ] = $p;
 		if ( str_contains( $q, 'GET_LOCK' ) ) return (string) $this->lock;
-		if ( str_contains( $q, 'sb_customers' ) ) return array_search( $a[0], $this->customers, true ) ?: null;
+		if ( str_contains( $q, 'cslot_customers' ) ) return array_search( $a[0], $this->customers, true ) ?: null;
 	}
 	function get_row( $p ) {
 		[ $q, $a ] = $p;
-		if ( str_contains( $q, 'sb_staff' ) ) return $this->staff[ $a[0] ] ?? null;
-		if ( str_contains( $q, 'sb_bookings' ) ) return $this->rows[ $a[0] - 1 ] ?? null;
-		if ( str_contains( $q, 'sb_coupons' ) ) return $this->coupons_by_code[ $a[0] ] ?? null;
+		if ( str_contains( $q, 'cslot_staff' ) ) return $this->staff[ $a[0] ] ?? null;
+		if ( str_contains( $q, 'cslot_bookings' ) ) return $this->rows[ $a[0] - 1 ] ?? null;
+		if ( str_contains( $q, 'cslot_coupons' ) ) return $this->coupons_by_code[ $a[0] ] ?? null;
 		return null;
 	}
 	function update( $t, $d, $w ) { $i = $w['id'] - 1; if ( ! isset( $this->rows[ $i ] ) ) return 0; $this->rows[ $i ] = $d + $this->rows[ $i ]; return 1; }
 	function query( $p ) { return 1; }
 	function get_results( $p ) {
 		[ $q, $a ] = $p;
-		if ( str_contains( $q, 'sb_staff' ) ) return array_values( array_filter( $this->staff, fn( $m ) => $m['status'] === $a[0] ) );
+		if ( str_contains( $q, 'cslot_staff' ) ) return array_values( array_filter( $this->staff, fn( $m ) => $m['status'] === $a[0] ) );
 		$out = [];
 		foreach ( $this->rows as $r ) {
 			if ( $r['booking_date'] !== $a[0] || ! in_array( $r['status'], [ 'pending', 'confirmed' ], true ) ) continue;
@@ -61,7 +61,7 @@ class FakeWpdb {
 		return $out;
 	}
 	function insert( $t, $d ) {
-		if ( str_contains( $t, 'sb_customers' ) ) { if ( in_array( $d['email'], $this->customers, true ) ) return false; $this->insert_id = count( $this->customers ) + 1; $this->customers[ $this->insert_id ] = $d['email']; return 1; }
+		if ( str_contains( $t, 'cslot_customers' ) ) { if ( in_array( $d['email'], $this->customers, true ) ) return false; $this->insert_id = count( $this->customers ) + 1; $this->customers[ $this->insert_id ] = $d['email']; return 1; }
 		$d['id'] = count( $this->rows ) + 1; $this->rows[] = $d; $this->insert_id = $d['id']; return 1; }
 }
 
@@ -81,8 +81,8 @@ require $base . 'class-payments.php';
 
 $wpdb     = new FakeWpdb();
 $services = [ 1 => [ 'id' => 1, 'duration' => 60, 'status' => 'active' ], 2 => [ 'id' => 2, 'duration' => 30, 'status' => 'inactive' ] ];
-$opts     = [ 'sb_settings' => [ 'business_hours_start' => '09:00', 'business_hours_end' => '12:00', 'slot_duration' => 30 ] ];
-$b        = new SB_Bookings();
+$opts     = [ 'cslot_settings' => [ 'business_hours_start' => '09:00', 'business_hours_end' => '12:00', 'slot_duration' => 30 ] ];
+$b        = new CSlot_Bookings();
 
 $monday = ( new DateTimeImmutable( 'next monday', wp_timezone() ) )->format( 'Y-m-d' );
 $sunday = ( new DateTimeImmutable( 'next sunday', wp_timezone() ) )->format( 'Y-m-d' );
@@ -96,9 +96,9 @@ assert( $b->get_available_slots( 2, null, $monday ) === [], 'inactive service' )
 assert( $b->get_available_slots( 1, 8, $monday ) === [], 'inactive staff' );
 
 // slot_duration 0 must not hang
-$opts['sb_settings']['slot_duration'] = 0;
+$opts['cslot_settings']['slot_duration'] = 0;
 assert( count( $b->get_available_slots( 1, null, $monday ) ) > 0 );
-$opts['sb_settings']['slot_duration'] = 30;
+$opts['cslot_settings']['slot_duration'] = 30;
 
 // create_booking: valid, then same slot again rejected, bad time rejected
 $req = [ 'service_id' => 1, 'customer_id' => 3, 'booking_date' => $monday, 'booking_time' => '10:00' ];
@@ -119,8 +119,8 @@ assert( false === $b->create_booking( [ 'booking_time' => '09:00' ] + $req ) );
 $wpdb->lock = 1;
 
 // Settings sanitization
-SB_Settings::update_settings( [ 'slot_duration' => '0', 'business_hours_end' => 'evil', 'junk' => 1, 'delete_data_on_uninstall' => 'false' ] );
-$s = SB_Settings::get_settings();
+CSlot_Settings::update_settings( [ 'slot_duration' => '0', 'business_hours_end' => 'evil', 'junk' => 1, 'delete_data_on_uninstall' => 'false' ] );
+$s = CSlot_Settings::get_settings();
 assert( 5 === $s['slot_duration'] && '12:00' === $s['business_hours_end'] && ! isset( $s['junk'] ) && false === $s['delete_data_on_uninstall'] );
 
 // Reschedule: own slot doesn't block it; can't move onto another booking; only active bookings move
@@ -148,7 +148,7 @@ assert( is_wp_error( $b->update_status( $a, 'bogus' ) ) );
 
 // Staff schedules: custom hours and days off; "any available" uses whoever works then
 $wpdb->rows = [];
-$opts['sb_settings']['slot_duration'] = 30;
+$opts['cslot_settings']['slot_duration'] = 30;
 $wpdb->staff[7]['schedule'] = json_encode( [ 'Monday' => [ '10:00', '12:00' ] ] );
 assert( $b->get_available_slots( 1, 7, $monday ) === [ '10:00', '10:30', '11:00' ], 'custom hours' );
 assert( $b->get_available_slots( 1, 7, $tuesday = ( new DateTimeImmutable( $monday ) )->modify( '+1 day' )->format( 'Y-m-d' ) ) === [], 'not working Tuesday' );
@@ -186,12 +186,12 @@ assert( [ 'booking_created' ] === $mails, 'one set of emails for the series' );
 assert( [ 'ids' => [], 'missed' => [] ] === $b->create_series( [ 'booking_date' => $wk( 4 ), 'booking_time' => '10:00' ] + $req, 1, 3 ), 'first session taken' );
 
 // Dashboard comparison period: same length, ending the day before
-assert( SB_Reports::previous_range( '2026-10-01', '2026-10-31' ) === [ '2026-08-31', '2026-09-30' ] );
-assert( SB_Reports::previous_range( '2026-03-01', '2026-03-01' ) === [ '2026-02-28', '2026-02-28' ] );
-assert( SB_Reports::change( 77, 105 ) === -27 && SB_Reports::change( 5, 0 ) === null && SB_Reports::change( 0, 4 ) === -100 );
+assert( CSlot_Reports::previous_range( '2026-10-01', '2026-10-31' ) === [ '2026-08-31', '2026-09-30' ] );
+assert( CSlot_Reports::previous_range( '2026-03-01', '2026-03-01' ) === [ '2026-02-28', '2026-02-28' ] );
+assert( CSlot_Reports::change( 77, 105 ) === -27 && CSlot_Reports::change( 5, 0 ) === null && CSlot_Reports::change( 0, 4 ) === -100 );
 
 // Email templates: placeholders filled and escaped; lines whose placeholders are all empty dropped
-$email = SB_Notifications::render(
+$email = CSlot_Notifications::render(
 	[ 'subject' => "Hi {customer_name}\r\nBcc: x@y.z <b>", 'body' => "Hi {customer_name},\nWith: {staff_name}\nCode: {booking_code} {notes}\nNo placeholder line\n{unknown}" ],
 	[ '{customer_name}' => 'Ann <script>', '{staff_name}' => '', '{booking_code}' => 'SB-1', '{notes}' => '' ]
 );
@@ -202,53 +202,53 @@ assert( str_contains( $email['html'], 'Code: SB-1 ' ), 'line kept when one place
 assert( str_contains( $email['html'], 'No placeholder line' ) && str_contains( $email['html'], '{unknown}' ) );
 
 // Custom fields: per-service, required, dropdown choices, dates, checkbox, label kept with the answer
-SB_Custom_Fields::save( [ 'label' => 'Date of birth', 'type' => 'date', 'required' => 1 ] );
-SB_Custom_Fields::save( [ 'label' => 'First visit?', 'type' => 'checkbox' ] );
-SB_Custom_Fields::save( [ 'label' => 'Skin type', 'type' => 'select', 'options' => "Dry\nOily\nOily", 'services' => [ 2 ] ] );
-assert( '' !== SB_Custom_Fields::save( [ 'label' => 'Bad', 'type' => 'select', 'options' => 'One' ] ), 'dropdown needs 2 choices' );
-assert( '' !== SB_Custom_Fields::save( [ 'label' => 'Bad', 'type' => 'evil' ] ) );
-[ $dob, $first, $skin ] = array_column( SB_Custom_Fields::all(), 'id' );
-assert( [ 'Dry', 'Oily' ] === SB_Custom_Fields::all()[2]['options'], 'duplicate choices removed' );
-assert( 2 === count( SB_Custom_Fields::for_service( 1 ) ) && 3 === count( SB_Custom_Fields::for_service( 2 ) ) );
-assert( is_wp_error( SB_Custom_Fields::answers( [ 'custom' => [] ], 1 ) ), 'required missing' );
-assert( is_wp_error( SB_Custom_Fields::answers( [ 'custom' => [ $dob => '2020-02-31' ] ], 1 ) ), 'invalid date counts as missing' );
-assert( [] === SB_Custom_Fields::answers( [ 'custom' => [] ], 1, false ), 'admin may skip' );
-$ans = SB_Custom_Fields::answers( [ 'custom' => [ $dob => '1990-05-01', $first => '1', $skin => 'Hacked' ] ], 2 );
+CSlot_Custom_Fields::save( [ 'label' => 'Date of birth', 'type' => 'date', 'required' => 1 ] );
+CSlot_Custom_Fields::save( [ 'label' => 'First visit?', 'type' => 'checkbox' ] );
+CSlot_Custom_Fields::save( [ 'label' => 'Skin type', 'type' => 'select', 'options' => "Dry\nOily\nOily", 'services' => [ 2 ] ] );
+assert( '' !== CSlot_Custom_Fields::save( [ 'label' => 'Bad', 'type' => 'select', 'options' => 'One' ] ), 'dropdown needs 2 choices' );
+assert( '' !== CSlot_Custom_Fields::save( [ 'label' => 'Bad', 'type' => 'evil' ] ) );
+[ $dob, $first, $skin ] = array_column( CSlot_Custom_Fields::all(), 'id' );
+assert( [ 'Dry', 'Oily' ] === CSlot_Custom_Fields::all()[2]['options'], 'duplicate choices removed' );
+assert( 2 === count( CSlot_Custom_Fields::for_service( 1 ) ) && 3 === count( CSlot_Custom_Fields::for_service( 2 ) ) );
+assert( is_wp_error( CSlot_Custom_Fields::answers( [ 'custom' => [] ], 1 ) ), 'required missing' );
+assert( is_wp_error( CSlot_Custom_Fields::answers( [ 'custom' => [ $dob => '2020-02-31' ] ], 1 ) ), 'invalid date counts as missing' );
+assert( [] === CSlot_Custom_Fields::answers( [ 'custom' => [] ], 1, false ), 'admin may skip' );
+$ans = CSlot_Custom_Fields::answers( [ 'custom' => [ $dob => '1990-05-01', $first => '1', $skin => 'Hacked' ] ], 2 );
 assert( [ 'Date of birth', 'First visit?' ] === array_column( $ans, 'label' ) && 'Yes' === $ans[1]['value'], 'unknown dropdown value dropped' );
-$ans = SB_Custom_Fields::answers( [ 'custom' => [ $dob => '1990-05-01', $skin => 'Oily' ] ], 2 );
-assert( "Date of birth: 1990-05-01\nSkin type: Oily" === SB_Custom_Fields::as_text( json_encode( $ans ) ) );
-SB_Custom_Fields::move( $skin, -1 );
-assert( $skin === SB_Custom_Fields::all()[1]['id'] );
-SB_Custom_Fields::delete( $first );
-assert( 2 === count( SB_Custom_Fields::all() ) );
+$ans = CSlot_Custom_Fields::answers( [ 'custom' => [ $dob => '1990-05-01', $skin => 'Oily' ] ], 2 );
+assert( "Date of birth: 1990-05-01\nSkin type: Oily" === CSlot_Custom_Fields::as_text( json_encode( $ans ) ) );
+CSlot_Custom_Fields::move( $skin, -1 );
+assert( $skin === CSlot_Custom_Fields::all()[1]['id'] );
+CSlot_Custom_Fields::delete( $first );
+assert( 2 === count( CSlot_Custom_Fields::all() ) );
 
 // Customer manage link: token bound to id + code; changes allowed until the cut-off
 $wpdb->rows = [];
-$opts['sb_settings']['change_cutoff_hours'] = 24;
+$opts['cslot_settings']['change_cutoff_hours'] = 24;
 $far = $b->create_booking( [ 'booking_date' => ( new DateTimeImmutable( $monday ) )->modify( '+7 days' )->format( 'Y-m-d' ), 'booking_time' => '10:00' ] + $req );
 $row = $wpdb->rows[ $far - 1 ];
-$tok = SB_Manage::token( $row );
-assert( 32 === strlen( $tok ) && SB_Manage::verify( $far, $tok ) );
-assert( null === SB_Manage::verify( $far, strrev( $tok ) ) && null === SB_Manage::verify( $far + 1, $tok ), 'wrong token or id' );
-assert( SB_Manage::can_change( $row ) );
-assert( ! SB_Manage::can_change( [ 'status' => 'cancelled' ] + $row ) );
+$tok = CSlot_Manage::token( $row );
+assert( 32 === strlen( $tok ) && CSlot_Manage::verify( $far, $tok ) );
+assert( null === CSlot_Manage::verify( $far, strrev( $tok ) ) && null === CSlot_Manage::verify( $far + 1, $tok ), 'wrong token or id' );
+assert( CSlot_Manage::can_change( $row ) );
+assert( ! CSlot_Manage::can_change( [ 'status' => 'cancelled' ] + $row ) );
 $soon = ( new DateTimeImmutable( '+3 hours', wp_timezone() ) );
-assert( ! SB_Manage::can_change( [ 'booking_date' => $soon->format( 'Y-m-d' ), 'booking_time' => $soon->format( 'H:i:s' ) ] + $row ), 'inside cut-off' );
-$opts['sb_settings']['customer_changes'] = false;
-assert( ! SB_Manage::can_change( $row ), 'switched off' );
-$opts['sb_settings']['customer_changes'] = true;
-assert( ! SB_Manage::allowed_start( $soon->format( 'Y-m-d' ), $soon->format( 'H:i' ) ) && SB_Manage::allowed_start( $row['booking_date'], '10:00' ), 'new time must be past the cut-off' );
+assert( ! CSlot_Manage::can_change( [ 'booking_date' => $soon->format( 'Y-m-d' ), 'booking_time' => $soon->format( 'H:i:s' ) ] + $row ), 'inside cut-off' );
+$opts['cslot_settings']['customer_changes'] = false;
+assert( ! CSlot_Manage::can_change( $row ), 'switched off' );
+$opts['cslot_settings']['customer_changes'] = true;
+assert( ! CSlot_Manage::allowed_start( $soon->format( 'Y-m-d' ), $soon->format( 'H:i' ) ) && CSlot_Manage::allowed_start( $row['booking_date'], '10:00' ), 'new time must be past the cut-off' );
 
 // Pricing: extras per service, coupons (percent/fixed, rules), tax included or added
 $services[1]['price'] = 1000;
-SB_Pricing::save_extra( [ 'name' => 'Hair wash', 'price' => 200, 'services' => [ 1 ] ] );
-SB_Pricing::save_extra( [ 'name' => 'Other-service extra', 'price' => 50, 'services' => [ 2 ] ] );
-[ $wash, $other ] = array_column( SB_Pricing::extras(), 'id' );
-$opts['sb_settings'] = [ 'tax_name' => 'GST', 'tax_rate' => 18, 'prices_include_tax' => true ] + $opts['sb_settings'];
-$q = SB_Pricing::quote( 1, [ $wash, $other, 'bogus' ], '', $monday );
+CSlot_Pricing::save_extra( [ 'name' => 'Hair wash', 'price' => 200, 'services' => [ 1 ] ] );
+CSlot_Pricing::save_extra( [ 'name' => 'Other-service extra', 'price' => 50, 'services' => [ 2 ] ] );
+[ $wash, $other ] = array_column( CSlot_Pricing::extras(), 'id' );
+$opts['cslot_settings'] = [ 'tax_name' => 'GST', 'tax_rate' => 18, 'prices_include_tax' => true ] + $opts['cslot_settings'];
+$q = CSlot_Pricing::quote( 1, [ $wash, $other, 'bogus' ], '', $monday );
 assert( 1200.0 === $q['subtotal'] && 1 === count( $q['extras'] ) && 1200.0 === $q['total'] && 183.05 === $q['tax'], 'tax included: 1200 - 1200/1.18' );
-$opts['sb_settings']['prices_include_tax'] = false;
-$q = SB_Pricing::quote( 1, [ $wash ], '', $monday );
+$opts['cslot_settings']['prices_include_tax'] = false;
+$q = CSlot_Pricing::quote( 1, [ $wash ], '', $monday );
 assert( 216.0 === $q['tax'] && 1416.0 === $q['total'], 'tax added on top' );
 $wpdb->coupons_by_code = [
 	'TEN'  => [ 'id' => 1, 'code' => 'TEN', 'type' => 'percent', 'value' => 10, 'services' => '[]', 'valid_from' => null, 'valid_to' => null, 'max_uses' => 0, 'used' => 0, 'status' => 'active' ],
@@ -257,39 +257,39 @@ $wpdb->coupons_by_code = [
 	'OLD'  => [ 'id' => 4, 'code' => 'OLD', 'type' => 'fixed', 'value' => 50, 'services' => '[]', 'valid_from' => null, 'valid_to' => '2020-01-01', 'max_uses' => 0, 'used' => 0, 'status' => 'active' ],
 	'GONE' => [ 'id' => 5, 'code' => 'GONE', 'type' => 'fixed', 'value' => 50, 'services' => '[]', 'valid_from' => null, 'valid_to' => null, 'max_uses' => 3, 'used' => 3, 'status' => 'active' ],
 ];
-$q = SB_Pricing::quote( 1, [ $wash ], ' ten ', $monday );
+$q = CSlot_Pricing::quote( 1, [ $wash ], ' ten ', $monday );
 assert( 120.0 === $q['discount'] && 194.4 === $q['tax'] && 1274.4 === $q['total'], 'percent coupon, code normalised' );
-$q = SB_Pricing::quote( 1, [], 'BIG', $monday );
+$q = CSlot_Pricing::quote( 1, [], 'BIG', $monday );
 assert( 1000.0 === $q['discount'] && 0.0 === $q['total'], 'discount capped at subtotal' );
 foreach ( [ 'S2', 'OLD', 'GONE', 'NOPE' ] as $code ) {
-	$q = SB_Pricing::quote( 1, [], $code, $monday );
+	$q = CSlot_Pricing::quote( 1, [], $code, $monday );
 	assert( '' !== $q['coupon_error'] && 0.0 === $q['discount'] && null === $q['coupon'], "coupon $code rejected" );
 }
-$stored = SB_Pricing::to_store( SB_Pricing::quote( 1, [ $wash ], 'TEN', $monday ) );
+$stored = CSlot_Pricing::to_store( CSlot_Pricing::quote( 1, [ $wash ], 'TEN', $monday ) );
 assert( 'TEN' === $stored['coupon_code'] && ! isset( $stored['coupon'] ) );
-$lines  = SB_Pricing::lines( $stored );
+$lines  = CSlot_Pricing::lines( $stored );
 assert( [ 'Service', '+ Hair wash', 'Coupon TEN', 'GST (18%)', 'Total' ] === array_column( $lines, 0 ) && -120.0 === $lines[2][1] );
-$opts['sb_settings']['tax_rate'] = 0;
+$opts['cslot_settings']['tax_rate'] = 0;
 
 // Payment status
-assert( 'free' === SB_Payments::status( 0.0, 0.0 ) && 'free' === SB_Payments::status( null, 0.0 ) );
-assert( 'unpaid' === SB_Payments::status( 63.0, 0.0 ) && 'partial' === SB_Payments::status( 63.0, 20.0 ) );
-assert( 'paid' === SB_Payments::status( 63.0, 63.0 ) && 'paid' === SB_Payments::status( 63.0, 62.999 ) && 'overpaid' === SB_Payments::status( 63.0, 70.0 ) );
-assert( 'unpaid' === SB_Payments::status( 63.0, -5.0 ), 'refund only' );
+assert( 'free' === CSlot_Payments::status( 0.0, 0.0 ) && 'free' === CSlot_Payments::status( null, 0.0 ) );
+assert( 'unpaid' === CSlot_Payments::status( 63.0, 0.0 ) && 'partial' === CSlot_Payments::status( 63.0, 20.0 ) );
+assert( 'paid' === CSlot_Payments::status( 63.0, 63.0 ) && 'paid' === CSlot_Payments::status( 63.0, 62.999 ) && 'overpaid' === CSlot_Payments::status( 63.0, 70.0 ) );
+assert( 'unpaid' === CSlot_Payments::status( 63.0, -5.0 ), 'refund only' );
 
 // Setup wizard: industry and staff label settings, presets, and the wizard's input checks
-SB_Settings::update_settings( [ 'industry' => 'salon', 'staff_label' => str_repeat( 'x', 60 ) ] );
-assert( 'salon' === SB_Settings::get_settings()['industry'] && 40 === mb_strlen( SB_Settings::staff_label() ) );
-SB_Settings::update_settings( [ 'industry' => 'evil', 'staff_label' => '' ] );
-assert( '' === SB_Settings::get_settings()['industry'] && 'Staff member' === SB_Settings::staff_label() );
-foreach ( SB_Setup::presets() as $key => $p ) {
-	assert( $p['services'] && $p['start'] < $p['end'] && ! array_diff( $p['days'], SB_Settings::WEEK_DAYS ), "preset $key" );
+CSlot_Settings::update_settings( [ 'industry' => 'salon', 'staff_label' => str_repeat( 'x', 60 ) ] );
+assert( 'salon' === CSlot_Settings::get_settings()['industry'] && 40 === mb_strlen( CSlot_Settings::staff_label() ) );
+CSlot_Settings::update_settings( [ 'industry' => 'evil', 'staff_label' => '' ] );
+assert( '' === CSlot_Settings::get_settings()['industry'] && 'Staff member' === CSlot_Settings::staff_label() );
+foreach ( CSlot_Setup::presets() as $key => $p ) {
+	assert( $p['services'] && $p['start'] < $p['end'] && ! array_diff( $p['days'], CSlot_Settings::WEEK_DAYS ), "preset $key" );
 }
 $ok_setup = [ 'industry' => 'clinic', 'business_name' => 'Clinic', 'business_hours_start' => '09:00', 'business_hours_end' => '18:00', 'work_days' => [ 'Monday' ] ];
-assert( 'industry' === SB_Setup::run( [ 'industry' => 'nope' ] + $ok_setup )->get_error_code() );
-assert( 'business_name' === SB_Setup::run( [ 'business_name' => ' ' ] + $ok_setup )->get_error_code() );
-assert( 'hours' === SB_Setup::run( [ 'business_hours_end' => '08:00' ] + $ok_setup )->get_error_code() );
-assert( 'days' === SB_Setup::run( [ 'work_days' => [ 'Funday' ] ] + $ok_setup )->get_error_code() );
-assert( 'duration' === SB_Setup::run( [ 'services' => [ 'clinic0' => [ 'on' => 1, 'name' => 'X', 'duration' => 0 ] ] ] + $ok_setup )->get_error_code() );
+assert( 'industry' === CSlot_Setup::run( [ 'industry' => 'nope' ] + $ok_setup )->get_error_code() );
+assert( 'business_name' === CSlot_Setup::run( [ 'business_name' => ' ' ] + $ok_setup )->get_error_code() );
+assert( 'hours' === CSlot_Setup::run( [ 'business_hours_end' => '08:00' ] + $ok_setup )->get_error_code() );
+assert( 'days' === CSlot_Setup::run( [ 'work_days' => [ 'Funday' ] ] + $ok_setup )->get_error_code() );
+assert( 'duration' === CSlot_Setup::run( [ 'services' => [ 'clinic0' => [ 'on' => 1, 'name' => 'X', 'duration' => 0 ] ] ] + $ok_setup )->get_error_code() );
 
 echo "all checks passed\n";

@@ -3,17 +3,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names come from $wpdb->prefix; every value goes through $wpdb->prepare().
+
 /**
  * Places where appointments happen. Each staff member works at one location; a booking
  * takes its staff member's location (or the location the customer chose).
  */
-class SB_Locations {
+class CSlot_Locations {
 
 	private string $table_name;
 
 	public function __construct() {
 		global $wpdb;
-		$this->table_name = $wpdb->prefix . 'sb_locations';
+		$this->table_name = $wpdb->prefix . 'cslot_locations';
 	}
 
 	public function get_all( string $status = 'active' ): array {
@@ -57,8 +59,8 @@ class SB_Locations {
 	 */
 	public function delete( int $id ): bool {
 		global $wpdb;
-		$wpdb->update( "{$wpdb->prefix}sb_staff", [ 'location_id' => null ], [ 'location_id' => $id ], null, [ '%d' ] );
-		$used = $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$wpdb->prefix}sb_bookings WHERE location_id = %d LIMIT 1", $id ) );
+		$wpdb->update( "{$wpdb->prefix}cslot_staff", [ 'location_id' => null ], [ 'location_id' => $id ], null, [ '%d' ] );
+		$used = $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$wpdb->prefix}cslot_bookings WHERE location_id = %d LIMIT 1", $id ) );
 		if ( $used ) {
 			return false !== $wpdb->update( $this->table_name, [ 'status' => 'inactive' ], [ 'id' => $id ], [ '%s' ], [ '%d' ] );
 		}

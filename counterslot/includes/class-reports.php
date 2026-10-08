@@ -3,11 +3,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared -- the only SQL built outside prepare() is the self::ACTIVE status list, a class constant.
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names come from $wpdb->prefix; every value goes through $wpdb->prepare().
+
 /**
  * Read-only numbers for the Dashboard and Calendar pages.
  * Dates are "Y-m-d" in the site timezone, inclusive on both ends.
  */
-class SB_Reports {
+class CSlot_Reports {
 
 	// Bookings that take up time. Cancelled ones don't.
 	private const ACTIVE = "'pending', 'confirmed', 'completed'";
@@ -25,8 +28,8 @@ class SB_Reports {
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT b.customer_id, b.status, b.booking_time, b.end_time, COALESCE(b.total, s.price) AS price
-				 FROM {$p}sb_bookings b
-				 LEFT JOIN {$p}sb_services s ON s.id = b.service_id
+				 FROM {$p}cslot_bookings b
+				 LEFT JOIN {$p}cslot_services s ON s.id = b.service_id
 				 WHERE b.booking_date BETWEEN %s AND %s AND b.status IN (" . self::ACTIVE . ')',
 				$from,
 				$to
@@ -51,7 +54,7 @@ class SB_Reports {
 				$wpdb->prepare(
 					"SELECT COUNT(*) FROM (
 						SELECT customer_id, MIN(booking_date) AS first_date
-						FROM {$p}sb_bookings
+						FROM {$p}cslot_bookings
 						WHERE status IN (" . self::ACTIVE . ')
 						GROUP BY customer_id
 					 ) f WHERE f.first_date BETWEEN %s AND %s',
@@ -64,7 +67,7 @@ class SB_Reports {
 		$capacity = $this->capacity_minutes( $from, $to );
 
 		$received = (float) $wpdb->get_var(
-			$wpdb->prepare( "SELECT SUM(amount) FROM {$p}sb_payments WHERE paid_at BETWEEN %s AND %s", $from . ' 00:00:00', $to . ' 23:59:59' )
+			$wpdb->prepare( "SELECT SUM(amount) FROM {$p}cslot_payments WHERE paid_at BETWEEN %s AND %s", $from . ' 00:00:00', $to . ' 23:59:59' )
 		);
 
 		return [
@@ -84,14 +87,14 @@ class SB_Reports {
 	 * schedule and days off, or the business hours), or the business hours when there's no staff.
 	 */
 	public function capacity_minutes( string $from, string $to ): int {
-		$staff_mgr = new SB_Staff();
+		$staff_mgr = new CSlot_Staff();
 		$staff     = $staff_mgr->get_all();
 		$length    = static fn( ?array $r ) => $r ? max( 0, (int) ( ( strtotime( "1970-01-01 {$r[1]} UTC" ) - strtotime( "1970-01-01 {$r[0]} UTC" ) ) / 60 ) ) : 0;
 
 		$minutes = 0;
 		foreach ( $this->dates( $from, $to ) as $day ) {
 			if ( ! $staff ) {
-				$minutes += $length( SB_Staff::business_hours_on( $day->format( 'l' ) ) );
+				$minutes += $length( CSlot_Staff::business_hours_on( $day->format( 'l' ) ) );
 				continue;
 			}
 			foreach ( $staff as $member ) {
@@ -110,7 +113,7 @@ class SB_Reports {
 		global $wpdb;
 		$counts = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT booking_date, COUNT(*) AS n FROM {$wpdb->prefix}sb_bookings
+				"SELECT booking_date, COUNT(*) AS n FROM {$wpdb->prefix}cslot_bookings
 				 WHERE booking_date BETWEEN %s AND %s AND status IN (" . self::ACTIVE . ')
 				 GROUP BY booking_date',
 				$from,
@@ -137,10 +140,10 @@ class SB_Reports {
 		return $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT b.*, s.name AS service_name, st.name AS staff_name, c.name AS customer_name, c.email AS customer_email
-				 FROM {$p}sb_bookings b
-				 LEFT JOIN {$p}sb_services s ON s.id = b.service_id
-				 LEFT JOIN {$p}sb_staff st ON st.id = b.staff_id
-				 LEFT JOIN {$p}sb_customers c ON c.id = b.customer_id
+				 FROM {$p}cslot_bookings b
+				 LEFT JOIN {$p}cslot_services s ON s.id = b.service_id
+				 LEFT JOIN {$p}cslot_staff st ON st.id = b.staff_id
+				 LEFT JOIN {$p}cslot_customers c ON c.id = b.customer_id
 				 WHERE b.status IN ('pending', 'confirmed')
 				   AND ( b.booking_date > %s OR ( b.booking_date = %s AND b.end_time > %s ) )
 				 ORDER BY b.booking_date ASC, b.booking_time ASC
@@ -170,10 +173,10 @@ class SB_Reports {
 		$rows = $wpdb->get_results(
 			"SELECT b.id, b.booking_code, b.booking_date, b.booking_time, b.end_time, b.status,
 				s.name AS service_name, st.name AS staff_name, c.name AS customer_name
-			 FROM {$p}sb_bookings b
-			 LEFT JOIN {$p}sb_services s ON s.id = b.service_id
-			 LEFT JOIN {$p}sb_staff st ON st.id = b.staff_id
-			 LEFT JOIN {$p}sb_customers c ON c.id = b.customer_id
+			 FROM {$p}cslot_bookings b
+			 LEFT JOIN {$p}cslot_services s ON s.id = b.service_id
+			 LEFT JOIN {$p}cslot_staff st ON st.id = b.staff_id
+			 LEFT JOIN {$p}cslot_customers c ON c.id = b.customer_id
 			 WHERE $where
 			 ORDER BY b.booking_date ASC, b.booking_time ASC",
 			ARRAY_A

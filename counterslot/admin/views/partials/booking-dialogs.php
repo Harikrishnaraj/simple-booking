@@ -11,6 +11,7 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
 $page_url    = admin_url( 'admin.php?page=sb-bookings' );
 $staff_field = static function ( string $id ) use ( $staff ): void {
 	?>
@@ -51,7 +52,7 @@ $when_fields = static function ( string $prefix ): void {
 </datalist>
 
 <dialog id="sb-booking-dialog" class="sb-dialog sb-dialog--wide" aria-labelledby="sb-booking-dialog-title">
-	<form data-sb-action="sb_admin_create_booking" data-sb-redirect="<?php echo esc_url( $page_url ); ?>" data-sb-slots>
+	<form data-sb-action="cslot_admin_create_booking" data-sb-redirect="<?php echo esc_url( $page_url ); ?>" data-sb-slots>
 		<div class="sb-dialog__head">
 			<h2 id="sb-booking-dialog-title" data-new="<?php esc_attr_e( 'Book appointment', 'counterslot' ); ?>" data-edit="<?php esc_attr_e( 'Book appointment', 'counterslot' ); ?>"><?php esc_html_e( 'Book appointment', 'counterslot' ); ?></h2>
 			<button type="button" class="sb-icon-button" data-sb-close aria-label="<?php esc_attr_e( 'Close', 'counterslot' ); ?>"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button>
@@ -81,7 +82,7 @@ $when_fields = static function ( string $prefix ): void {
 			<label for="sb-b-service"><?php esc_html_e( 'Service', 'counterslot' ); ?></label>
 			<select id="sb-b-service" class="sb-input sb-input--wide" name="service_id" required>
 				<?php foreach ( $services as $s ) : ?>
-					<option value="<?php echo (int) $s['id']; ?>"><?php echo esc_html( sprintf( '%s (%d min, %s)', $s['name'], (int) $s['duration'], sb_price( $s['price'] ) ) ); ?></option>
+					<option value="<?php echo (int) $s['id']; ?>"><?php echo esc_html( sprintf( '%s (%d min, %s)', $s['name'], (int) $s['duration'], cslot_price( $s['price'] ) ) ); ?></option>
 				<?php endforeach; ?>
 			</select>
 		</p>
@@ -123,7 +124,7 @@ $when_fields = static function ( string $prefix ): void {
 				<?php foreach ( $extras as $extra ) : ?>
 					<label class="sb-check-label" data-sb-field data-services="<?php echo esc_attr( implode( ',', $extra['services'] ) ); ?>">
 						<input type="checkbox" name="extras[]" value="<?php echo esc_attr( $extra['id'] ); ?>">
-						<?php echo esc_html( $extra['name'] . ' (+' . sb_price( $extra['price'] ) . ')' ); ?>
+						<?php echo esc_html( $extra['name'] . ' (+' . cslot_price( $extra['price'] ) . ')' ); ?>
 					</label>
 				<?php endforeach; ?>
 			</fieldset>
@@ -133,7 +134,7 @@ $when_fields = static function ( string $prefix ): void {
 			<input id="sb-b-coupon" class="sb-input sb-input--wide" type="text" name="coupon" maxlength="50" autocomplete="off" spellcheck="false">
 		</p>
 		<?php
-		sb_view( 'admin/views/partials/custom-field-inputs', [
+		cslot_view( 'admin/views/partials/custom-field-inputs', [
 			'fields'       => $fields,
 			'id_prefix'    => 'sb-b-cf',
 			'group_class'  => 'sb-field',
@@ -154,7 +155,7 @@ $when_fields = static function ( string $prefix ): void {
 </dialog>
 
 <dialog id="sb-reschedule-dialog" class="sb-dialog" aria-labelledby="sb-reschedule-dialog-title">
-	<form data-sb-action="sb_admin_reschedule" data-sb-redirect="" data-sb-slots>
+	<form data-sb-action="cslot_admin_reschedule" data-sb-redirect="" data-sb-slots>
 		<div class="sb-dialog__head">
 			<h2 id="sb-reschedule-dialog-title" data-new="<?php esc_attr_e( 'Reschedule', 'counterslot' ); ?>" data-edit="<?php esc_attr_e( 'Reschedule', 'counterslot' ); ?>"><?php esc_html_e( 'Reschedule', 'counterslot' ); ?></h2>
 			<button type="button" class="sb-icon-button" data-sb-close aria-label="<?php esc_attr_e( 'Close', 'counterslot' ); ?>"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button>
@@ -179,7 +180,7 @@ $when_fields = static function ( string $prefix ): void {
 </dialog>
 
 <dialog id="sb-payment-dialog" class="sb-dialog" aria-labelledby="sb-payment-dialog-title">
-	<form data-sb-action="sb_add_payment" data-sb-redirect="" data-sb-payment-form>
+	<form data-sb-action="cslot_add_payment" data-sb-redirect="" data-sb-payment-form>
 		<div class="sb-dialog__head">
 			<h2 id="sb-payment-dialog-title" data-new="<?php esc_attr_e( 'Payments', 'counterslot' ); ?>" data-edit="<?php esc_attr_e( 'Payments', 'counterslot' ); ?>"><?php esc_html_e( 'Payments', 'counterslot' ); ?></h2>
 			<button type="button" class="sb-icon-button" data-sb-close aria-label="<?php esc_attr_e( 'Close', 'counterslot' ); ?>"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button>
@@ -194,7 +195,7 @@ $when_fields = static function ( string $prefix ): void {
 				<p class="sb-field"><label for="sb-p-amount"><?php esc_html_e( 'Amount', 'counterslot' ); ?></label><input id="sb-p-amount" class="sb-input sb-input--wide" type="number" name="amount" step="0.01" required></p>
 				<p class="sb-field"><label for="sb-p-method"><?php esc_html_e( 'Method', 'counterslot' ); ?></label>
 					<select id="sb-p-method" class="sb-input sb-input--wide" name="method">
-						<?php foreach ( SB_Payments::methods() as $value => $label ) : ?>
+						<?php foreach ( CSlot_Payments::methods() as $value => $label ) : ?>
 							<option value="<?php echo esc_attr( $value ); ?>"><?php echo esc_html( $label ); ?></option>
 						<?php endforeach; ?>
 					</select></p>

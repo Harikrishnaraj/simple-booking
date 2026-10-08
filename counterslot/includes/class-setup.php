@@ -8,10 +8,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  * member, services and a booking page). Safe to run again: existing services, staff and the
  * booking page are reused rather than duplicated.
  */
-class SB_Setup {
+class CSlot_Setup {
 
-	private const STATUS_KEY   = 'sb_setup_status';
-	public const REDIRECT_KEY  = 'sb_setup_redirect';
+	private const STATUS_KEY   = 'cslot_setup_status';
+	public const REDIRECT_KEY  = 'cslot_setup_redirect';
 
 	/**
 	 * 'done', 'skipped' or 'pending'. Sites that already have services count as set up,
@@ -22,7 +22,7 @@ class SB_Setup {
 		if ( in_array( $status, [ 'done', 'skipped' ], true ) ) {
 			return $status;
 		}
-		return ( new SB_Services() )->get_all( 'all' ) ? 'done' : 'pending';
+		return ( new CSlot_Services() )->get_all( 'all' ) ? 'done' : 'pending';
 	}
 
 	public static function set_status( string $status ): void {
@@ -160,7 +160,7 @@ class SB_Setup {
 		if ( ! preg_match( $time, $start ) || ! preg_match( $time, $end ) || $start >= $end ) {
 			return new WP_Error( 'hours', __( 'Please enter an opening time before the closing time.', 'counterslot' ) );
 		}
-		$days = array_values( array_intersect( SB_Settings::WEEK_DAYS, (array) ( $in['work_days'] ?? [] ) ) );
+		$days = array_values( array_intersect( CSlot_Settings::WEEK_DAYS, (array) ( $in['work_days'] ?? [] ) ) );
 		if ( ! $days ) {
 			return new WP_Error( 'days', __( 'Please choose at least one working day.', 'counterslot' ) );
 		}
@@ -178,7 +178,7 @@ class SB_Setup {
 			}
 			$services[] = $row;
 		}
-		if ( ! $services && ! ( new SB_Services() )->get_all( 'all' ) ) {
+		if ( ! $services && ! ( new CSlot_Services() )->get_all( 'all' ) ) {
 			return new WP_Error( 'services', __( 'Please keep at least one service. You can change or add more later.', 'counterslot' ) );
 		}
 
@@ -189,7 +189,7 @@ class SB_Setup {
 		}
 
 		// Empty currency or email keep what's set; an invalid email is ignored by update_settings().
-		SB_Settings::update_settings( array_filter( [
+		CSlot_Settings::update_settings( array_filter( [
 			'admin_email'     => trim( (string) ( $in['admin_email'] ?? '' ) ),
 			'currency_symbol' => trim( (string) ( $in['currency_symbol'] ?? '' ) ),
 		] ) + [
@@ -203,7 +203,7 @@ class SB_Setup {
 		] );
 
 		// Services, skipping names that already exist so running the wizard again doesn't duplicate them.
-		$catalog  = new SB_Services();
+		$catalog  = new CSlot_Services();
 		$existing = array_map( fn( $s ) => mb_strtolower( $s['name'] ), $catalog->get_all( 'all' ) );
 		$created  = 0;
 		foreach ( $services as $row ) {
@@ -220,12 +220,12 @@ class SB_Setup {
 		// First staff member (offers every service), unless one with that email exists.
 		$staff_added = false;
 		if ( '' !== $staff_name ) {
-			$staff       = new SB_Staff();
+			$staff       = new CSlot_Staff();
 			$known       = array_map( fn( $m ) => strtolower( $m['email'] ), $staff->get_all( 'all' ) );
 			$staff_added = ! in_array( strtolower( $staff_email ), $known, true ) && (bool) $staff->create( [ 'name' => $staff_name, 'email' => $staff_email ] );
 		}
 
-		$page_url = SB_Manage::booking_page_url();
+		$page_url = CSlot_Manage::booking_page_url();
 		if ( ! empty( $in['create_page'] ) && '' === $page_url ) {
 			$title   = sanitize_text_field( (string) ( $in['page_title'] ?? '' ) ) ?: __( 'Book an appointment', 'counterslot' );
 			$page_id = wp_insert_post( [
@@ -235,7 +235,7 @@ class SB_Setup {
 				'post_content' => "<!-- wp:shortcode -->\n[counterslot]\n<!-- /wp:shortcode -->",
 			], true );
 			if ( ! is_wp_error( $page_id ) ) {
-				SB_Settings::update_settings( [ 'booking_page_id' => $page_id ] );
+				CSlot_Settings::update_settings( [ 'booking_page_id' => $page_id ] );
 				$page_url = (string) get_permalink( $page_id );
 			}
 		}

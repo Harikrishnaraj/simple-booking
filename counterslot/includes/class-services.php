@@ -3,7 +3,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class SB_Services {
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names come from $wpdb->prefix; every value goes through $wpdb->prepare().
+
+class CSlot_Services {
 
 	private const FORMATS = [ '%s', '%s', '%d', '%f', '%f', '%d', '%s' ];
 
@@ -11,7 +13,7 @@ class SB_Services {
 
 	public function __construct() {
 		global $wpdb;
-		$this->table_name = $wpdb->prefix . 'sb_services';
+		$this->table_name = $wpdb->prefix . 'cslot_services';
 	}
 
 	public function get_all( string $status = 'active' ): array {
@@ -60,7 +62,7 @@ class SB_Services {
 	public function delete( int $id ): bool {
 		global $wpdb;
 		$has_bookings = $wpdb->get_var(
-			$wpdb->prepare( "SELECT 1 FROM {$wpdb->prefix}sb_bookings WHERE service_id = %d LIMIT 1", $id )
+			$wpdb->prepare( "SELECT 1 FROM {$wpdb->prefix}cslot_bookings WHERE service_id = %d LIMIT 1", $id )
 		);
 		if ( $has_bookings ) {
 			return false !== $wpdb->update( $this->table_name, [ 'status' => 'inactive' ], [ 'id' => $id ], [ '%s' ], [ '%d' ] );
@@ -84,7 +86,7 @@ class SB_Services {
 			'price'       => $price,
 			// Amount asked for in advance; never more than the price.
 			'deposit'     => min( $price, max( 0, round( floatval( $data['deposit'] ?? 0 ), 2 ) ) ),
-			'category_id' => $category && ( new SB_Categories() )->exists( $category ) ? $category : null,
+			'category_id' => $category && ( new CSlot_Categories() )->exists( $category ) ? $category : null,
 			'status'      => in_array( $status, [ 'active', 'inactive' ], true ) ? $status : 'active',
 		];
 	}
