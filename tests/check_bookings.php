@@ -65,7 +65,7 @@ class FakeWpdb {
 		$d['id'] = count( $this->rows ) + 1; $this->rows[] = $d; $this->insert_id = $d['id']; return 1; }
 }
 
-$base = __DIR__ . '/../simple-booking/includes/';
+$base = __DIR__ . '/../counterslot/includes/';
 require $base . 'class-settings.php';
 require $base . 'class-setup.php';
 require $base . 'class-bookings.php';
