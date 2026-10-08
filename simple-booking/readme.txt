@@ -4,7 +4,7 @@ Tags: booking, appointment, salon, clinic, scheduling, shortcode
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 8.0
-Stable tag: 2.2.0
+Stable tag: 2.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -16,13 +16,20 @@ Simple Booking allows business owners (salons, clinics, consultants, personal tr
 == Installation ==
 1. Upload the `simple-booking` folder to `/wp-content/plugins/` directory.
 2. Activate the plugin through the 'Plugins' menu in WordPress.
-3. Add the shortcode `[simple_booking]` to any page or post.
+3. The setup wizard opens: choose your type of business, opening hours, first staff member and services, and it creates a booking page for you. You can run it again from Simple Booking → Settings.
+4. To show the form somewhere else, add the shortcode `[simple_booking]` to any page or post.
 
 == Frequently Asked Questions ==
 = How do I embed the booking form? =
 Simply insert the shortcode `[simple_booking]` into any page, post, or widget area.
 
 == Changelog ==
+= 2.3.0 =
+* Setup wizard: opens after activation on new sites and gives you a working booking page in five short steps (type of business, opening hours, first staff member, services, booking page). Skip it, or run it again from Settings.
+* Industry presets for clinics, salons, tutors, consultants, repair services and studios fill in typical hours, services and wording.
+* New setting "Staff are called": the word customers see on the booking form, e.g. "Doctor" or "Stylist".
+* Sites that already have services are never sent to the wizard after updating.
+
 = 2.2.0 =
 * Events: group sessions with a date, times, number of places, price per place, optional location and host (Simple Booking → Events).
 * New [simple_booking_events] shortcode lists upcoming events with places left and a registration form (1–20 places; never overbooked).

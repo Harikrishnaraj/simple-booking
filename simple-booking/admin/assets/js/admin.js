@@ -451,4 +451,150 @@
 		}));
 		form.querySelector('[data-sb-attendee-empty]').hidden = attendees.length > 0;
 	}, true);
+	// Setup wizard: one step at a time, industry defaults, submit at the end.
+	const wizard = document.querySelector('form[data-sb-wizard]');
+	if (wizard) {
+		const steps = [...wizard.querySelectorAll('[data-sb-step]')];
+		const labels = [...document.querySelectorAll('[data-sb-step-label]')];
+		const back = wizard.querySelector('[data-sb-wizard-back]');
+		const next = wizard.querySelector('[data-sb-wizard-next]');
+		const finish = wizard.querySelector('[data-sb-wizard-finish]');
+		const error = wizard.querySelector('[data-sb-wizard-error]');
+		const touched = new Set();
+		let current = 0;
+
+		const showError = (message) => {
+			error.textContent = message;
+			error.hidden = !message;
+		};
+
+		const show = (i, focus = true) => {
+			current = i;
+			steps.forEach((step, n) => { step.hidden = n !== i; });
+			labels.forEach((label, n) => {
+				label.toggleAttribute('aria-current', n === i);
+				label.classList.toggle('is-done', n < i);
+				if (n === i) {
+					label.setAttribute('aria-current', 'step');
+				}
+			});
+			back.hidden = i === 0;
+			next.hidden = i === steps.length - 1;
+			finish.hidden = i !== steps.length - 1;
+			showError('');
+			const first = steps[i].querySelector('input:not([type="hidden"]):not(:disabled), select');
+			if (focus && first) {
+				first.focus();
+			}
+		};
+
+		// Check the visible step before moving on; the browser explains what's missing.
+		const valid = () => {
+			const fields = [...steps[current].querySelectorAll('input, select')].filter((f) => !f.disabled && !f.closest('[hidden]'));
+			const bad = fields.find((f) => !f.checkValidity());
+			if (bad) {
+				bad.reportValidity();
+				return false;
+			}
+			const days = steps[current].querySelectorAll('[data-sb-day]');
+			if (days.length && ![...days].some((d) => d.checked)) {
+				showError(days[0].closest('fieldset').querySelector('legend').textContent + ': ' + cfg.i18n.pickDay);
+				return false;
+			}
+			return true;
+		};
+
+		// Show only the chosen industry's services; hidden rows are disabled so they aren't sent.
+		const showServices = (industry) => {
+			wizard.querySelectorAll('[data-sb-services]').forEach((group) => {
+				const on = group.dataset.sbServices === industry;
+				group.hidden = !on;
+				group.querySelectorAll('input').forEach((input) => { input.disabled = !on || input.hasAttribute('data-sb-fixed'); });
+			});
+		};
+
+		// Fill in the industry's usual hours and wording, without overwriting anything the owner changed.
+		const applyPreset = (radio) => {
+			const preset = JSON.parse(radio.dataset.preset);
+			if (!touched.has('work_days')) {
+				wizard.querySelectorAll('[data-sb-day]').forEach((d) => { d.checked = preset.days.includes(d.value); });
+			}
+			[['business_hours_start', preset.start], ['business_hours_end', preset.end], ['staff_label', preset.staff_label]].forEach(([name, value]) => {
+				if (!touched.has(name)) {
+					wizard.elements[name].value = value;
+				}
+			});
+			showServices(radio.value);
+		};
+
+		wizard.addEventListener('input', (e) => {
+			const name = e.target.name.replace('[]', '');
+			if (['work_days', 'business_hours_start', 'business_hours_end', 'staff_label'].includes(name)) {
+				touched.add(name);
+			}
+			// Typing a service name ticks its row.
+			if (e.target.matches('[data-sb-svc-name]') && e.target.value.trim()) {
+				e.target.closest('tr').querySelector('[data-sb-svc-on]').checked = true;
+			}
+		});
+		wizard.addEventListener('change', (e) => {
+			if (e.target.name === 'industry') {
+				applyPreset(e.target);
+			}
+		});
+
+		back.addEventListener('click', () => show(current - 1));
+		next.addEventListener('click', () => {
+			if (valid()) {
+				show(current + 1);
+			}
+		});
+
+		wizard.addEventListener('submit', async (e) => {
+			e.preventDefault();
+			// Enter in a field moves to the next step until the last one.
+			if (current < steps.length - 1) {
+				next.click();
+				return;
+			}
+			if (!valid()) {
+				return;
+			}
+			finish.disabled = true;
+			try {
+				const res = await post('sb_run_setup', new FormData(wizard));
+				const done = document.querySelector('[data-sb-wizard-done]');
+				const page = done.querySelector('[data-sb-wizard-page]');
+				done.querySelector('[data-sb-wizard-summary]').textContent = res.message;
+				if (res.page_url) {
+					page.href = res.page_url;
+					page.hidden = false;
+				}
+				wizard.hidden = true;
+				document.querySelector('.sb-steps').hidden = true;
+				done.hidden = false;
+				done.focus();
+			} catch (err) {
+				showError(err.message);
+				finish.disabled = false;
+			}
+		});
+
+		const skip = wizard.querySelector('[data-sb-wizard-skip]');
+		if (skip) {
+			skip.addEventListener('click', async () => {
+				skip.disabled = true;
+				try {
+					window.location.href = (await post('sb_skip_setup', new FormData())).redirect;
+				} catch (err) {
+					showError(err.message);
+					skip.disabled = false;
+				}
+			});
+		}
+
+		const chosen = wizard.querySelector('input[name="industry"]:checked');
+		showServices(chosen ? chosen.value : 'other');
+		show(0, false);
+	}
 })();
