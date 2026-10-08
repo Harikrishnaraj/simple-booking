@@ -3,20 +3,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names come from $wpdb->prefix; every value goes through $wpdb->prepare().
+
 /**
  * Group events with a limited number of places (workshops, group sessions).
  * Registrations are separate from appointment bookings; an event's host staff member
- * is treated as busy for appointments while it runs (see SB_Bookings::active_on()).
+ * is treated as busy for appointments while it runs (see CSlot_Bookings::active_on()).
  */
-class SB_Events {
+class CSlot_Events {
 
 	private string $events;
 	private string $registrations;
 
 	public function __construct() {
 		global $wpdb;
-		$this->events        = $wpdb->prefix . 'sb_events';
-		$this->registrations = $wpdb->prefix . 'sb_event_registrations';
+		$this->events        = $wpdb->prefix . 'cslot_events';
+		$this->registrations = $wpdb->prefix . 'cslot_event_registrations';
 	}
 
 	/**
@@ -28,8 +30,8 @@ class SB_Events {
 			"SELECT e.*, COALESCE(r.taken, 0) AS taken, l.name AS location_name, l.address AS location_address, st.name AS staff_name
 			 FROM {$this->events} e
 			 LEFT JOIN (SELECT event_id, SUM(spots) AS taken FROM {$this->registrations} WHERE status = 'registered' GROUP BY event_id) r ON r.event_id = e.id
-			 LEFT JOIN {$wpdb->prefix}sb_locations l ON l.id = e.location_id
-			 LEFT JOIN {$wpdb->prefix}sb_staff st ON st.id = e.staff_id
+			 LEFT JOIN {$wpdb->prefix}cslot_locations l ON l.id = e.location_id
+			 LEFT JOIN {$wpdb->prefix}cslot_staff st ON st.id = e.staff_id
 			 ORDER BY e.event_date DESC, e.start_time DESC",
 			ARRAY_A
 		);
@@ -121,8 +123,8 @@ class SB_Events {
 		return $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT r.*, c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone
-				 FROM {$this->registrations} r LEFT JOIN {$wpdb->prefix}sb_customers c ON c.id = r.customer_id
-				 WHERE r.event_id = %d" . ( $active_only ? " AND r.status = 'registered'" : '' ) . ' ORDER BY r.id DESC',
+				 FROM {$this->registrations} r LEFT JOIN {$wpdb->prefix}cslot_customers c ON c.id = r.customer_id
+				 WHERE r.event_id = %d" . ( $active_only ? " AND r.status = 'registered'" : '' ) . ' ORDER BY r.id DESC', // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- fixed SQL fragment
 				$event_id
 			),
 			ARRAY_A
@@ -137,7 +139,7 @@ class SB_Events {
 	public function register( int $event_id, int $customer_id, int $spots ): int|string {
 		global $wpdb;
 		$spots = max( 1, $spots );
-		$lock  = 'sb_event_' . md5( $wpdb->prefix . $event_id );
+		$lock  = 'cslot_event_' . md5( $wpdb->prefix . $event_id );
 		if ( 1 !== (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $lock ) ) ) {
 			return __( 'Please try again in a moment.', 'counterslot' );
 		}
@@ -177,7 +179,7 @@ class SB_Events {
 		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				"SELECT r.*, c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone
-				 FROM {$this->registrations} r LEFT JOIN {$wpdb->prefix}sb_customers c ON c.id = r.customer_id WHERE r.id = %d",
+				 FROM {$this->registrations} r LEFT JOIN {$wpdb->prefix}cslot_customers c ON c.id = r.customer_id WHERE r.id = %d",
 				$id
 			),
 			ARRAY_A

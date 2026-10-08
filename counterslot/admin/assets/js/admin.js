@@ -2,7 +2,7 @@
 (function () {
 	'use strict';
 
-	const cfg = window.sbAdmin;
+	const cfg = window.cslotAdmin;
 	if (!cfg) {
 		return;
 	}
@@ -84,7 +84,7 @@
 		data.append('id', select.dataset.id);
 		data.append('status', select.value);
 		try {
-			await post('sb_update_booking_status', data);
+			await post('cslot_update_booking_status', data);
 			select.classList.replace('sb-status--' + select.dataset.previous, 'sb-status--' + select.value);
 			select.dataset.previous = select.value;
 		} catch (err) {
@@ -110,7 +110,7 @@
 		icon.classList.toggle('dashicons-admin-appearance', !dark);
 		const data = new FormData();
 		data.append('theme', dark ? 'dark' : 'light');
-		post('sb_save_theme', data).catch(() => {});
+		post('cslot_save_theme', data).catch(() => {});
 	});
 
 	// Dialogs: [data-sb-open="id"] opens; data-sb-fill (JSON) fills the form fields for editing.
@@ -225,10 +225,10 @@
 		}
 		test.disabled = true;
 		try {
-			await post('sb_save_template', new FormData(form));
+			await post('cslot_save_template', new FormData(form));
 			const data = new FormData();
 			data.append('key', form.elements.key.value);
-			const res = await post('sb_test_template', data);
+			const res = await post('cslot_test_template', data);
 			window.alert(cfg.i18n.testSent.replace('%s', res.to));
 		} catch (err) {
 			window.alert(err.message);
@@ -265,7 +265,7 @@
 		data.append('date', date.value);
 		data.append('exclude', form.elements.id.value);
 		try {
-			const res = await post('sb_admin_slots', data);
+			const res = await post('cslot_admin_slots', data);
 			if (mine !== slotRequest) {
 				return;
 			}
@@ -372,7 +372,7 @@
 		data.append('id', button.dataset.sbMoveField);
 		data.append('direction', button.dataset.direction);
 		try {
-			await post('sb_move_field', data);
+			await post('cslot_move_field', data);
 			window.location.reload();
 		} catch (err) {
 			window.alert(err.message);
@@ -408,7 +408,7 @@
 			const del = document.createElement('button');
 			del.type = 'button';
 			del.className = 'sb-button sb-button--danger sb-button--small';
-			del.dataset.sbDelete = 'sb_delete_payment';
+			del.dataset.sbDelete = 'cslot_delete_payment';
 			del.dataset.id = p.id;
 			del.dataset.sbConfirm = cfg.i18n.confirmDeletePayment;
 			del.textContent = cfg.i18n.delete;
@@ -436,7 +436,7 @@
 				const cancel = document.createElement('button');
 				cancel.type = 'button';
 				cancel.className = 'sb-button sb-button--danger sb-button--small';
-				cancel.dataset.sbDelete = 'sb_cancel_registration';
+				cancel.dataset.sbDelete = 'cslot_cancel_registration';
 				cancel.dataset.id = a.id;
 				cancel.dataset.sbConfirm = cfg.i18n.confirmCancelRegistration;
 				cancel.textContent = cfg.i18n.cancel;
@@ -562,7 +562,7 @@
 			}
 			finish.disabled = true;
 			try {
-				const res = await post('sb_run_setup', new FormData(wizard));
+				const res = await post('cslot_run_setup', new FormData(wizard));
 				const done = document.querySelector('[data-sb-wizard-done]');
 				const page = done.querySelector('[data-sb-wizard-page]');
 				done.querySelector('[data-sb-wizard-summary]').textContent = res.message;
@@ -585,7 +585,7 @@
 			skip.addEventListener('click', async () => {
 				skip.disabled = true;
 				try {
-					window.location.href = (await post('sb_skip_setup', new FormData())).redirect;
+					window.location.href = (await post('cslot_skip_setup', new FormData())).redirect;
 				} catch (err) {
 					showError(err.message);
 					skip.disabled = false;

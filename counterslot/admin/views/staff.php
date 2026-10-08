@@ -11,18 +11,19 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
 $service_names  = array_column( $all_services, 'name', 'id' );
 $location_names = array_column( $locations, 'name', 'id' );
-$staff_mgr     = new SB_Staff();
+$staff_mgr     = new CSlot_Staff();
 ?>
 <div class="wrap sb-app">
-	<?php sb_view( 'admin/views/partials/header', [ 'title' => __( 'Staff', 'counterslot' ), 'theme' => $theme ] ); ?>
+	<?php cslot_view( 'admin/views/partials/header', [ 'title' => __( 'Staff', 'counterslot' ), 'theme' => $theme ] ); ?>
 
 	<div class="sb-split">
 		<section class="sb-card sb-split__form">
 			<div>
 				<h2 class="sb-card__title"><?php echo $editing ? esc_html__( 'Edit Staff Member', 'counterslot' ) : esc_html__( 'Add Staff Member', 'counterslot' ); ?></h2>
-				<form data-sb-action="sb_save_staff" data-sb-redirect="<?php echo esc_url( $page_url ); ?>">
+				<form data-sb-action="cslot_save_staff" data-sb-redirect="<?php echo esc_url( $page_url ); ?>">
 					<input type="hidden" name="id" value="<?php echo (int) ( $editing['id'] ?? 0 ); ?>">
 					<div class="form-field form-required">
 						<label for="sb-staff-name"><?php esc_html_e( 'Name', 'counterslot' ); ?></label>
@@ -70,7 +71,7 @@ $staff_mgr     = new SB_Staff();
 							<p class="description"><?php esc_html_e( 'With two or more locations, customers pick one first and only see staff working there.', 'counterslot' ); ?></p>
 						</div>
 					<?php endif; ?>
-					<?php sb_view( 'admin/views/partials/staff-schedule', [ 'editing' => $editing ] ); ?>
+					<?php cslot_view( 'admin/views/partials/staff-schedule', [ 'editing' => $editing ] ); ?>
 					<div class="form-field">
 						<label for="sb-staff-status"><?php esc_html_e( 'Status', 'counterslot' ); ?></label>
 						<select id="sb-staff-status" name="status">
@@ -107,11 +108,11 @@ $staff_mgr     = new SB_Staff();
 							<tr>
 								<td>
 									<span class="sb-person">
-										<?php echo sb_avatar( $member['name'], $staff_mgr->photo_url( $member ) ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in sb_avatar() ?>
+										<?php echo cslot_avatar( $member['name'], $staff_mgr->photo_url( $member ) ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in cslot_avatar() ?>
 										<span>
 											<strong><?php echo esc_html( $member['name'] ); ?></strong>
 											<?php if ( null !== $staff_mgr->schedule( $member ) || $staff_mgr->days_off( $member ) ) : ?>
-												<br><span class="sb-muted"><?php echo esc_html( sb_schedule_summary( $member ) ); ?></span>
+												<br><span class="sb-muted"><?php echo esc_html( cslot_schedule_summary( $member ) ); ?></span>
 											<?php endif; ?>
 										</span>
 									</span>
@@ -130,11 +131,11 @@ $staff_mgr     = new SB_Staff();
 										: esc_html__( 'All services', 'counterslot' );
 									?>
 								</td>
-								<td><?php sb_view( 'admin/views/partials/active-badge', [ 'active' => 'active' === $member['status'] ] ); ?></td>
+								<td><?php cslot_view( 'admin/views/partials/active-badge', [ 'active' => 'active' === $member['status'] ] ); ?></td>
 								<td class="sb-actions">
 									<a class="sb-button sb-button--ghost sb-button--small" href="<?php echo esc_url( admin_url( 'admin.php?page=sb-calendar&staff=' . (int) $member['id'] ) ); ?>"><?php esc_html_e( 'Calendar', 'counterslot' ); ?></a>
 									<a class="sb-button sb-button--ghost sb-button--small" href="<?php echo esc_url( add_query_arg( 'edit', (int) $member['id'], $page_url ) ); ?>"><?php esc_html_e( 'Edit', 'counterslot' ); ?></a>
-									<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-delete="sb_delete_staff" data-id="<?php echo (int) $member['id']; ?>"><?php esc_html_e( 'Delete', 'counterslot' ); ?></button>
+									<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-delete="cslot_delete_staff" data-id="<?php echo (int) $member['id']; ?>"><?php esc_html_e( 'Delete', 'counterslot' ); ?></button>
 								</td>
 							</tr>
 						<?php endforeach; ?>

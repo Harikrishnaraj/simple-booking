@@ -3,12 +3,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Sends the emails defined in SB_Notifications.
- */
-class SB_Email {
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names come from $wpdb->prefix; every value goes through $wpdb->prepare().
 
-	public const REMINDER_HOOK = 'sb_send_reminders';
+/**
+ * Sends the emails defined in CSlot_Notifications.
+ */
+class CSlot_Email {
+
+	public const REMINDER_HOOK = 'cslot_send_reminders';
 
 	// Which customer email a status change sends. Pending has none.
 	private const STATUS_TEMPLATES = [
@@ -31,7 +33,7 @@ class SB_Email {
 		}
 		$this->send( 'staff_new', (string) $data['staff_email'], $data );
 		if ( ! $by_admin ) {
-			$this->send( 'admin_new', (string) SB_Settings::get_settings()['admin_email'], $data );
+			$this->send( 'admin_new', (string) CSlot_Settings::get_settings()['admin_email'], $data );
 		}
 	}
 
@@ -42,7 +44,7 @@ class SB_Email {
 		$data = $this->get_booking_data( $booking_id );
 		if ( $data ) {
 			$data['change'] = $what;
-			$this->send( 'admin_customer_change', (string) SB_Settings::get_settings()['admin_email'], $data );
+			$this->send( 'admin_customer_change', (string) CSlot_Settings::get_settings()['admin_email'], $data );
 		}
 	}
 
@@ -67,14 +69,14 @@ class SB_Email {
 	 */
 	public function send_reminders(): int {
 		global $wpdb;
-		$template = SB_Notifications::get( 'customer_reminder' );
+		$template = CSlot_Notifications::get( 'customer_reminder' );
 		if ( empty( $template['enabled'] ) ) {
 			return 0;
 		}
 
 		$now   = time();
 		$until = $now + (int) $template['hours'] * HOUR_IN_SECONDS;
-		$table = $wpdb->prefix . 'sb_bookings';
+		$table = $wpdb->prefix . 'cslot_bookings';
 		$rows  = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT id, booking_date, booking_time FROM $table
@@ -114,7 +116,7 @@ class SB_Email {
 	 * so it needs no reminder (the customer has just had the booking email).
 	 */
 	public static function inside_reminder_window( string $date, string $time ): bool {
-		$hours = (int) SB_Notifications::get( 'customer_reminder' )['hours'];
+		$hours = (int) CSlot_Notifications::get( 'customer_reminder' )['hours'];
 		return self::start_timestamp( $date, $time ) - time() <= $hours * HOUR_IN_SECONDS;
 	}
 
@@ -142,12 +144,12 @@ class SB_Email {
 		$values = $this->event_values( $event, $registration );
 		$this->send_values( $template, (string) $registration['customer_email'], $values );
 		if ( 'event_registered' === $template ) {
-			$this->send_values( 'admin_event_registered', (string) SB_Settings::get_settings()['admin_email'], $values );
+			$this->send_values( 'admin_event_registered', (string) CSlot_Settings::get_settings()['admin_email'], $values );
 		}
 	}
 
 	private function event_values( array $e, array $r ): array {
-		$empty = array_fill_keys( array_keys( SB_Notifications::placeholders() ), '' );
+		$empty = array_fill_keys( array_keys( CSlot_Notifications::placeholders() ), '' );
 		return [
 			'{customer_name}'    => (string) $r['customer_name'],
 			'{customer_email}'   => (string) $r['customer_email'],
@@ -158,12 +160,12 @@ class SB_Email {
 			'{booking_date}'     => mysql2date( get_option( 'date_format' ), $e['event_date'] ),
 			'{booking_time}'     => substr( (string) $e['start_time'], 0, 5 ),
 			'{end_time}'         => substr( (string) $e['end_time'], 0, 5 ),
-			'{price}'            => (float) $r['total'] > 0 ? sb_price( $r['total'] ) : __( 'Free', 'counterslot' ),
+			'{price}'            => (float) $r['total'] > 0 ? cslot_price( $r['total'] ) : __( 'Free', 'counterslot' ),
 			'{booking_code}'     => (string) $r['code'],
 			'{spots}'            => (string) (int) $r['spots'],
 			'{location_name}'    => (string) ( $e['location_name'] ?? '' ),
 			'{location_address}' => preg_replace( '/\s*\R\s*/', ', ', trim( (string) ( $e['location_address'] ?? '' ) ) ),
-			'{business_name}'    => (string) SB_Settings::get_settings()['business_name'],
+			'{business_name}'    => (string) CSlot_Settings::get_settings()['business_name'],
 		] + $empty;
 	}
 
@@ -172,11 +174,11 @@ class SB_Email {
 	}
 
 	private function send_values( string $key, string $to, array $values, bool $force = false ): bool {
-		$template = SB_Notifications::get( $key );
+		$template = CSlot_Notifications::get( $key );
 		if ( ( ! $force && empty( $template['enabled'] ) ) || ! is_email( $to ) ) {
 			return false;
 		}
-		$email = SB_Notifications::render( $template, $values );
+		$email = CSlot_Notifications::render( $template, $values );
 		return wp_mail( $to, $email['subject'], $this->layout( $email['html'] ), [ 'Content-Type: text/html; charset=UTF-8' ] );
 	}
 
@@ -185,7 +187,7 @@ class SB_Email {
 	}
 
 	private function placeholder_values( array $d ): array {
-		$paid = isset( $d['id'] ) ? array_sum( array_map( 'floatval', array_column( ( new SB_Payments() )->for_booking( (int) $d['id'] ), 'amount' ) ) ) : 0.0;
+		$paid = isset( $d['id'] ) ? array_sum( array_map( 'floatval', array_column( ( new CSlot_Payments() )->for_booking( (int) $d['id'] ), 'amount' ) ) ) : 0.0;
 		$statuses = [
 			'pending'   => __( 'Pending', 'counterslot' ),
 			'confirmed' => __( 'Confirmed', 'counterslot' ),
@@ -201,28 +203,28 @@ class SB_Email {
 			'{booking_date}'   => mysql2date( get_option( 'date_format' ), $d['booking_date'] ),
 			'{booking_time}'   => substr( (string) $d['booking_time'], 0, 5 ),
 			'{end_time}'       => substr( (string) $d['end_time'], 0, 5 ),
-			'{price}'          => sb_price( $d['total'] ?? $d['price'] ),
+			'{price}'          => cslot_price( $d['total'] ?? $d['price'] ),
 			'{price_details}'  => $this->price_text( $d ),
 			'{deposit}'        => $this->money_or_empty( (float) ( json_decode( (string) ( $d['pricing'] ?? '' ), true )['deposit'] ?? 0 ) ),
-			'{amount_paid}'    => sb_price( $paid ),
-			'{balance}'        => sb_price( max( 0, (float) ( $d['total'] ?? $d['price'] ) - $paid ) ),
+			'{amount_paid}'    => cslot_price( $paid ),
+			'{balance}'        => cslot_price( max( 0, (float) ( $d['total'] ?? $d['price'] ) - $paid ) ),
 			'{booking_code}'   => (string) $d['booking_code'],
 			'{status}'         => $statuses[ $d['status'] ] ?? (string) $d['status'],
 			'{notes}'          => (string) $d['notes'],
-			'{custom_fields}'  => SB_Custom_Fields::as_text( $d['custom_fields'] ?? null ),
+			'{custom_fields}'  => CSlot_Custom_Fields::as_text( $d['custom_fields'] ?? null ),
 			'{recurring_details}' => $this->series_text( (string) ( $d['series_id'] ?? '' ) ),
-			'{manage_link}'    => isset( $d['id'] ) ? SB_Manage::url( $d ) : home_url( '/' ),
+			'{manage_link}'    => isset( $d['id'] ) ? CSlot_Manage::url( $d ) : home_url( '/' ),
 			'{change}'         => (string) ( $d['change'] ?? '' ),
 			'{event_name}'     => '',
 			'{spots}'          => '',
-			'{business_name}'  => (string) SB_Settings::get_settings()['business_name'],
+			'{business_name}'  => (string) CSlot_Settings::get_settings()['business_name'],
 			'{location_name}'  => (string) ( $d['location_name'] ?? '' ),
 			'{location_address}' => preg_replace( '/\s*\R\s*/', ', ', trim( (string) ( $d['location_address'] ?? '' ) ) ),
 		];
 	}
 
 	private function money_or_empty( float $amount ): string {
-		return $amount > 0 ? sb_price( $amount ) : '';
+		return $amount > 0 ? cslot_price( $amount ) : '';
 	}
 
 	/**
@@ -233,14 +235,14 @@ class SB_Email {
 		if ( ! is_array( $pricing ) || (float) $pricing['total'] <= 0 ) {
 			return '';
 		}
-		return implode( "\n", array_map( fn( $l ) => $l[0] . ': ' . sb_price( $l[1] ), SB_Pricing::lines( $pricing ) ) );
+		return implode( "\n", array_map( fn( $l ) => $l[0] . ': ' . cslot_price( $l[1] ), CSlot_Pricing::lines( $pricing ) ) );
 	}
 
 	/**
 	 * "All sessions:" and one line per upcoming session, or '' for a single booking.
 	 */
 	private function series_text( string $series_id ): string {
-		$sessions = '' === $series_id ? [] : ( new SB_Bookings() )->series_sessions( $series_id );
+		$sessions = '' === $series_id ? [] : ( new CSlot_Bookings() )->series_sessions( $series_id );
 		if ( count( $sessions ) < 2 ) {
 			return '';
 		}
@@ -265,7 +267,7 @@ class SB_Email {
 			'booking_time'   => '10:00:00',
 			'end_time'       => '11:00:00',
 			'price'          => 50,
-			'booking_code'   => 'SB-SAMPLE',
+			'booking_code'   => 'CS-SAMPLE',
 			'status'         => 'confirmed',
 			'notes'          => __( 'This is a test email.', 'counterslot' ),
 		];
@@ -284,11 +286,11 @@ class SB_Email {
 				"SELECT b.*, s.name AS service_name, s.price, c.name AS customer_name, c.email AS customer_email,
 					c.phone AS customer_phone, st.name AS staff_name, st.email AS staff_email,
 					l.name AS location_name, l.address AS location_address
-				 FROM {$p}sb_bookings b
-				 LEFT JOIN {$p}sb_locations l ON l.id = b.location_id
-				 JOIN {$p}sb_services s ON b.service_id = s.id
-				 JOIN {$p}sb_customers c ON b.customer_id = c.id
-				 LEFT JOIN {$p}sb_staff st ON b.staff_id = st.id
+				 FROM {$p}cslot_bookings b
+				 LEFT JOIN {$p}cslot_locations l ON l.id = b.location_id
+				 JOIN {$p}cslot_services s ON b.service_id = s.id
+				 JOIN {$p}cslot_customers c ON b.customer_id = c.id
+				 LEFT JOIN {$p}cslot_staff st ON b.staff_id = st.id
 				 WHERE b.id = %d",
 				$booking_id
 			),

@@ -2,7 +2,7 @@
 (function () {
 	'use strict';
 
-	const cfg = window.sbEvents;
+	const cfg = window.cslotEvents;
 	const root = document.querySelector('[data-sb-events]');
 	if (!cfg || !root) {
 		return;
@@ -29,7 +29,7 @@
 		button.disabled = true;
 		show(cfg.i18n.sending);
 		const data = new FormData(form);
-		data.append('action', 'sb_event_register');
+		data.append('action', 'cslot_event_register');
 		data.append('_wpnonce', cfg.nonce);
 		let json = null;
 		try {

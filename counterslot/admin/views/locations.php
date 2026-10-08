@@ -7,9 +7,10 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
 ?>
 <div class="wrap sb-app">
-	<?php sb_view( 'admin/views/partials/header', [ 'title' => __( 'Locations', 'counterslot' ), 'theme' => $theme ] ); ?>
+	<?php cslot_view( 'admin/views/partials/header', [ 'title' => __( 'Locations', 'counterslot' ), 'theme' => $theme ] ); ?>
 
 	<section class="sb-card">
 		<div class="sb-toolbar sb-toolbar--split">
@@ -39,11 +40,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 								<td class="sb-note"><?php echo nl2br( esc_html( $l['address'] ) ); ?></td>
 								<td><?php echo $l['phone'] ? esc_html( $l['phone'] ) : '<span class="sb-muted">—</span>'; ?></td>
 								<td class="sb-num"><?php echo (int) ( $staff_count[ $l['id'] ] ?? 0 ); ?></td>
-								<td><?php sb_view( 'admin/views/partials/active-badge', [ 'active' => 'active' === $l['status'] ] ); ?></td>
+								<td><?php cslot_view( 'admin/views/partials/active-badge', [ 'active' => 'active' === $l['status'] ] ); ?></td>
 								<td class="sb-actions">
 									<button type="button" class="sb-button sb-button--ghost sb-button--small" data-sb-open="sb-location-dialog"
 										data-sb-fill="<?php echo esc_attr( wp_json_encode( array_intersect_key( $l, array_flip( [ 'id', 'name', 'address', 'phone', 'status' ] ) ) ) ); ?>"><?php esc_html_e( 'Edit', 'counterslot' ); ?></button>
-									<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-delete="sb_delete_location" data-id="<?php echo (int) $l['id']; ?>"
+									<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-delete="cslot_delete_location" data-id="<?php echo (int) $l['id']; ?>"
 										data-sb-confirm="<?php esc_attr_e( 'Delete this location? Its staff become unassigned. Locations with bookings are deactivated instead.', 'counterslot' ); ?>"><?php esc_html_e( 'Delete', 'counterslot' ); ?></button>
 								</td>
 							</tr>
@@ -57,7 +58,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</section>
 
 	<dialog id="sb-location-dialog" class="sb-dialog" aria-labelledby="sb-location-dialog-title">
-		<form data-sb-action="sb_save_location" data-sb-redirect="">
+		<form data-sb-action="cslot_save_location" data-sb-redirect="">
 			<div class="sb-dialog__head">
 				<h2 id="sb-location-dialog-title" data-new="<?php esc_attr_e( 'Add location', 'counterslot' ); ?>" data-edit="<?php esc_attr_e( 'Edit location', 'counterslot' ); ?>"><?php esc_html_e( 'Add location', 'counterslot' ); ?></h2>
 				<button type="button" class="sb-icon-button" data-sb-close aria-label="<?php esc_attr_e( 'Close', 'counterslot' ); ?>"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button>

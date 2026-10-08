@@ -8,6 +8,7 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
 $is_dark = 'dark' === $theme;
 ?>
 <header class="sb-header">

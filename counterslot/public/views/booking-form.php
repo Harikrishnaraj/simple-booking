@@ -13,6 +13,7 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
 $uid = wp_unique_id( 'sb-' );
 ?>
 <div class="sb-booking-wrapper" data-sb-booking>
@@ -47,7 +48,7 @@ $uid = wp_unique_id( 'sb-' );
 										__( '%1$s (%2$d min, %3$s)', 'counterslot' ),
 										$s['name'],
 										(int) $s['duration'],
-										sb_price( $s['price'] )
+										cslot_price( $s['price'] )
 									)
 									: sprintf(
 										/* translators: 1: service name, 2: duration in minutes */
@@ -78,7 +79,7 @@ $uid = wp_unique_id( 'sb-' );
 
 			<?php if ( $staff ) : ?>
 				<div class="sb-form-group">
-					<label for="<?php echo esc_attr( $uid ); ?>-staff"><?php echo esc_html( SB_Settings::staff_label() ); ?></label>
+					<label for="<?php echo esc_attr( $uid ); ?>-staff"><?php echo esc_html( CSlot_Settings::staff_label() ); ?></label>
 					<div class="sb-staff-pick">
 						<img class="sb-staff-photo" src="" alt="" width="44" height="44" hidden>
 						<select id="<?php echo esc_attr( $uid ); ?>-staff" class="sb-form-control" name="staff_id">
@@ -98,7 +99,7 @@ $uid = wp_unique_id( 'sb-' );
 						<label class="sb-check-label" data-sb-field data-services="<?php echo esc_attr( implode( ',', $extra['services'] ) ); ?>">
 							<input type="checkbox" name="extras[]" value="<?php echo esc_attr( $extra['id'] ); ?>">
 							<?php echo esc_html( $extra['name'] ); ?>
-							<span class="sb-extra-price">+<?php echo esc_html( sb_price( $extra['price'] ) ); ?></span>
+							<span class="sb-extra-price">+<?php echo esc_html( cslot_price( $extra['price'] ) ); ?></span>
 						</label>
 					<?php endforeach; ?>
 				</fieldset>
@@ -140,7 +141,7 @@ $uid = wp_unique_id( 'sb-' );
 				<input id="<?php echo esc_attr( $uid ); ?>-phone" class="sb-form-control" name="phone" type="tel" maxlength="50" autocomplete="tel">
 			</div>
 			<?php
-			sb_view( 'admin/views/partials/custom-field-inputs', [
+			cslot_view( 'admin/views/partials/custom-field-inputs', [
 				'fields'       => $fields,
 				'id_prefix'    => $uid . '-cf',
 				'group_class'  => 'sb-form-group',

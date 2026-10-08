@@ -1,18 +1,19 @@
 <?php
 /**
- * @var array  $fields   SB_Custom_Fields::all()
+ * @var array  $fields   CSlot_Custom_Fields::all()
  * @var array  $services All services
  * @var string $theme
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-$types         = SB_Custom_Fields::types();
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
+$types         = CSlot_Custom_Fields::types();
 $service_names = array_column( $services, 'name', 'id' );
 $last          = count( $fields ) - 1;
 ?>
 <div class="wrap sb-app">
-	<?php sb_view( 'admin/views/partials/header', [ 'title' => __( 'Custom Fields', 'counterslot' ), 'theme' => $theme ] ); ?>
+	<?php cslot_view( 'admin/views/partials/header', [ 'title' => __( 'Custom Fields', 'counterslot' ), 'theme' => $theme ] ); ?>
 
 	<section class="sb-card">
 		<div class="sb-toolbar sb-toolbar--split">
@@ -53,13 +54,13 @@ $last          = count( $fields ) - 1;
 									?>
 								</td>
 								<td class="sb-actions">
-									<button type="button" class="sb-icon-button sb-icon-button--small" data-sb-move-field="<?php echo esc_attr( $field['id'] ); ?>" data-direction="-1" <?php disabled( 0, $i ); ?> aria-label="<?php echo esc_attr( sprintf( __( 'Move %s up', 'counterslot' ), $field['label'] ) ); ?>"><span class="dashicons dashicons-arrow-up-alt2" aria-hidden="true"></span></button>
-									<button type="button" class="sb-icon-button sb-icon-button--small" data-sb-move-field="<?php echo esc_attr( $field['id'] ); ?>" data-direction="1" <?php disabled( $last, $i ); ?> aria-label="<?php echo esc_attr( sprintf( __( 'Move %s down', 'counterslot' ), $field['label'] ) ); ?>"><span class="dashicons dashicons-arrow-down-alt2" aria-hidden="true"></span></button>
+									<button type="button" class="sb-icon-button sb-icon-button--small" data-sb-move-field="<?php echo esc_attr( $field['id'] ); ?>" data-direction="-1" <?php disabled( 0, $i ); ?> aria-label="<?php echo esc_attr( sprintf( /* translators: field label */ __( 'Move %s up', 'counterslot' ), $field['label'] ) ); ?>"><span class="dashicons dashicons-arrow-up-alt2" aria-hidden="true"></span></button>
+									<button type="button" class="sb-icon-button sb-icon-button--small" data-sb-move-field="<?php echo esc_attr( $field['id'] ); ?>" data-direction="1" <?php disabled( $last, $i ); ?> aria-label="<?php echo esc_attr( sprintf( /* translators: field label */ __( 'Move %s down', 'counterslot' ), $field['label'] ) ); ?>"><span class="dashicons dashicons-arrow-down-alt2" aria-hidden="true"></span></button>
 									<button type="button" class="sb-button sb-button--ghost sb-button--small" data-sb-open="sb-field-dialog"
 										data-sb-fill="<?php echo esc_attr( wp_json_encode( [ 'id' => $field['id'], 'label' => $field['label'], 'type' => $field['type'], 'options' => implode( "\n", $field['options'] ), 'required' => $field['required'], 'services' => $field['services'] ] ) ); ?>">
 										<?php esc_html_e( 'Edit', 'counterslot' ); ?>
 									</button>
-									<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-delete="sb_delete_field" data-id="<?php echo esc_attr( $field['id'] ); ?>"
+									<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-delete="cslot_delete_field" data-id="<?php echo esc_attr( $field['id'] ); ?>"
 										data-sb-confirm="<?php esc_attr_e( 'Delete this question? Answers already given stay on their bookings.', 'counterslot' ); ?>"><?php esc_html_e( 'Delete', 'counterslot' ); ?></button>
 								</td>
 							</tr>
@@ -73,7 +74,7 @@ $last          = count( $fields ) - 1;
 	</section>
 
 	<dialog id="sb-field-dialog" class="sb-dialog" aria-labelledby="sb-field-dialog-title">
-		<form data-sb-action="sb_save_field" data-sb-redirect="" data-sb-field-form>
+		<form data-sb-action="cslot_save_field" data-sb-redirect="" data-sb-field-form>
 			<div class="sb-dialog__head">
 				<h2 id="sb-field-dialog-title" data-new="<?php esc_attr_e( 'Add field', 'counterslot' ); ?>" data-edit="<?php esc_attr_e( 'Edit field', 'counterslot' ); ?>"><?php esc_html_e( 'Add field', 'counterslot' ); ?></h2>
 				<button type="button" class="sb-icon-button" data-sb-close aria-label="<?php esc_attr_e( 'Close', 'counterslot' ); ?>"><span class="dashicons dashicons-no-alt" aria-hidden="true"></span></button>

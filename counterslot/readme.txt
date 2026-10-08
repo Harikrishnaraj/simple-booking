@@ -1,36 +1,112 @@
 === CounterSlot ===
 Contributors: counterslot
-Tags: booking, appointment, salon, clinic, scheduling
+Tags: booking, appointment, scheduling, salon, clinic
 Requires at least: 6.0
-Tested up to: 6.6
+Tested up to: 7.1
 Requires PHP: 8.0
 Stable tag: 3.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Online appointment booking for businesses that get paid in person: clinics, salons, tutors, consultants, repair shops and studios.
+Appointment booking for businesses that get paid in person: clinics, salons, tutors, consultants, repair shops and studios. Free, no upsells.
 
 == Description ==
-Customers book on your website; you get paid at your counter, and every payment is recorded. CounterSlot (formerly Simple Booking) gives each business its own booking page with staff schedules, email reminders, intake questions, and a link customers use to cancel or move their booking.
+
+Customers book on your website; you get paid at your counter, and every payment is recorded.
+
+CounterSlot gives your business a booking page in a few minutes. A setup wizard asks what kind of business you run and fills in typical opening hours, services and wording, then creates the page for you.
+
+Everything is free. There is no Pro version, no locked features, no limits on bookings, staff or services, and no account to sign up for.
+
+= Booking =
+
+* Booking form for any page with the `[counterslot]` shortcode: service, staff member (or "any available"), date and free times.
+* Staff working hours per weekday and days off, so only real free times are offered.
+* Locations: with two or more, customers pick where first.
+* Custom questions on the booking form (text, dropdown, checkbox, date), per service if you like.
+* Group events with a number of places, listed with `[counterslot_events]`.
+* Recurring appointments (weekly, every 2 or 4 weeks) from the admin.
+
+= Running your day =
+
+* Dashboard with appointments, customers, occupancy and money received, compared with the previous period.
+* Month calendar, bookings list with search and filters, and a customer list with notes.
+* Book, confirm, reschedule or cancel appointments from the admin.
+* Customers get a private link to see, cancel or move their own booking, up to a cut-off you choose.
+
+= Emails =
+
+* Booking received, confirmed, cancelled, rescheduled, follow-up and reminder emails, each with an on/off switch and editable text.
+* Emails to the assigned staff member and to you for each new booking.
+* Reminders a set number of hours before each appointment.
+
+= Money, without online payments =
+
+* Prices, add-on extras, coupons, tax (inclusive or exclusive) and deposits.
+* Record payments taken at the counter: cash, UPI, card, bank transfer or other, including refunds.
+* Printable invoices with sequential numbers, your address and tax number.
+* Finance page with totals by payment method, an unpaid list and CSV export.
+
+= Privacy =
+
+CounterSlot stores bookings and customer details (name, email, phone and any answers to your questions) in your own WordPress database. It does not contact any external service, load remote scripts or fonts, or track visitors. Emails are sent through your site's normal WordPress mail.
+
+Booking requests are limited to 5 per 10 minutes per visitor. For this, a hash of the visitor's IP address is kept for up to 10 minutes in a temporary WordPress transient; the address itself is not stored.
 
 == Installation ==
-1. Upload the `counterslot` folder to the `/wp-content/plugins/` directory, or upload the zip under Plugins → Add New Plugin → Upload Plugin.
-2. Activate the plugin through the 'Plugins' menu in WordPress.
-3. The setup wizard opens: choose your type of business, opening hours, first staff member and services, and it creates a booking page for you. You can run it again from CounterSlot → Settings.
-4. To show the form somewhere else, add the shortcode `[counterslot]` to any page or post. Group events are listed with `[counterslot_events]`.
+
+1. In WordPress go to Plugins → Add New Plugin, search for "CounterSlot", then click Install Now and Activate.
+2. The setup wizard opens. Choose your type of business, opening hours, first staff member and services, and it creates a booking page for you. You can run it again from CounterSlot → Settings.
+3. To show the form somewhere else, add the shortcode `[counterslot]` to any page or post. Group events are listed with `[counterslot_events]`.
 
 == Frequently Asked Questions ==
-= How do I embed the booking form? =
-Insert the shortcode `[counterslot]` into any page or post.
+
+= How do I add the booking form to a page? =
+
+Insert the shortcode `[counterslot]` into any page or post. The setup wizard creates a page with it for you.
+
+= Can customers pay online? =
+
+No. CounterSlot is made for businesses that get paid in person. The booking form shows the price and says payment is at the appointment. You record what was paid from the Bookings page.
+
+= Is there a Pro version? =
+
+No. Every feature is in this plugin, free.
+
+= Does it work with page caching plugins? =
+
+Yes. Pages with the booking form send no-cache headers and set `DONOTCACHEPAGE`, which most caching plugins (including LiteSpeed Cache) respect.
+
+= My site is behind Cloudflare. What should I change? =
+
+Under CounterSlot → Settings, set "Visitor IP comes from" to Cloudflare, so the booking limit counts each visitor separately.
+
+= What happens to my data if I delete the plugin? =
+
+It is kept, unless you tick "Delete all bookings, customers, services and staff when the plugin is deleted" under CounterSlot → Settings before deleting it.
 
 = I used Simple Booking. What changes? =
-Nothing you need to redo. Install and activate CounterSlot: it switches the old Simple Booking plugin off and uses the same bookings, customers and settings. Pages with the old `[simple_booking]` and `[simple_booking_events]` shortcodes keep working. Then delete the old plugin from the Plugins page.
+
+Nothing you need to redo. Install and activate CounterSlot: it switches the old Simple Booking plugin off and moves its bookings, customers and settings over. Pages with the old `[simple_booking]` and `[simple_booking_events]` shortcodes keep working. Then delete the old plugin from the Plugins page.
+
+== Screenshots ==
+
+1. The booking form: customers pick a service, a day and a free time.
+2. Dashboard with appointments, customers, occupancy and revenue for any period.
+3. Month calendar of bookings, filterable by staff member.
+4. Bookings list with search, filters, status changes and rescheduling.
+5. The setup wizard fills in hours, services and wording for your type of business.
+6. Finance: payments by method, unpaid bookings and CSV export.
 
 == Changelog ==
+
 = 3.0.0 =
 * Simple Booking is now **CounterSlot**. The plugin folder is `counterslot/` and the text domain is `counterslot`.
 * New shortcodes `[counterslot]` and `[counterslot_events]`; the old `[simple_booking]` and `[simple_booking_events]` keep working.
+* New booking codes start with CS- (existing SB- codes stay as they are).
+* Database tables, options and hooks now use the `cslot_` prefix. Existing `sb_` tables and settings are moved over automatically on the first page load after updating.
 * Switching over: activating CounterSlot turns the old Simple Booking plugin off and keeps all data. While the old copy is still installed, "Delete data on uninstall" is switched off so deleting it can't remove your bookings.
+* Ready for WordPress.org: escaping, translator comments and coding-standards fixes.
 
 = 2.3.0 =
 * Setup wizard: opens after activation on new sites and gives you a working booking page in five short steps (type of business, opening hours, first staff member, services, booking page). Skip it, or run it again from Settings.
@@ -122,3 +198,8 @@ Nothing you need to redo. Install and activate CounterSlot: it switches the old 
 * Bookings page: search and filters for date range, status and staff.
 * Redesigned admin pages with a dark and a light theme (switch with the button at the top right; remembered per user).
 * Customers table gains a `note` column (added automatically on update).
+
+== Upgrade Notice ==
+
+= 3.0.0 =
+Simple Booking is now CounterSlot. Your bookings, customers and settings move over automatically.

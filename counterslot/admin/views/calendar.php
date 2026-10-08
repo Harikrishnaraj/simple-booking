@@ -15,6 +15,7 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
 global $wp_locale;
 
 $visible   = 3; // bookings listed per day before "+N more"
@@ -26,7 +27,7 @@ $today     = wp_date( 'Y-m-d' );
 $month_key = $first->format( 'Y-m' );
 ?>
 <div class="wrap sb-app">
-	<?php sb_view( 'admin/views/partials/header', [ 'title' => __( 'Calendar', 'counterslot' ), 'theme' => $theme ] ); ?>
+	<?php cslot_view( 'admin/views/partials/header', [ 'title' => __( 'Calendar', 'counterslot' ), 'theme' => $theme ] ); ?>
 
 	<section class="sb-card">
 		<div class="sb-toolbar sb-toolbar--split">
@@ -78,7 +79,7 @@ $month_key = $first->format( 'Y-m' );
 						?>
 						<div class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>">
 							<a class="sb-calendar__date" href="<?php echo esc_url( $day_url ); ?>"
-								aria-label="<?php echo esc_attr( sprintf( _n( '%1$s, %2$d booking', '%1$s, %2$d bookings', count( $items ), 'counterslot' ), wp_date( get_option( 'date_format' ), $day->getTimestamp() ), count( $items ) ) ); ?>"
+								aria-label="<?php echo esc_attr( sprintf( /* translators: 1: date, 2: number of bookings */ _n( '%1$s, %2$d booking', '%1$s, %2$d bookings', count( $items ), 'counterslot' ), wp_date( get_option( 'date_format' ), $day->getTimestamp() ), count( $items ) ) ); ?>"
 								<?php echo $key === $today ? 'aria-current="date"' : ''; ?>>
 								<?php echo esc_html( $day->format( 'j' ) ); ?>
 							</a>
@@ -97,7 +98,7 @@ $month_key = $first->format( 'Y-m' );
 							<?php endforeach; ?>
 							<?php if ( count( $items ) > $visible ) : ?>
 								<a class="sb-calendar__more" href="<?php echo esc_url( $day_url ); ?>">
-									<?php echo esc_html( sprintf( __( '+%d more', 'counterslot' ), count( $items ) - $visible ) ); ?>
+									<?php echo esc_html( sprintf( /* translators: number of hidden bookings */ __( '+%d more', 'counterslot' ), count( $items ) - $visible ) ); ?>
 								</a>
 							<?php endif; ?>
 						</div>

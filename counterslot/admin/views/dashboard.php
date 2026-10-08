@@ -2,8 +2,8 @@
 /**
  * @var string $from     "Y-m-d"
  * @var string $to       "Y-m-d"
- * @var array  $now      SB_Reports::summary() for the range
- * @var array  $before   SB_Reports::summary() for the previous range of equal length
+ * @var array  $now      CSlot_Reports::summary() for the range
+ * @var array  $before   CSlot_Reports::summary() for the previous range of equal length
  * @var array  $daily    "Y-m-d" => booking count
  * @var array  $upcoming
  * @var array  $statuses value => label
@@ -12,9 +12,10 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
 
 $change = static function ( string $key ) use ( $now, $before ): string {
-	$pct = SB_Reports::change( (float) $now[ $key ], (float) $before[ $key ] );
+	$pct = CSlot_Reports::change( (float) $now[ $key ], (float) $before[ $key ] );
 	if ( null === $pct ) {
 		return '<span class="sb-change">' . esc_html__( 'No earlier data', 'counterslot' ) . '</span>';
 	}
@@ -35,7 +36,7 @@ $max_day   = max( 1, max( $daily ?: [ 0 ] ) );
 $date_fmt  = get_option( 'date_format' );
 ?>
 <div class="wrap sb-app">
-	<?php sb_view( 'admin/views/partials/header', [ 'title' => __( 'Dashboard', 'counterslot' ), 'theme' => $theme ] ); ?>
+	<?php cslot_view( 'admin/views/partials/header', [ 'title' => __( 'Dashboard', 'counterslot' ), 'theme' => $theme ] ); ?>
 
 	<form class="sb-toolbar" method="get">
 		<input type="hidden" name="page" value="sb-dashboard">
@@ -71,7 +72,7 @@ $date_fmt  = get_option( 'date_format' );
 		<section class="sb-card sb-stat">
 			<h2 class="sb-stat__label"><?php esc_html_e( 'Occupancy', 'counterslot' ); ?></h2>
 			<p class="sb-stat__value"><?php echo esc_html( $now['occupancy'] . '%' ); ?></p>
-			<div class="sb-meter" role="img" aria-label="<?php echo esc_attr( sprintf( __( '%d%% of bookable time is booked', 'counterslot' ), $now['occupancy'] ) ); ?>">
+			<div class="sb-meter" role="img" aria-label="<?php echo esc_attr( sprintf( /* translators: percentage */ __( '%d%% of bookable time is booked', 'counterslot' ), $now['occupancy'] ) ); ?>">
 				<span style="width: <?php echo (int) $now['occupancy']; ?>%"></span>
 			</div>
 			<p class="sb-stat__meta">
@@ -84,14 +85,14 @@ $date_fmt  = get_option( 'date_format' );
 
 		<section class="sb-card sb-stat">
 			<h2 class="sb-stat__label"><?php esc_html_e( 'Revenue', 'counterslot' ); ?></h2>
-			<p class="sb-stat__value"><?php echo esc_html( sb_price( $now['revenue'] ) ); ?></p>
+			<p class="sb-stat__value"><?php echo esc_html( cslot_price( $now['revenue'] ) ); ?></p>
 			<?php echo $change( 'revenue' ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped above ?>
 			<p class="sb-stat__meta"><?php esc_html_e( 'Confirmed and completed bookings', 'counterslot' ); ?></p>
 			<p class="sb-stat__meta">
 				<a class="sb-link" href="<?php echo esc_url( admin_url( 'admin.php?page=sb-finance&from=' . $from . '&to=' . $to ) ); ?>">
 					<?php
 					/* translators: %s: amount */
-					echo esc_html( sprintf( __( '%s received in payments', 'counterslot' ), sb_price( $now['received'] ) ) );
+					echo esc_html( sprintf( __( '%s received in payments', 'counterslot' ), cslot_price( $now['received'] ) ) );
 					?>
 				</a>
 			</p>
@@ -113,7 +114,7 @@ $date_fmt  = get_option( 'date_format' );
 				</div>
 				<div class="sb-chart__bars">
 					<?php foreach ( $daily as $day => $count ) : ?>
-						<?php $label = sprintf( _n( '%1$s: %2$d booking', '%1$s: %2$d bookings', $count, 'counterslot' ), mysql2date( $date_fmt, $day ), $count ); ?>
+						<?php $label = sprintf( /* translators: 1: date, 2: number of bookings */ _n( '%1$s: %2$d booking', '%1$s: %2$d bookings', $count, 'counterslot' ), mysql2date( $date_fmt, $day ), $count ); ?>
 						<a class="sb-chart__bar" href="<?php echo esc_url( admin_url( 'admin.php?page=sb-bookings&from=' . $day . '&to=' . $day ) ); ?>" data-tip="<?php echo esc_attr( $label ); ?>" tabindex="-1">
 							<span style="height: <?php echo esc_attr( round( $count / $max_day * 100, 2 ) ); ?>%"></span>
 						</a>

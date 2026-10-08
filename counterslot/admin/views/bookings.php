@@ -13,11 +13,12 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
 $page_url  = admin_url( 'admin.php?page=sb-bookings' );
 $filtered  = (bool) array_filter( $filters );
 ?>
 <div class="wrap sb-app">
-	<?php sb_view( 'admin/views/partials/header', [ 'title' => __( 'Bookings', 'counterslot' ), 'theme' => $theme ] ); ?>
+	<?php cslot_view( 'admin/views/partials/header', [ 'title' => __( 'Bookings', 'counterslot' ), 'theme' => $theme ] ); ?>
 
 	<section class="sb-card">
 		<form method="get" class="sb-toolbar">
@@ -69,7 +70,7 @@ $filtered  = (bool) array_filter( $filters );
 			/* translators: %s: number of bookings */
 			echo esc_html( sprintf( _n( '%s booking', '%s bookings', $total, 'counterslot' ), number_format_i18n( $total ) ) );
 			?>
-			· <?php echo wp_kses_post( sprintf( __( 'Add the booking form to any page with the %s shortcode.', 'counterslot' ), '<code>[counterslot]</code>' ) ); ?>
+			· <?php echo wp_kses_post( sprintf( /* translators: shortcode */ __( 'Add the booking form to any page with the %s shortcode.', 'counterslot' ), '<code>[counterslot]</code>' ) ); ?>
 		</p>
 
 		<?php if ( $bookings ) : ?>
@@ -119,28 +120,28 @@ $filtered  = (bool) array_filter( $filters );
 									<?php
 									$pricing = json_decode( (string) ( $b['pricing'] ?? '' ), true );
 									$paid    = array_sum( array_map( 'floatval', array_column( $payments[ $b['id'] ] ?? [], 'amount' ) ) );
-									$state   = SB_Payments::status( null === $b['total'] ? null : (float) $b['total'], $paid );
-									echo null !== $b['total'] ? esc_html( sb_price( $b['total'] ) ) : '<span class="sb-muted">—</span>';
+									$state   = CSlot_Payments::status( null === $b['total'] ? null : (float) $b['total'], $paid );
+									echo null !== $b['total'] ? esc_html( cslot_price( $b['total'] ) ) : '<span class="sb-muted">—</span>';
 									if ( 'free' !== $state ) :
 										?>
-										<br><span class="sb-pay sb-pay--<?php echo esc_attr( $state ); ?>"><?php echo esc_html( SB_Payments::status_label( $state ) ); ?></span>
+										<br><span class="sb-pay sb-pay--<?php echo esc_attr( $state ); ?>"><?php echo esc_html( CSlot_Payments::status_label( $state ) ); ?></span>
 										<?php
 									endif;
 									if ( is_array( $pricing ) && ( $pricing['extras'] || $pricing['discount'] > 0 ) ) :
-										$detail = array_slice( SB_Pricing::lines( $pricing ), 1, -1 );
+										$detail = array_slice( CSlot_Pricing::lines( $pricing ), 1, -1 );
 										?>
-										<br><span class="sb-muted sb-price-detail"><?php echo esc_html( implode( ', ', array_map( fn( $l ) => $l[0] . ' ' . sb_price( abs( $l[1] ) ), $detail ) ) ); ?></span>
+										<br><span class="sb-muted sb-price-detail"><?php echo esc_html( implode( ', ', array_map( fn( $l ) => $l[0] . ' ' . cslot_price( abs( $l[1] ) ), $detail ) ) ); ?></span>
 									<?php endif; ?>
 								</td>
 								<td class="sb-note">
 									<?php echo nl2br( esc_html( $b['notes'] ) ); ?>
-									<?php $answers = SB_Custom_Fields::as_text( $b['custom_fields'] ?? null ); ?>
+									<?php $answers = CSlot_Custom_Fields::as_text( $b['custom_fields'] ?? null ); ?>
 									<?php if ( '' !== $answers ) : ?>
 										<div class="sb-answers"><?php echo nl2br( esc_html( $answers ) ); ?></div>
 									<?php endif; ?>
 								</td>
 								<td>
-									<select class="sb-input sb-status sb-status--<?php echo esc_attr( $b['status'] ); ?>" data-sb-status data-id="<?php echo (int) $b['id']; ?>" aria-label="<?php echo esc_attr( sprintf( __( 'Status for booking %s', 'counterslot' ), $b['booking_code'] ) ); ?>">
+									<select class="sb-input sb-status sb-status--<?php echo esc_attr( $b['status'] ); ?>" data-sb-status data-id="<?php echo (int) $b['id']; ?>" aria-label="<?php echo esc_attr( sprintf( /* translators: booking code */ __( 'Status for booking %s', 'counterslot' ), $b['booking_code'] ) ); ?>">
 										<?php foreach ( $statuses as $value => $label ) : ?>
 											<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $b['status'], $value ); ?>><?php echo esc_html( $label ); ?></option>
 										<?php endforeach; ?>
@@ -152,13 +153,13 @@ $filtered  = (bool) array_filter( $filters );
 											data-sb-fill="<?php echo esc_attr( wp_json_encode( [
 												'id'       => (int) $b['id'],
 												'amount'   => number_format( max( 0, (float) $b['total'] - $paid ), 2, '.', '' ),
-												'summary'  => $b['booking_code'] . ' · ' . ( $b['customer_name'] ?? '' ) . ' · ' . sb_price( $b['total'] ),
-												'history'  => array_map( fn( $p ) => [ 'id' => (int) $p['id'], 'text' => mysql2date( get_option( 'date_format' ), $p['paid_at'] ) . ' · ' . ( SB_Payments::methods()[ $p['method'] ] ?? $p['method'] ) . ' · ' . sb_price( $p['amount'] ) . ( $p['note'] ? ' · ' . $p['note'] : '' ) ], $payments[ $b['id'] ] ?? [] ),
-												'invoice'  => wp_nonce_url( admin_url( 'admin-post.php?action=sb_invoice&id=' . (int) $b['id'] ), 'sb_invoice_' . (int) $b['id'] ),
+												'summary'  => $b['booking_code'] . ' · ' . ( $b['customer_name'] ?? '' ) . ' · ' . cslot_price( $b['total'] ),
+												'history'  => array_map( fn( $p ) => [ 'id' => (int) $p['id'], 'text' => mysql2date( get_option( 'date_format' ), $p['paid_at'] ) . ' · ' . ( CSlot_Payments::methods()[ $p['method'] ] ?? $p['method'] ) . ' · ' . cslot_price( $p['amount'] ) . ( $p['note'] ? ' · ' . $p['note'] : '' ) ], $payments[ $b['id'] ] ?? [] ),
+												'invoice'  => wp_nonce_url( admin_url( 'admin-post.php?action=cslot_invoice&id=' . (int) $b['id'] ), 'cslot_invoice_' . (int) $b['id'] ),
 											] ) ); ?>"><?php esc_html_e( 'Payments', 'counterslot' ); ?></button>
 									<?php endif; ?>
 									<?php if ( ! empty( $b['series_id'] ) && in_array( $b['status'], [ 'pending', 'confirmed' ], true ) ) : ?>
-										<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-delete="sb_cancel_series" data-id="<?php echo esc_attr( $b['series_id'] ); ?>"
+										<button type="button" class="sb-button sb-button--danger sb-button--small" data-sb-delete="cslot_cancel_series" data-id="<?php echo esc_attr( $b['series_id'] ); ?>"
 											data-sb-confirm="<?php esc_attr_e( 'Cancel all upcoming sessions in this series? The customer is not emailed.', 'counterslot' ); ?>"><?php esc_html_e( 'Cancel series', 'counterslot' ); ?></button>
 									<?php endif; ?>
 									<?php if ( in_array( $b['status'], [ 'pending', 'confirmed' ], true ) ) : ?>
@@ -171,7 +172,7 @@ $filtered  = (bool) array_filter( $filters );
 												'current_time' => substr( $b['booking_time'], 0, 5 ),
 												'summary'      => implode( ' · ', array_filter( [ $b['booking_code'], $b['service_name'], $b['customer_name'] ] ) ),
 											] ) ); ?>"
-											aria-label="<?php echo esc_attr( sprintf( __( 'Reschedule booking %s', 'counterslot' ), $b['booking_code'] ) ); ?>">
+											aria-label="<?php echo esc_attr( sprintf( /* translators: booking code */ __( 'Reschedule booking %s', 'counterslot' ), $b['booking_code'] ) ); ?>">
 											<?php esc_html_e( 'Reschedule', 'counterslot' ); ?>
 										</button>
 									<?php endif; ?>
@@ -181,7 +182,7 @@ $filtered  = (bool) array_filter( $filters );
 					</tbody>
 				</table>
 			</div>
-			<?php sb_view( 'admin/views/partials/pagination', [ 'page' => $page, 'pages' => $pages ] ); ?>
+			<?php cslot_view( 'admin/views/partials/pagination', [ 'page' => $page, 'pages' => $pages ] ); ?>
 		<?php else : ?>
 			<p class="sb-empty"><?php echo $filtered ? esc_html__( 'No bookings match these filters.', 'counterslot' ) : esc_html__( 'No bookings yet.', 'counterslot' ); ?></p>
 		<?php endif; ?>

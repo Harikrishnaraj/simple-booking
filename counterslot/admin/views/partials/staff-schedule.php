@@ -7,11 +7,12 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound, WordPress.WP.GlobalVariablesOverride.Prohibited -- included inside cslot_view(), so these are local variables.
 global $wp_locale;
-$staff_mgr = new SB_Staff();
+$staff_mgr = new CSlot_Staff();
 $schedule  = $editing ? $staff_mgr->schedule( $editing ) : null;
 $days_off  = $editing ? $staff_mgr->days_off( $editing ) : [];
-$settings  = SB_Settings::get_settings();
+$settings  = CSlot_Settings::get_settings();
 ?>
 <fieldset class="form-field" data-sb-schedule>
 	<legend><?php esc_html_e( 'Working hours', 'counterslot' ); ?></legend>
@@ -24,22 +25,22 @@ $settings  = SB_Settings::get_settings();
 	<label><input type="radio" name="schedule_custom" value="1" <?php checked( null !== $schedule ); ?>> <?php esc_html_e( 'Custom hours', 'counterslot' ); ?></label>
 
 	<table class="sb-schedule" <?php echo null === $schedule ? 'hidden' : ''; ?>>
-		<?php foreach ( SB_Settings::WEEK_DAYS as $day ) : ?>
+		<?php foreach ( CSlot_Settings::WEEK_DAYS as $day ) : ?>
 			<?php
 			// Unsaved custom schedules start from the business hours.
-			$range = null === $schedule ? SB_Staff::business_hours_on( $day ) : ( $schedule[ $day ] ?? null );
+			$range = null === $schedule ? CSlot_Staff::business_hours_on( $day ) : ( $schedule[ $day ] ?? null );
 			$label = $wp_locale->get_weekday( (int) gmdate( 'w', strtotime( $day ) ) );
 			$key   = sanitize_key( $day );
 			?>
 			<tr>
 				<th scope="row">
-					<label title="<?php echo esc_attr( $label ); ?>"><input type="checkbox" name="schedule[<?php echo esc_attr( $day ); ?>][on]" value="1" <?php checked( null !== $range ); ?> aria-label="<?php echo esc_attr( sprintf( __( 'Works on %s', 'counterslot' ), $label ) ); ?>"> <span aria-hidden="true"><?php echo esc_html( $wp_locale->get_weekday_abbrev( $label ) ); ?></span></label>
+					<label title="<?php echo esc_attr( $label ); ?>"><input type="checkbox" name="schedule[<?php echo esc_attr( $day ); ?>][on]" value="1" <?php checked( null !== $range ); ?> aria-label="<?php echo esc_attr( sprintf( /* translators: day of the week */ __( 'Works on %s', 'counterslot' ), $label ) ); ?>"> <span aria-hidden="true"><?php echo esc_html( $wp_locale->get_weekday_abbrev( $label ) ); ?></span></label>
 				</th>
 				<td>
-					<label class="screen-reader-text" for="sb-sch-<?php echo esc_attr( $key ); ?>-start"><?php echo esc_html( sprintf( __( '%s start', 'counterslot' ), $label ) ); ?></label>
+					<label class="screen-reader-text" for="sb-sch-<?php echo esc_attr( $key ); ?>-start"><?php echo esc_html( sprintf( /* translators: day of the week */ __( '%s start', 'counterslot' ), $label ) ); ?></label>
 					<input id="sb-sch-<?php echo esc_attr( $key ); ?>-start" type="time" name="schedule[<?php echo esc_attr( $day ); ?>][start]" value="<?php echo esc_attr( $range[0] ?? $settings['business_hours_start'] ); ?>">
 					–
-					<label class="screen-reader-text" for="sb-sch-<?php echo esc_attr( $key ); ?>-end"><?php echo esc_html( sprintf( __( '%s end', 'counterslot' ), $label ) ); ?></label>
+					<label class="screen-reader-text" for="sb-sch-<?php echo esc_attr( $key ); ?>-end"><?php echo esc_html( sprintf( /* translators: day of the week */ __( '%s end', 'counterslot' ), $label ) ); ?></label>
 					<input id="sb-sch-<?php echo esc_attr( $key ); ?>-end" type="time" name="schedule[<?php echo esc_attr( $day ); ?>][end]" value="<?php echo esc_attr( $range[1] ?? $settings['business_hours_end'] ); ?>">
 				</td>
 			</tr>

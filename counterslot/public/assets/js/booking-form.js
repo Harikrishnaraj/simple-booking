@@ -2,7 +2,7 @@
 (function () {
 	'use strict';
 
-	const cfg = window.sbBooking;
+	const cfg = window.cslotBooking;
 	if (!cfg) {
 		return;
 	}
@@ -131,7 +131,7 @@
 			data.append('date', dateInput.value);
 
 			try {
-				const { slots } = await post('sb_get_available_slots', data);
+				const { slots } = await post('cslot_get_available_slots', data);
 				if (mine !== request) {
 					return; // A newer day was picked while this was loading.
 				}
@@ -239,7 +239,7 @@
 			data.append('coupon', form.elements.coupon ? form.elements.coupon.value : '');
 			form.querySelectorAll('input[name="extras[]"]:checked:not(:disabled)').forEach((x) => data.append('extras[]', x.value));
 			try {
-				const res = await post('sb_quote', data);
+				const res = await post('cslot_quote', data);
 				priceTable.tBodies[0].replaceChildren(...res.lines.map(([label, amount], i) => {
 					const tr = document.createElement('tr');
 					if (i === res.lines.length - 1) {
@@ -297,7 +297,7 @@
 			data.append('_wpnonce', cfg.nonce);
 
 			try {
-				const res = await post('sb_submit_booking', data);
+				const res = await post('cslot_submit_booking', data);
 				form.hidden = true;
 				root.querySelector('.sb-step-indicator').hidden = true;
 				setMessage(res.message, 'success');

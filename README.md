@@ -5,6 +5,7 @@ WordPress appointment booking plugin for businesses that get paid in person (for
 - `counterslot/` – the plugin (this folder is what gets installed)
 - `tests/check_bookings.php` – slot/booking logic checks with WordPress stubbed out
 - `build-zip.ps1` – builds `counterslot-<version>.zip` for upload
+- `.wordpress-org/` – WordPress.org listing assets (screenshots and the Playground blueprint for Live Preview); these go in the SVN `assets/` folder, not in the plugin
 
 ## Test
 
@@ -18,4 +19,4 @@ php -d zend.assertions=1 -d assert.exception=1 tests/check_bookings.php
 ./build-zip.ps1
 ```
 
-Requires WordPress 6.0+ and PHP 8.0+.
+Requires WordPress 6.0+ and PHP 8.0+. Tested up to WordPress 7.1.
