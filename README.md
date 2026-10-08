@@ -1,10 +1,10 @@
-# Bellbook
+# CounterSlot
 
-WordPress appointment booking plugin for businesses that get paid in person (formerly "Simple Booking"). Add `[bellbook]` to any page; manage bookings, services, staff and settings under **Bellbook** in wp-admin.
+WordPress appointment booking plugin for businesses that get paid in person (formerly "Simple Booking"). Add `[counterslot]` to any page; manage bookings, services, staff and settings under **CounterSlot** in wp-admin.
 
-- `bellbook/` – the plugin (this folder is what gets installed)
+- `counterslot/` – the plugin (this folder is what gets installed)
 - `tests/check_bookings.php` – slot/booking logic checks with WordPress stubbed out
-- `build-zip.ps1` – builds `bellbook-<version>.zip` for upload
+- `build-zip.ps1` – builds `counterslot-<version>.zip` for upload
 
 ## Test
 
