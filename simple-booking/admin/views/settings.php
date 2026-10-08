@@ -15,7 +15,17 @@ global $wp_locale;
 		<table class="form-table" role="presentation">
 			<tr>
 				<th scope="row"><label for="sb-business-name"><?php esc_html_e( 'Business name', 'simple-booking' ); ?></label></th>
-				<td><input id="sb-business-name" class="regular-text" name="settings[business_name]" type="text" value="<?php echo esc_attr( $settings['business_name'] ); ?>"></td>
+				<td>
+					<input id="sb-business-name" class="regular-text" name="settings[business_name]" type="text" value="<?php echo esc_attr( $settings['business_name'] ); ?>">
+					<p class="description"><a href="<?php echo esc_url( SB_Setup::url() ); ?>"><?php esc_html_e( 'Run the setup wizard again', 'simple-booking' ); ?></a></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="sb-staff-label"><?php esc_html_e( 'Staff are called', 'simple-booking' ); ?></label></th>
+				<td>
+					<input id="sb-staff-label" class="regular-text" name="settings[staff_label]" type="text" maxlength="40" value="<?php echo esc_attr( $settings['staff_label'] ); ?>" placeholder="<?php esc_attr_e( 'Staff member', 'simple-booking' ); ?>">
+					<p class="description"><?php esc_html_e( 'The word customers see on the booking form, e.g. "Doctor", "Stylist" or "Tutor".', 'simple-booking' ); ?></p>
+				</td>
 			</tr>
 			<tr>
 				<th scope="row"><?php esc_html_e( 'Business hours', 'simple-booking' ); ?></th>

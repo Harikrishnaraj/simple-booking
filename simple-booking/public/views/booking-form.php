@@ -40,13 +40,21 @@ $uid = wp_unique_id( 'sb-' );
 						<?php foreach ( $services as $s ) : ?>
 							<option value="<?php echo (int) $s['id']; ?>">
 								<?php
-								echo esc_html( sprintf(
-									/* translators: 1: service name, 2: duration in minutes, 3: price */
-									__( '%1$s (%2$d min, %3$s)', 'simple-booking' ),
-									$s['name'],
-									(int) $s['duration'],
-									sb_price( $s['price'] )
-								) );
+								// Services without a price just show their length.
+								echo esc_html( (float) $s['price'] > 0
+									? sprintf(
+										/* translators: 1: service name, 2: duration in minutes, 3: price */
+										__( '%1$s (%2$d min, %3$s)', 'simple-booking' ),
+										$s['name'],
+										(int) $s['duration'],
+										sb_price( $s['price'] )
+									)
+									: sprintf(
+										/* translators: 1: service name, 2: duration in minutes */
+										__( '%1$s (%2$d min)', 'simple-booking' ),
+										$s['name'],
+										(int) $s['duration']
+									) );
 								?>
 							</option>
 						<?php endforeach; ?>
@@ -70,7 +78,7 @@ $uid = wp_unique_id( 'sb-' );
 
 			<?php if ( $staff ) : ?>
 				<div class="sb-form-group">
-					<label for="<?php echo esc_attr( $uid ); ?>-staff"><?php esc_html_e( 'Staff member', 'simple-booking' ); ?></label>
+					<label for="<?php echo esc_attr( $uid ); ?>-staff"><?php echo esc_html( SB_Settings::staff_label() ); ?></label>
 					<div class="sb-staff-pick">
 						<img class="sb-staff-photo" src="" alt="" width="44" height="44" hidden>
 						<select id="<?php echo esc_attr( $uid ); ?>-staff" class="sb-form-control" name="staff_id">

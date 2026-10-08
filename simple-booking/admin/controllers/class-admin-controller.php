@@ -25,6 +25,40 @@ class SB_Admin_Controller {
 		add_submenu_page( 'sb-dashboard', __( 'Custom Fields', 'simple-booking' ), __( 'Custom Fields', 'simple-booking' ), $cap, 'sb-custom-fields', [ $this, 'render_custom_fields' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Notifications', 'simple-booking' ), __( 'Notifications', 'simple-booking' ), $cap, 'sb-notifications', [ $this, 'render_notifications' ] );
 		add_submenu_page( 'sb-dashboard', __( 'Settings', 'simple-booking' ), __( 'Settings', 'simple-booking' ), $cap, 'sb-settings', [ $this, 'render_settings' ] );
+		// The wizard has no menu item; it's reached from the activation redirect, the notice and Settings.
+		// Removed at admin_head, after WordPress has read the page title from the menu.
+		add_submenu_page( 'sb-dashboard', __( 'Set up Simple Booking', 'simple-booking' ), __( 'Setup', 'simple-booking' ), $cap, 'sb-setup', [ $this, 'render_setup' ] );
+		add_action( 'admin_head', fn() => remove_submenu_page( 'sb-dashboard', 'sb-setup' ) );
+	}
+
+	/**
+	 * After activation, open the wizard once (single activations only, and only for new sites).
+	 */
+	public function maybe_redirect_to_setup(): void {
+		if ( ! get_transient( SB_Setup::REDIRECT_KEY ) ) {
+			return;
+		}
+		delete_transient( SB_Setup::REDIRECT_KEY );
+		if ( wp_doing_ajax() || is_network_admin() || isset( $_GET['activate-multi'] ) || ! current_user_can( 'manage_options' ) || 'pending' !== SB_Setup::status() ) { // phpcs:ignore WordPress.Security.NonceVerification
+			return;
+		}
+		wp_safe_redirect( SB_Setup::url() );
+		exit;
+	}
+
+	/**
+	 * Reminder on the plugin's pages until setup is finished or skipped.
+	 */
+	public function setup_notice(): void {
+		if ( ! $this->is_plugin_screen() || 'sb-setup' === sanitize_key( $_GET['page'] ?? '' ) || 'pending' !== SB_Setup::status() || ! current_user_can( 'manage_options' ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+			return;
+		}
+		printf(
+			'<div class="notice notice-info"><p>%s <a class="button button-primary" href="%s">%s</a></p></div>',
+			esc_html__( 'Simple Booking isn\'t set up yet. The setup wizard takes about two minutes and gives you a working booking page.', 'simple-booking' ),
+			esc_url( SB_Setup::url() ),
+			esc_html__( 'Run the setup wizard', 'simple-booking' )
+		);
 	}
 
 	public function enqueue_styles_and_scripts( string $hook ): void {
@@ -55,6 +89,7 @@ class SB_Admin_Controller {
 				'loadingTimes'  => __( 'Loading free times…', 'simple-booking' ),
 				'noTimes'       => __( 'No free times on this day', 'simple-booking' ),
 				'testSent'      => __( 'Test email sent to %s.', 'simple-booking' ),
+				'pickDay'       => __( 'please choose at least one day', 'simple-booking' ),
 			],
 		] );
 	}
@@ -414,6 +449,40 @@ class SB_Admin_Controller {
 			'page_url'  => admin_url( 'admin.php?page=sb-notifications' ),
 			'theme'     => $this->theme(),
 		] );
+	}
+
+	public function render_setup(): void {
+		$user = wp_get_current_user();
+		sb_view( 'admin/views/setup', [
+			'presets'  => SB_Setup::presets(),
+			'settings' => SB_Settings::get_settings(),
+			'user'     => [ 'name' => $user->display_name, 'email' => $user->user_email ],
+			'page_url' => SB_Manage::booking_page_url(),
+			'rerun'    => 'done' === SB_Setup::status(),
+			'existing' => array_map( fn( $s ) => mb_strtolower( $s['name'] ), ( new SB_Services() )->get_all( 'all' ) ),
+			'theme'    => $this->theme(),
+		] );
+	}
+
+	public function ajax_run_setup(): void {
+		$result = SB_Setup::run( $this->guard() );
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( [ 'message' => $result->get_error_message() ], 422 );
+		}
+		/* translators: %d: number of services */
+		$services = sprintf( _n( '%d new service', '%d new services', $result['services'], 'simple-booking' ), $result['services'] );
+		$result['message'] = $result['staff']
+			/* translators: %s: e.g. "3 new services" */
+			? sprintf( __( 'Added %s and your first staff member.', 'simple-booking' ), $services )
+			/* translators: %s: e.g. "3 new services" */
+			: sprintf( __( 'Added %s.', 'simple-booking' ), $services );
+		wp_send_json_success( $result );
+	}
+
+	public function ajax_skip_setup(): void {
+		$this->guard();
+		SB_Setup::set_status( 'skipped' );
+		wp_send_json_success( [ 'redirect' => admin_url( 'admin.php?page=sb-dashboard' ) ] );
 	}
 
 	public function render_settings(): void {

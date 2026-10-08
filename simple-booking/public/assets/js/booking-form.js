@@ -217,6 +217,11 @@
 				field.hidden = !show;
 				field.querySelectorAll('input, select, textarea').forEach((input) => { input.disabled = !show; });
 			});
+			// No "Extras" heading when none of the extras apply to this service.
+			const extras = form.querySelector('.sb-extras');
+			if (extras) {
+				extras.hidden = !extras.querySelector('[data-sb-field]:not([hidden])');
+			}
 		}
 		service.addEventListener('change', showFields);
 		showFields();
@@ -248,6 +253,8 @@
 					tr.append(th, td);
 					return tr;
 				}));
+				// Nothing to show for an unpriced service with no extras or discount.
+				priceTable.hidden = !Number(res.total) && res.lines.length <= 2;
 				couponError.textContent = res.couponError;
 				couponError.hidden = !res.couponError;
 			} catch (err) {

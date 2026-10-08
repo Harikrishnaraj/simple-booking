@@ -385,6 +385,7 @@ class SB_Public_Controller {
 		wp_send_json_success( [
 			'lines'       => array_map( fn( $l ) => [ $l[0], sb_price( $l[1] ) ], SB_Pricing::lines( $q ) ),
 			'couponError' => $q['coupon_error'],
+			'total'       => $q['total'],
 		] );
 	}
 

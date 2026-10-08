@@ -3,7 +3,7 @@
  * Plugin Name:       Simple Booking
  * Plugin URI:        https://simplebookingplugin.com/
  * Description:       A lightweight, commercial-grade WordPress booking plugin for salons, clinics, consultants, and service providers.
- * Version:           2.2.0
+ * Version:           2.3.0
  * Author:            Simple Booking Team
  * Author URI:        https://simplebookingplugin.com/
  * License:           GPL-2.0+
@@ -22,7 +22,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Define Plugin Constants.
  */
-define( 'SB_VERSION', '2.2.0' );
+define( 'SB_VERSION', '2.3.0' );
 define( 'SB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SB_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -46,6 +46,7 @@ require_once SB_PLUGIN_DIR . 'includes/class-staff.php';
 require_once SB_PLUGIN_DIR . 'includes/class-customers.php';
 require_once SB_PLUGIN_DIR . 'includes/class-bookings.php';
 require_once SB_PLUGIN_DIR . 'includes/class-settings.php';
+require_once SB_PLUGIN_DIR . 'includes/class-setup.php';
 require_once SB_PLUGIN_DIR . 'includes/class-custom-fields.php';
 require_once SB_PLUGIN_DIR . 'includes/class-notifications.php';
 require_once SB_PLUGIN_DIR . 'includes/class-email.php';
@@ -159,6 +160,10 @@ final class Simple_Booking {
 		$this->loader->add_action( 'wp_ajax_sb_admin_reschedule', $admin, 'ajax_admin_reschedule' );
 		$this->loader->add_action( 'wp_ajax_sb_cancel_series', $admin, 'ajax_cancel_series' );
 		$this->loader->add_action( 'wp_ajax_sb_test_template', $admin, 'ajax_test_template' );
+		$this->loader->add_action( 'wp_ajax_sb_run_setup', $admin, 'ajax_run_setup' );
+		$this->loader->add_action( 'wp_ajax_sb_skip_setup', $admin, 'ajax_skip_setup' );
+		$this->loader->add_action( 'admin_init', $admin, 'maybe_redirect_to_setup' );
+		$this->loader->add_action( 'admin_notices', $admin, 'setup_notice' );
 	}
 
 	/**

@@ -33,6 +33,9 @@ class SB_Settings {
 			'business_address'     => '',
 			'tax_id'               => '',
 			'invoice_prefix'       => 'INV-',
+			'industry'             => '',
+			// Word for staff on the booking form ("Doctor", "Stylist"); empty uses "Staff member".
+			'staff_label'          => '',
 		];
 	}
 
@@ -46,6 +49,13 @@ class SB_Settings {
 			'HTTP_X_FORWARDED_FOR'  => __( 'Proxy or load balancer (X-Forwarded-For)', 'simple-booking' ),
 			'HTTP_X_REAL_IP'        => __( 'Nginx proxy (X-Real-IP)', 'simple-booking' ),
 		];
+	}
+
+	/**
+	 * What staff are called on the booking form.
+	 */
+	public static function staff_label(): string {
+		return self::get_settings()['staff_label'] ?: __( 'Staff member', 'simple-booking' );
 	}
 
 	public static function get_settings(): array {
@@ -79,6 +89,13 @@ class SB_Settings {
 		}
 		if ( isset( $new_settings['business_address'] ) ) {
 			$new_settings['business_address'] = sanitize_textarea_field( (string) $new_settings['business_address'] );
+		}
+		if ( isset( $new_settings['industry'] ) ) {
+			$industry                 = sanitize_key( (string) $new_settings['industry'] );
+			$new_settings['industry'] = isset( SB_Setup::presets()[ $industry ] ) ? $industry : '';
+		}
+		if ( isset( $new_settings['staff_label'] ) ) {
+			$new_settings['staff_label'] = mb_substr( sanitize_text_field( (string) $new_settings['staff_label'] ), 0, 40 );
 		}
 		foreach ( [ 'business_name', 'currency_symbol', 'time_zone', 'tax_name', 'tax_id', 'invoice_prefix' ] as $key ) {
 			if ( isset( $new_settings[ $key ] ) ) {

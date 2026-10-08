@@ -19,7 +19,7 @@ function wp_timezone_string() { return 'Europe/London'; }
 function sanitize_email( $v ) { return trim( (string) $v ); }
 function is_email( $v ) { return (bool) filter_var( $v, FILTER_VALIDATE_EMAIL ); }
 function __( $s ) { return $s; }
-class WP_Error { function __construct( public $code, public $msg ) {} function get_error_message() { return $this->msg; } }
+class WP_Error { function __construct( public $code, public $msg ) {} function get_error_message() { return $this->msg; } function get_error_code() { return $this->code; } }
 function is_wp_error( $v ) { return $v instanceof WP_Error; }
 function rest_sanitize_boolean( $v ) { return in_array( strtolower( (string) $v ), [ '1', 'true', 'yes', 'on' ], true ) || true === $v; }
 
@@ -67,6 +67,7 @@ class FakeWpdb {
 
 $base = __DIR__ . '/../simple-booking/includes/';
 require $base . 'class-settings.php';
+require $base . 'class-setup.php';
 require $base . 'class-bookings.php';
 require $base . 'class-staff.php';
 require $base . 'class-validator.php';
@@ -275,5 +276,20 @@ assert( 'free' === SB_Payments::status( 0.0, 0.0 ) && 'free' === SB_Payments::st
 assert( 'unpaid' === SB_Payments::status( 63.0, 0.0 ) && 'partial' === SB_Payments::status( 63.0, 20.0 ) );
 assert( 'paid' === SB_Payments::status( 63.0, 63.0 ) && 'paid' === SB_Payments::status( 63.0, 62.999 ) && 'overpaid' === SB_Payments::status( 63.0, 70.0 ) );
 assert( 'unpaid' === SB_Payments::status( 63.0, -5.0 ), 'refund only' );
+
+// Setup wizard: industry and staff label settings, presets, and the wizard's input checks
+SB_Settings::update_settings( [ 'industry' => 'salon', 'staff_label' => str_repeat( 'x', 60 ) ] );
+assert( 'salon' === SB_Settings::get_settings()['industry'] && 40 === mb_strlen( SB_Settings::staff_label() ) );
+SB_Settings::update_settings( [ 'industry' => 'evil', 'staff_label' => '' ] );
+assert( '' === SB_Settings::get_settings()['industry'] && 'Staff member' === SB_Settings::staff_label() );
+foreach ( SB_Setup::presets() as $key => $p ) {
+	assert( $p['services'] && $p['start'] < $p['end'] && ! array_diff( $p['days'], SB_Settings::WEEK_DAYS ), "preset $key" );
+}
+$ok_setup = [ 'industry' => 'clinic', 'business_name' => 'Clinic', 'business_hours_start' => '09:00', 'business_hours_end' => '18:00', 'work_days' => [ 'Monday' ] ];
+assert( 'industry' === SB_Setup::run( [ 'industry' => 'nope' ] + $ok_setup )->get_error_code() );
+assert( 'business_name' === SB_Setup::run( [ 'business_name' => ' ' ] + $ok_setup )->get_error_code() );
+assert( 'hours' === SB_Setup::run( [ 'business_hours_end' => '08:00' ] + $ok_setup )->get_error_code() );
+assert( 'days' === SB_Setup::run( [ 'work_days' => [ 'Funday' ] ] + $ok_setup )->get_error_code() );
+assert( 'duration' === SB_Setup::run( [ 'services' => [ 'clinic0' => [ 'on' => 1, 'name' => 'X', 'duration' => 0 ] ] ] + $ok_setup )->get_error_code() );
 
 echo "all checks passed\n";

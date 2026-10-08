@@ -25,6 +25,7 @@ delete_option( 'sb_email_templates' );
 delete_option( 'sb_custom_fields' );
 delete_option( 'sb_extras' );
 delete_option( 'sb_invoice_counter' );
+delete_option( 'sb_setup_status' );
 
 // Drop tables if configured to scrub data
 $tables = [
