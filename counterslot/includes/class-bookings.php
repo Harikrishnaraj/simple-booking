@@ -256,7 +256,8 @@ class CSlot_Bookings {
 
 		$staff_mgr = new CSlot_Staff();
 		if ( $staff_id ) {
-			if ( ! $staff_mgr->can_perform( $staff_id, $service_id ) ) {
+			$member = $staff_mgr->get_by_id( $staff_id );
+			if ( ! $member || ! $staff_mgr->can_perform( $staff_id, $service_id ) || ! CSlot_Staff::works_at( $member, $location_id ) ) {
 				return [];
 			}
 			$candidates = [ $staff_id ];

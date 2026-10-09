@@ -153,6 +153,16 @@ class CSlot_Public_Controller {
 				'loading' => __( 'Loading available times…', 'counterslot' ),
 				'noSlots' => __( 'No times left on this day. Please pick another day.', 'counterslot' ),
 				'sending' => __( 'Sending your booking…', 'counterslot' ),
+				// Field checks; the name, email and phone wording matches CSlot_Validator.
+				'required'      => __( 'Please fill in this field.', 'counterslot' ),
+				'choose'        => __( 'Please choose an option from the list.', 'counterslot' ),
+				'noServices'    => __( 'No services are available here', 'counterslot' ),
+				'nameRequired'  => __( 'Please enter your name.', 'counterslot' ),
+				'nameLength'    => __( 'Please enter your full name (2 to 100 characters).', 'counterslot' ),
+				'nameChars'     => __( 'Your name can only contain letters, spaces, dots, hyphens and apostrophes.', 'counterslot' ),
+				'emailRequired' => __( 'Please enter your email address.', 'counterslot' ),
+				'emailInvalid'  => __( 'Please enter a valid email address.', 'counterslot' ),
+				'phoneInvalid'  => __( 'Please enter a valid phone number: 7 to 15 digits, optionally starting with +.', 'counterslot' ),
 			],
 		] );
 
@@ -349,8 +359,12 @@ class CSlot_Public_Controller {
 		$email = sanitize_email( $post['email'] ?? '' );
 		$phone = sanitize_text_field( $post['phone'] ?? '' );
 		$spots = min( 20, max( 1, absint( $post['spots'] ?? 1 ) ) );
-		if ( '' === $name || mb_strlen( $name ) > 191 || ! is_email( $email ) || mb_strlen( $phone ) > 50 ) {
-			wp_send_json_error( [ 'message' => __( 'Please enter your name and a valid email address.', 'counterslot' ) ], 422 );
+		$error = CSlot_Validator::name_error( $name ) ?: CSlot_Validator::phone_error( $phone );
+		if ( ! is_email( $email ) ) {
+			$error = $error ?: __( 'Please enter a valid email address.', 'counterslot' );
+		}
+		if ( '' !== $error ) {
+			wp_send_json_error( [ 'message' => $error ], 422 );
 		}
 
 		$events = new CSlot_Events();

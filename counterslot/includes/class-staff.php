@@ -79,6 +79,14 @@ class CSlot_Staff {
 	}
 
 	/**
+	 * Whether a staff member works at a location. No location set means every location.
+	 */
+	public static function works_at( array $staff, ?int $location_id ): bool {
+		$own = (int) ( $staff['location_id'] ?? 0 );
+		return ! $location_id || ! $own || $own === $location_id;
+	}
+
+	/**
 	 * Ids of active staff who offer this service (and work at $location_id, if given).
 	 *
 	 * @return int[]
@@ -87,7 +95,7 @@ class CSlot_Staff {
 		$ids = [];
 		foreach ( $this->get_all() as $member ) {
 			$offers = $this->service_ids( $member );
-			$here   = ! $location_id || (int) ( $member['location_id'] ?? 0 ) === $location_id;
+			$here   = self::works_at( $member, $location_id );
 			if ( $here && ( ! $offers || in_array( $service_id, $offers, true ) ) ) {
 				$ids[] = (int) $member['id'];
 			}

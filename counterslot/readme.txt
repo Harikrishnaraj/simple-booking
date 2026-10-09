@@ -4,7 +4,7 @@ Tags: booking, appointment, scheduling, salon, clinic
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 3.0.0
+Stable tag: 3.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -99,6 +99,12 @@ Nothing you need to redo. Install and activate CounterSlot: it switches the old 
 6. Finance: payments by method, unpaid bookings and CSV export.
 
 == Changelog ==
+
+= 3.0.1 =
+* Booking form: the location, service and staff lists are now linked. Customers pick a location first, then see only the services offered there, then only the staff who perform that service there. When only one person qualifies they are picked automatically. This also works on iPhone and iPad, where the lists previously showed everyone.
+* Customers must choose a service and a staff member (or "Any available") before moving on. Messages appear under the field that needs attention.
+* "Your details" is checked before booking. Names may contain only letters (any language), spaces, dots, hyphens and apostrophes. Email addresses need a full domain. Phone numbers need 7 to 15 digits. The server applies the same rules, including on the events form.
+* Staff with no location set ("All locations") can now be booked at every location.
 
 = 3.0.0 =
 * Simple Booking is now **CounterSlot**. The plugin folder is `counterslot/` and the text domain is `counterslot`.
@@ -200,6 +206,9 @@ Nothing you need to redo. Install and activate CounterSlot: it switches the old 
 * Customers table gains a `note` column (added automatically on update).
 
 == Upgrade Notice ==
+
+= 3.0.1 =
+Fixes the booking form: linked service and staff lists, required choices and checks on customer details.
 
 = 3.0.0 =
 Simple Booking is now CounterSlot. Your bookings, customers and settings move over automatically.

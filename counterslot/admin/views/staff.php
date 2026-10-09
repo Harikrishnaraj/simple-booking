@@ -63,12 +63,12 @@ $staff_mgr     = new CSlot_Staff();
 						<div class="form-field">
 							<label for="sb-staff-location"><?php esc_html_e( 'Location', 'counterslot' ); ?></label>
 							<select id="sb-staff-location" name="location_id">
-								<option value="0"><?php esc_html_e( 'None', 'counterslot' ); ?></option>
+								<option value="0"><?php esc_html_e( 'All locations', 'counterslot' ); ?></option>
 								<?php foreach ( $locations as $location ) : ?>
 									<option value="<?php echo (int) $location['id']; ?>" <?php selected( (int) ( $editing['location_id'] ?? 0 ), (int) $location['id'] ); ?>><?php echo esc_html( $location['name'] ); ?></option>
 								<?php endforeach; ?>
 							</select>
-							<p class="description"><?php esc_html_e( 'With two or more locations, customers pick one first and only see staff working there.', 'counterslot' ); ?></p>
+							<p class="description"><?php esc_html_e( 'With two or more locations, customers pick one first and only see staff working there. "All locations" means they can be booked at any of them.', 'counterslot' ); ?></p>
 						</div>
 					<?php endif; ?>
 					<?php cslot_view( 'admin/views/partials/staff-schedule', [ 'editing' => $editing ] ); ?>
