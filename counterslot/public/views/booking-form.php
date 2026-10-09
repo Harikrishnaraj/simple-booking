@@ -31,9 +31,21 @@ $uid = wp_unique_id( 'sb-' );
 
 		<fieldset class="sb-step">
 			<legend class="sb-sr-only"><?php esc_html_e( 'Choose a service', 'counterslot' ); ?></legend>
+			<?php if ( $locations ) : ?>
+				<div class="sb-form-group">
+					<label for="<?php echo esc_attr( $uid ); ?>-location"><?php esc_html_e( 'Location', 'counterslot' ); ?></label>
+					<select id="<?php echo esc_attr( $uid ); ?>-location" class="sb-form-control" name="location_id" required>
+						<?php foreach ( $locations as $location ) : ?>
+							<option value="<?php echo (int) $location['id']; ?>"><?php echo esc_html( $location['name'] . ( $location['address'] ? ' — ' . strtok( $location['address'], "\n" ) : '' ) ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</div>
+			<?php endif; ?>
+
 			<div class="sb-form-group">
 				<label for="<?php echo esc_attr( $uid ); ?>-service"><?php esc_html_e( 'Service', 'counterslot' ); ?></label>
 				<select id="<?php echo esc_attr( $uid ); ?>-service" class="sb-form-control" name="service_id" required>
+					<option value=""><?php esc_html_e( 'Select…', 'counterslot' ); ?></option>
 					<?php foreach ( $groups as $group => $services ) : ?>
 						<?php if ( '' !== $group ) : ?>
 							<optgroup label="<?php echo esc_attr( $group ); ?>">
@@ -66,24 +78,15 @@ $uid = wp_unique_id( 'sb-' );
 				</select>
 			</div>
 
-			<?php if ( $locations ) : ?>
-				<div class="sb-form-group">
-					<label for="<?php echo esc_attr( $uid ); ?>-location"><?php esc_html_e( 'Location', 'counterslot' ); ?></label>
-					<select id="<?php echo esc_attr( $uid ); ?>-location" class="sb-form-control" name="location_id" required>
-						<?php foreach ( $locations as $location ) : ?>
-							<option value="<?php echo (int) $location['id']; ?>"><?php echo esc_html( $location['name'] . ( $location['address'] ? ' — ' . strtok( $location['address'], "\n" ) : '' ) ); ?></option>
-						<?php endforeach; ?>
-					</select>
-				</div>
-			<?php endif; ?>
 
 			<?php if ( $staff ) : ?>
 				<div class="sb-form-group">
 					<label for="<?php echo esc_attr( $uid ); ?>-staff"><?php echo esc_html( CSlot_Settings::staff_label() ); ?></label>
 					<div class="sb-staff-pick">
 						<img class="sb-staff-photo" src="" alt="" width="44" height="44" hidden>
-						<select id="<?php echo esc_attr( $uid ); ?>-staff" class="sb-form-control" name="staff_id">
-							<option value=""><?php esc_html_e( 'Any available', 'counterslot' ); ?></option>
+						<select id="<?php echo esc_attr( $uid ); ?>-staff" class="sb-form-control" name="staff_id" required>
+							<option value=""><?php esc_html_e( 'Select…', 'counterslot' ); ?></option>
+							<option value="any"><?php esc_html_e( 'Any available', 'counterslot' ); ?></option>
 							<?php foreach ( $staff as $member ) : ?>
 								<option value="<?php echo (int) $member['id']; ?>" data-services="<?php echo esc_attr( implode( ',', $member['service_ids'] ) ); ?>" data-photo="<?php echo esc_url( $member['photo_url'] ); ?>" data-location="<?php echo (int) ( $member['location_id'] ?? 0 ); ?>"><?php echo esc_html( $member['name'] ); ?></option>
 							<?php endforeach; ?>
@@ -130,15 +133,15 @@ $uid = wp_unique_id( 'sb-' );
 			<p class="sb-summary" aria-live="polite"></p>
 			<div class="sb-form-group">
 				<label for="<?php echo esc_attr( $uid ); ?>-name"><?php esc_html_e( 'Name', 'counterslot' ); ?></label>
-				<input id="<?php echo esc_attr( $uid ); ?>-name" class="sb-form-control" name="name" type="text" required maxlength="191" autocomplete="name">
+				<input id="<?php echo esc_attr( $uid ); ?>-name" class="sb-form-control" name="name" type="text" required minlength="2" maxlength="100" autocomplete="name" data-sb-rule="name">
 			</div>
 			<div class="sb-form-group">
 				<label for="<?php echo esc_attr( $uid ); ?>-email"><?php esc_html_e( 'Email', 'counterslot' ); ?></label>
-				<input id="<?php echo esc_attr( $uid ); ?>-email" class="sb-form-control" name="email" type="email" required maxlength="191" autocomplete="email" spellcheck="false">
+				<input id="<?php echo esc_attr( $uid ); ?>-email" class="sb-form-control" name="email" type="email" required maxlength="191" autocomplete="email" spellcheck="false" data-sb-rule="email">
 			</div>
 			<div class="sb-form-group">
 				<label for="<?php echo esc_attr( $uid ); ?>-phone"><?php esc_html_e( 'Phone (optional)', 'counterslot' ); ?></label>
-				<input id="<?php echo esc_attr( $uid ); ?>-phone" class="sb-form-control" name="phone" type="tel" maxlength="50" autocomplete="tel">
+				<input id="<?php echo esc_attr( $uid ); ?>-phone" class="sb-form-control" name="phone" type="tel" maxlength="20" autocomplete="tel" inputmode="tel" data-sb-rule="phone">
 			</div>
 			<?php
 			cslot_view( 'admin/views/partials/custom-field-inputs', [

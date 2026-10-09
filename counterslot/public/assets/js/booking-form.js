@@ -32,6 +32,96 @@
 		});
 	}
 
+	// Same rules as CSlot_Validator on the server.
+	const NAME_RE = /^[\p{L}\p{M}][\p{L}\p{M} .'’-]*$/u;
+	const EMAIL_RE = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
+	const PHONE_RE = /^\+?[0-9 ().-]+$/;
+	const rules = {
+		name(v) {
+			if (!v) {
+				return cfg.i18n.nameRequired;
+			}
+			if (v.length < 2 || v.length > 100) {
+				return cfg.i18n.nameLength;
+			}
+			return NAME_RE.test(v) ? '' : cfg.i18n.nameChars;
+		},
+		email(v) {
+			if (!v) {
+				return cfg.i18n.emailRequired;
+			}
+			return EMAIL_RE.test(v) ? '' : cfg.i18n.emailInvalid;
+		},
+		phone(v) {
+			const digits = v.replace(/\D/g, '').length;
+			return !v || (PHONE_RE.test(v) && digits >= 7 && digits <= 15) ? '' : cfg.i18n.phoneInvalid;
+		},
+	};
+
+	// The message for a field, or '' when it's fine. Browser checks (required, custom fields) included.
+	function fieldError(input) {
+		const rule = rules[input.dataset.sbRule];
+		input.setCustomValidity(rule ? rule(input.value.trim()) : '');
+		if (input.validity.valid) {
+			return '';
+		}
+		if (input.validity.customError) {
+			return input.validationMessage;
+		}
+		if (input.validity.valueMissing) {
+			return input.tagName === 'SELECT' ? cfg.i18n.choose : cfg.i18n.required;
+		}
+		return input.validationMessage;
+	}
+
+	// Message under the field, linked for screen readers.
+	function showError(input, text) {
+		const group = input.closest('.sb-form-group') || input.parentElement;
+		let el = group.querySelector(':scope > .sb-field-error');
+		if (!el && text) {
+			el = document.createElement('p');
+			el.className = 'sb-field-error';
+			el.id = (input.id || input.name.replace(/\W/g, '')) + '-error';
+			group.append(el);
+		}
+		if (!el) {
+			return;
+		}
+		el.textContent = text;
+		el.hidden = !text;
+		const ids = (input.getAttribute('aria-describedby') || '').split(' ').filter((id) => id && id !== el.id);
+		if (text) {
+			input.setAttribute('aria-invalid', 'true');
+			ids.push(el.id);
+		} else {
+			input.removeAttribute('aria-invalid');
+		}
+		if (ids.length) {
+			input.setAttribute('aria-describedby', ids.join(' '));
+		} else {
+			input.removeAttribute('aria-describedby');
+		}
+	}
+
+	// Check every visible field in a step; focus the first problem.
+	function validateStep(step) {
+		let first = null;
+		step.querySelectorAll('input:not([type="hidden"]), select, textarea').forEach((input) => {
+			if (input.disabled || input.closest('[hidden], .sb-hp')) {
+				return;
+			}
+			const text = fieldError(input);
+			showError(input, text);
+			if (text && !first) {
+				first = input;
+			}
+		});
+		if (first) {
+			first.focus();
+		}
+		return !first;
+	}
+
 	function makeButton(className, label) {
 		const b = document.createElement('button');
 		b.type = 'button';
@@ -85,21 +175,56 @@
 			}
 		}
 
-		// Only offer staff who perform the chosen service (empty list = all services).
+		// Location → service → staff: only services someone at the chosen location performs, and
+		// only the staff who perform the chosen service there (no services set = all services).
+		// Options are rebuilt, not hidden: iOS Safari ignores hidden <option>s.
+		const serviceNodes = Array.from(service.children).map((n) => n.cloneNode(true));
+		const staffOptions = staff ? Array.from(staff.options).filter((o) => o.value && o.value !== 'any') : [];
+		const staffFixed = staff ? Array.from(staff.options).filter((o) => !o.value || o.value === 'any') : [];
+
+		function offers(option, serviceId) {
+			const ids = option.dataset.services ? option.dataset.services.split(',') : [];
+			const own = option.dataset.location;
+			const here = !location || !own || own === '0' || own === location.value; // no location = every location
+			return here && (!ids.length || ids.includes(serviceId));
+		}
+
+		function filterServices() {
+			if (!staffOptions.length) {
+				return;
+			}
+			const keep = service.value;
+			const ok = (o) => !o.value || staffOptions.some((m) => offers(m, o.value));
+			const nodes = serviceNodes.map((n) => {
+				if (n.tagName !== 'OPTGROUP') {
+					return ok(n) ? n.cloneNode(true) : null;
+				}
+				const group = n.cloneNode(false);
+				group.append(...Array.from(n.children).filter(ok).map((o) => o.cloneNode(true)));
+				return group.children.length ? group : null;
+			}).filter(Boolean);
+			service.replaceChildren(...nodes);
+			service.value = Array.from(service.options).some((o) => o.value === keep) ? keep : '';
+			if (service.options.length === 1) {
+				service.options[0].textContent = cfg.i18n.noServices;
+			}
+		}
+
 		function filterStaff() {
 			if (!staff) {
 				return;
 			}
-			Array.from(staff.options).forEach((o) => {
-				if (!o.value) {
-					return;
-				}
-				const ids = o.dataset.services ? o.dataset.services.split(',') : [];
-				const elsewhere = location && o.dataset.location !== location.value;
-				o.hidden = o.disabled = elsewhere || (ids.length > 0 && !ids.includes(service.value));
-			});
-			if (staff.selectedOptions[0] && staff.selectedOptions[0].disabled) {
-				staff.value = '';
+			const keep = staff.value;
+			const list = service.value ? staffOptions.filter((o) => offers(o, service.value)) : [];
+			// "Any available" only when there is more than one to choose from.
+			staff.replaceChildren(...staffFixed.filter((o) => !o.value || list.length > 1), ...list);
+			if (list.length === 1) {
+				staff.value = list[0].value;
+			} else {
+				staff.value = Array.from(staff.options).some((o) => o.value === keep) ? keep : '';
+			}
+			if (staff.value) {
+				showError(staff, '');
 			}
 			showStaffPhoto();
 		}
@@ -197,6 +322,10 @@
 				return;
 			}
 			const n = Number(go.dataset.sbGo);
+			const from = steps.indexOf(go.closest('.sb-step'));
+			if (n > from + 1 && !validateStep(steps[from])) {
+				return; // Going forward: this step must be complete first.
+			}
 			if (n === 2 && go.closest('.sb-step') === steps[0] && dateInput.value) {
 				loadSlots(); // Service or staff may have changed; refresh times for the chosen day.
 			}
@@ -277,16 +406,42 @@
 
 		service.addEventListener('change', filterStaff);
 		if (location) {
-			location.addEventListener('change', filterStaff);
+			location.addEventListener('change', () => {
+				filterServices();
+				showFields();
+				filterStaff();
+			});
 		}
 		if (staff) {
 			staff.addEventListener('change', showStaffPhoto);
 		}
+		filterServices();
+		showFields();
 		filterStaff();
+
+		// Re-check a field as it's typed in once it has shown a message, and the name straight
+		// away so digits and symbols are flagged as they're typed.
+		form.addEventListener('input', (e) => {
+			const input = e.target;
+			if (input.dataset.sbRule === 'name' || input.getAttribute('aria-invalid')) {
+				showError(input, fieldError(input));
+			}
+		});
+		form.addEventListener('change', (e) => {
+			if (e.target.getAttribute('aria-invalid')) {
+				showError(e.target, fieldError(e.target));
+			}
+		});
+		form.addEventListener('focusout', (e) => {
+			const input = e.target;
+			if (input.dataset.sbRule && input.value.trim()) {
+				showError(input, fieldError(input));
+			}
+		});
 
 		form.addEventListener('submit', async (e) => {
 			e.preventDefault();
-			if (!form.reportValidity()) {
+			if (!validateStep(steps[2])) {
 				return;
 			}
 			const button = form.querySelector('[type="submit"]');

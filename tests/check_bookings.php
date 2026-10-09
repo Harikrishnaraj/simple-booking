@@ -292,4 +292,29 @@ assert( 'hours' === CSlot_Setup::run( [ 'business_hours_end' => '08:00' ] + $ok_
 assert( 'days' === CSlot_Setup::run( [ 'work_days' => [ 'Funday' ] ] + $ok_setup )->get_error_code() );
 assert( 'duration' === CSlot_Setup::run( [ 'services' => [ 'clinic0' => [ 'on' => 1, 'name' => 'X', 'duration' => 0 ] ] ] + $ok_setup )->get_error_code() );
 
+// Booking form fields: names are letters (any script), phones 7 to 15 digits
+foreach ( [ 'Asha Menon', 'Dr. R. Iyer', 'O’Brien', "D'Souza", 'José-María', 'அஷா', 'Al' ] as $name ) {
+	assert( '' === CSlot_Validator::name_error( $name ), "name ok: $name" );
+}
+foreach ( [ '', 'A', 'John3', '12345', 'Ana@x', '-Ann', str_repeat( 'a', 101 ) ] as $name ) {
+	assert( '' !== CSlot_Validator::name_error( $name ), "name rejected: $name" );
+}
+foreach ( [ '', '9840012345', '+91 98400 12345', '(044) 2345-6789' ] as $phone ) {
+	assert( '' === CSlot_Validator::phone_error( $phone ), "phone ok: $phone" );
+}
+foreach ( [ 'abc', '12345', '98400abcde', '+1234567890123456', '++91 9840012345' ] as $phone ) {
+	assert( '' !== CSlot_Validator::phone_error( $phone ), "phone rejected: $phone" );
+}
+$req = [ 'name' => 'Ann Lee', 'email' => 'ann@example.com', 'phone' => '', 'service_id' => 1, 'booking_date' => '2030-01-01', 'booking_time' => '10:00' ];
+assert( is_array( CSlot_Validator::booking_request( $req ) ) );
+assert( 'name' === CSlot_Validator::booking_request( [ 'name' => 'Ann 2' ] + $req )->get_error_code() );
+assert( 'phone' === CSlot_Validator::booking_request( [ 'phone' => 'call me' ] + $req )->get_error_code() );
+assert( 0 === CSlot_Validator::booking_request( [ 'staff_id' => 'any' ] + $req )['staff_id'], '"Any available" means no particular staff' );
+
+// Staff with no location work at every location
+assert( CSlot_Staff::works_at( [ 'location_id' => null ], 2 ) );
+assert( CSlot_Staff::works_at( [ 'location_id' => 2 ], 2 ) );
+assert( CSlot_Staff::works_at( [ 'location_id' => 1 ], null ) );
+assert( ! CSlot_Staff::works_at( [ 'location_id' => 1 ], 2 ) );
+
 echo "all checks passed\n";
