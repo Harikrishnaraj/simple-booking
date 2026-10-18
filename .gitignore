@@ -1,3 +1,6 @@
 # Build output and local backups
 *.zip
 booking-slots-old-simplebooking-backup/
+
+# Local copies of installed plugins
+backups/

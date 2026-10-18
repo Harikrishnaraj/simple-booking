@@ -44,11 +44,12 @@
 		message.className = 'sb-message' + (type ? ' sb-message-' + type : '');
 	}
 
-	// After a change the page shows stale details, so replace the controls with the result.
-	function done(text) {
-		root.querySelectorAll('[data-sb-manage-actions], .sb-manage-reschedule, .sb-hint').forEach((el) => { el.hidden = true; });
-		setMessage(text, 'success');
-		message.focus();
+	// After a change, reload so the page shows the new status and only the controls that still apply.
+	// The server picks the confirmation message from this fixed list.
+	function reloadWith(result) {
+		const url = new URL(window.location.href);
+		url.searchParams.set('sb_done', result);
+		window.location.assign(url.toString());
 	}
 
 	function choose(group, button) {
@@ -146,7 +147,8 @@
 		}
 		e.currentTarget.disabled = true;
 		try {
-			done((await post('cslot_manage_cancel')).message);
+			await post('cslot_manage_cancel');
+			reloadWith('cancelled');
 		} catch (err) {
 			setMessage(err.message, 'error');
 			e.currentTarget.disabled = false;
@@ -157,7 +159,8 @@
 		e.preventDefault();
 		submit.disabled = true;
 		try {
-			done((await post('cslot_manage_reschedule', { booking_date: chosenDate, booking_time: chosenTime })).message);
+			await post('cslot_manage_reschedule', { booking_date: chosenDate, booking_time: chosenTime });
+			reloadWith('moved');
 		} catch (err) {
 			setMessage(err.message, 'error');
 			if (err.code === 'slot_unavailable') {

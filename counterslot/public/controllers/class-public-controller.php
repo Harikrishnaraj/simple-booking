@@ -206,8 +206,17 @@ class CSlot_Public_Controller {
 			] );
 		}
 
+		// Set by manage.js after a cancel or move: a fixed message, never free text from the URL.
+		$done = [
+			'cancelled' => __( 'Your appointment has been cancelled.', 'counterslot' ),
+			'moved'     => __( 'Your appointment has been moved. We have emailed you the new details.', 'counterslot' ),
+		][ sanitize_key( wp_unslash( $_GET['sb_done'] ?? '' ) ) ] ?? ''; // phpcs:ignore WordPress.Security.NonceVerification
+
 		ob_start();
-		cslot_view( 'public/views/manage', [ 'booking' => $booking ? $this->booking_details( $booking ) : null ] );
+		cslot_view( 'public/views/manage', [
+			'booking' => $booking ? $this->booking_details( $booking ) : null,
+			'done'    => $booking ? $done : '',
+		] );
 		return (string) ob_get_clean();
 	}
 

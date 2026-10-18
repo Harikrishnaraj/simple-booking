@@ -3,6 +3,7 @@
  * A customer's booking, opened from the link in their email.
  *
  * @var array|null $booking Booking with service_name, staff_name, can_change and deadline; null if the link is invalid.
+ * @var string     $done    Confirmation after a cancel or move, or ''.
  */
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -17,6 +18,10 @@ $statuses = [
 ?>
 <div class="sb-booking-wrapper sb-manage" data-sb-manage>
 	<h2 class="sb-booking-title"><?php esc_html_e( 'Your booking', 'counterslot' ); ?></h2>
+
+	<?php if ( $done ) : ?>
+		<p class="sb-message sb-message-success" role="status"><?php echo esc_html( $done ); ?></p>
+	<?php endif; ?>
 
 	<?php if ( ! $booking ) : ?>
 		<p class="sb-message sb-message-error"><?php esc_html_e( 'This link is not valid. Please use the link from your most recent email, or contact us.', 'counterslot' ); ?></p>
