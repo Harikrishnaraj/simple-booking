@@ -320,7 +320,8 @@
   border: 0;
 }
 
-[data-sb-booking] [hidden] {
+/* .sb-actions and similar set display, which would otherwise override the hidden attribute. */
+.sb-booking-wrapper [hidden] {
   display: none !important;
 }
 

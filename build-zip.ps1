@@ -4,7 +4,9 @@
 Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
 
 $src     = Join-Path $PSScriptRoot 'counterslot'
-$version = (Select-String -Path (Join-Path $src 'counterslot.php') -Pattern "define\( 'SB_VERSION', '([^']+)'").Matches[0].Groups[1].Value
+$match   = Select-String -Path (Join-Path $src 'counterslot.php') -Pattern "define\( 'CSLOT_VERSION', '([^']+)'"
+if (-not $match) { throw 'CSLOT_VERSION not found in counterslot.php' }
+$version = $match.Matches[0].Groups[1].Value
 $out     = Join-Path $PSScriptRoot "counterslot-$version.zip"
 
 if (Test-Path $out) { Remove-Item $out -Confirm:$false }

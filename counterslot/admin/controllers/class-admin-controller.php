@@ -61,6 +61,12 @@ class CSlot_Admin_Controller {
 		);
 	}
 
+	public function booking_page_notice(): void {
+		if ( $this->is_plugin_screen() ) {
+			CSlot_Manage::page_notice();
+		}
+	}
+
 	public function enqueue_styles_and_scripts( string $hook ): void {
 		if ( ! $this->is_plugin_screen() ) {
 			return;

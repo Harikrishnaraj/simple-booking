@@ -33,18 +33,40 @@ class CSlot_Manage {
 	}
 
 	/**
-	 * The page set in Settings, or the first published page using the [counterslot] shortcode.
+	 * The page set in Settings, or the first published page with the [counterslot] shortcode.
+	 * Page builders such as Elementor keep the shortcode in post meta rather than post_content,
+	 * so both places are checked; without this, emails silently had no manage link.
 	 */
 	public static function booking_page_url(): string {
 		$id = (int) CSlot_Settings::get_settings()['booking_page_id'];
 		if ( ! $id ) {
 			global $wpdb;
 			$id = (int) $wpdb->get_var(
-				"SELECT ID FROM {$wpdb->posts} WHERE post_status = 'publish' AND post_type IN ('page', 'post')
-				 AND ( post_content LIKE '%[counterslot%' OR post_content LIKE '%[simple_booking%' ) ORDER BY post_type = 'page' DESC, ID ASC LIMIT 1"
+				"SELECT p.ID FROM {$wpdb->posts} p
+				 LEFT JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = '_elementor_data'
+				 WHERE p.post_status = 'publish' AND p.post_type IN ('page', 'post')
+				 AND ( p.post_content LIKE '%[counterslot%' OR p.post_content LIKE '%[simple_booking%'
+				       OR m.meta_value LIKE '%[counterslot%' OR m.meta_value LIKE '%[simple_booking%' )
+				 ORDER BY p.post_type = 'page' DESC, p.ID ASC LIMIT 1"
 			);
 		}
 		return $id ? (string) get_permalink( $id ) : '';
+	}
+
+	/**
+	 * Admin warning when customers can change bookings but no booking page can be found, so the
+	 * manage links in emails would be missing.
+	 */
+	public static function page_notice(): void {
+		if ( ! current_user_can( 'manage_options' ) || empty( CSlot_Settings::get_settings()['customer_changes'] ) || '' !== self::booking_page_url() ) {
+			return;
+		}
+		printf(
+			'<div class="notice notice-warning"><p>%s <a href="%s">%s</a></p></div>',
+			esc_html__( 'CounterSlot can\'t find the page with your booking form, so the "view, cancel or reschedule" links in customer emails are left out.', 'counterslot' ),
+			esc_url( admin_url( 'admin.php?page=sb-settings' ) ),
+			esc_html__( 'Choose the booking page in Settings', 'counterslot' )
+		);
 	}
 
 	/**

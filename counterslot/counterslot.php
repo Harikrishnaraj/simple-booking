@@ -184,6 +184,7 @@ final class CounterSlot {
 		$this->loader->add_action( 'wp_ajax_cslot_skip_setup', $admin, 'ajax_skip_setup' );
 		$this->loader->add_action( 'admin_init', $admin, 'maybe_redirect_to_setup' );
 		$this->loader->add_action( 'admin_notices', $admin, 'setup_notice' );
+		$this->loader->add_action( 'admin_notices', $admin, 'booking_page_notice' );
 	}
 
 	/**
