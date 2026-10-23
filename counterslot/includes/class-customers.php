@@ -24,6 +24,8 @@ class CSlot_Customers {
 
 		$id = $this->get_id_by_email( $email );
 		if ( $id ) {
+			// Same email, new details: the booking must carry what was just typed, not the old record.
+			$wpdb->update( $this->table_name, [ 'name' => $name, 'phone' => $phone ], [ 'id' => $id ], [ '%s', '%s' ], [ '%d' ] );
 			return $id;
 		}
 

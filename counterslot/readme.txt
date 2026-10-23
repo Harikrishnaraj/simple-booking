@@ -4,7 +4,7 @@ Tags: booking, appointment, scheduling, salon, clinic
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 3.0.1
+Stable tag: 3.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -99,6 +99,11 @@ Nothing you need to redo. Install and activate CounterSlot: it switches the old 
 6. Finance: payments by method, unpaid bookings and CSV export.
 
 == Changelog ==
+
+= 3.0.2 =
+* Fix: a returning customer's new name and phone are now used in the booking, emails and admin (the old saved ones were shown).
+* Fix: a booking can only be marked Completed after it is Confirmed.
+* Fix: the admin Filter button is easier to see.
 
 = 3.0.1 =
 * Booking form: the location, service and staff lists are now linked. Customers pick a location first, then see only the services offered there, then only the staff who perform that service there. When only one person qualifies they are picked automatically. This also works on iPhone and iPad, where the lists previously showed everyone.
@@ -206,6 +211,9 @@ Nothing you need to redo. Install and activate CounterSlot: it switches the old 
 * Customers table gains a `note` column (added automatically on update).
 
 == Upgrade Notice ==
+
+= 3.0.2 =
+Fixes wrong customer details in emails and the bookings list.
 
 = 3.0.1 =
 Fixes the booking form: linked service and staff lists, required choices and checks on customer details.

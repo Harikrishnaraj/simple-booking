@@ -374,6 +374,10 @@ class CSlot_Bookings {
 			return new WP_Error( 'invalid', __( 'Could not update the booking status.', 'counterslot' ) );
 		}
 
+		if ( 'completed' === $status && ! in_array( $booking['status'], [ 'confirmed', 'completed' ], true ) ) {
+			return new WP_Error( 'not_confirmed', __( 'Confirm the booking before marking it completed.', 'counterslot' ) );
+		}
+
 		$active  = [ 'pending', 'confirmed' ];
 		$reopens = in_array( $status, $active, true ) && ! in_array( $booking['status'], $active, true );
 		$write   = fn() => $wpdb->update( $this->table_name, [ 'status' => $status ], [ 'id' => $id ], [ '%s' ], [ '%d' ] );
