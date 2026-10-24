@@ -332,6 +332,11 @@ body.sb-admin-screen #wpfooter {
 	color: var(--sb-text);
 }
 
+.sb-button--secondary {
+	border-color: var(--sb-muted);
+	font-weight: 700;
+}
+
 .sb-button--secondary:hover,
 .sb-button--ghost:hover {
 	background: var(--sb-surface-2);

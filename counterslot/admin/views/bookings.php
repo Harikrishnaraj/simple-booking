@@ -143,6 +143,7 @@ $filtered  = (bool) array_filter( $filters );
 								<td>
 									<select class="sb-input sb-status sb-status--<?php echo esc_attr( $b['status'] ); ?>" data-sb-status data-id="<?php echo (int) $b['id']; ?>" aria-label="<?php echo esc_attr( sprintf( /* translators: booking code */ __( 'Status for booking %s', 'counterslot' ), $b['booking_code'] ) ); ?>">
 										<?php foreach ( $statuses as $value => $label ) : ?>
+											<?php if ( 'completed' === $value && ! in_array( $b['status'], [ 'confirmed', 'completed' ], true ) ) { continue; } // Completed only after Confirmed. ?>
 											<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $b['status'], $value ); ?>><?php echo esc_html( $label ); ?></option>
 										<?php endforeach; ?>
 									</select>
