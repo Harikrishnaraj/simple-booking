@@ -87,7 +87,15 @@ $statuses = [
 				</div>
 			</form>
 		<?php elseif ( in_array( $booking['status'], [ 'pending', 'confirmed' ], true ) ) : ?>
-			<p class="sb-hint"><?php esc_html_e( 'To change this appointment, please contact us.', 'counterslot' ); ?></p>
+			<p class="sb-hint">
+				<?php
+				$hours = (int) CSlot_Settings::get_settings()['change_cutoff_hours'];
+				echo esc_html( empty( CSlot_Settings::get_settings()['customer_changes'] )
+					? __( 'To change or cancel this appointment, please contact us.', 'counterslot' )
+					/* translators: %d: number of hours */
+					: sprintf( _n( 'Online changes close %d hour before the appointment. To change or cancel it now, please contact us.', 'Online changes close %d hours before the appointment. To change or cancel it now, please contact us.', $hours, 'counterslot' ), $hours ) );
+				?>
+			</p>
 		<?php endif; ?>
 
 		<div class="sb-message" role="status" aria-live="polite" tabindex="-1" hidden></div>
