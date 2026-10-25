@@ -333,11 +333,18 @@ body.sb-admin-screen #wpfooter {
 }
 
 .sb-button--secondary {
-	border-color: var(--sb-muted);
+	background: var(--sb-accent);
+	border-color: var(--sb-accent);
+	color: var(--sb-accent-text);
 	font-weight: 700;
 }
 
-.sb-button--secondary:hover,
+.sb-button--secondary:hover {
+	background: var(--sb-accent-hover);
+	border-color: var(--sb-accent-hover);
+	color: var(--sb-accent-text);
+}
+
 .sb-button--ghost:hover {
 	background: var(--sb-surface-2);
 	border-color: var(--sb-focus);
