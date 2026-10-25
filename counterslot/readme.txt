@@ -4,7 +4,7 @@ Tags: booking, appointment, scheduling, salon, clinic
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 3.0.2
+Stable tag: 3.0.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -99,6 +99,10 @@ Nothing you need to redo. Install and activate CounterSlot: it switches the old 
 6. Finance: payments by method, unpaid bookings and CSV export.
 
 == Changelog ==
+
+= 3.0.3 =
+* Fix: the booking link now explains when online cancelling has closed and who to contact, instead of showing no buttons.
+* Fix: the admin Filter button is now a solid, high-contrast button.
 
 = 3.0.2 =
 * Fix: a returning customer's new name and phone are now used in the booking, emails and admin (the old saved ones were shown).
@@ -211,6 +215,9 @@ Nothing you need to redo. Install and activate CounterSlot: it switches the old 
 * Customers table gains a `note` column (added automatically on update).
 
 == Upgrade Notice ==
+
+= 3.0.3 =
+Clearer cancel message on booking links; clearer Filter button.
 
 = 3.0.2 =
 Fixes wrong customer details in emails and the bookings list.

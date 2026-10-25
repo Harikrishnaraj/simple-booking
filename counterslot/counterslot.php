@@ -3,7 +3,7 @@
  * Plugin Name:       CounterSlot
  * Plugin URI:        https://counterslot.com/
  * Description:       Online appointment booking for businesses that get paid in person: clinics, salons, tutors, consultants, repair shops and studios. Formerly "Simple Booking".
- * Version:           3.0.2
+ * Version:           3.0.3
  * Author:            CounterSlot
  * Author URI:        https://counterslot.com/
  * License:           GPL-2.0-or-later
@@ -56,7 +56,7 @@ if ( defined( 'SB_VERSION' ) ) {
 /**
  * Define Plugin Constants.
  */
-define( 'CSLOT_VERSION', '3.0.2' );
+define( 'CSLOT_VERSION', '3.0.3' );
 define( 'CSLOT_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'CSLOT_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'CSLOT_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
